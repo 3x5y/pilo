@@ -20,5 +20,8 @@ zpool create tank "$LOOP1"
 
 # Create dataset structure
 zfs create -p tank/data/active/pile
+zfs create -p tank/data/archive
+zfs create -p tank/data/spool
+zfs create -p tank/data/stash
 
 echo "[SETUP] Done"
