@@ -2,10 +2,8 @@
 
 set -e
 
-# setup once
-zfs create -p tank/data/active/pile
+echo "[TEST] Running tests"
 
-# run tests
 sh ./test_admission.sh
 sh ./test_snapshot.sh
 sh ./test_authority.sh

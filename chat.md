@@ -1686,3 +1686,454 @@ Good. That means you’re still moving fast.
 
 This is the part where the spec stops being impressive and starts being accountable.
 
+
+## >> User
+
+OK so far I have your tests and a wrapper script `test.sh`:
+
+```bash
+#!/bin/sh
+
+set -e
+
+# setup once
+zfs create -p tank/data/active/pile
+
+# run tests
+sh ./test_admission.sh
+sh ./test_snapshot.sh
+sh ./test_authority.sh
+```
+
+I've also made an `init.sh` for initial setup:
+
+```bash
+!/bin/sh
+
+APT_INSTALL=(
+    zfsutils-linux
+)
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update \
+  && apt-get -y upgrade \
+  && apt-get -y --no-install-recommends install "${APT_INSTALL[@]}"
+```
+
+Where does the creation of the ZFS storage pool `tank` go?
+
+## >> Assistant
+
+You’ve reached the point where “where does this go?” actually matters. Mildly tragic, but here we are.
+
+Short answer:
+**Not in `init.sh`, and not buried inside `test.sh`.**
+
+If you put it in either, you’ll quietly destroy your ability to reset the world cleanly. Which, given your whole methodology, would be… impressively self-sabotaging.
+
+---
+
+# The Correct Place: **`setup_env.sh` (root, disposable)**
+
+Pool creation is **environment provisioning**, not:
+
+* package installation (`init.sh`)
+* test logic (`test.sh`)
+
+So you want a dedicated script:
+
+```bash
+setup_env.sh
+```
+
+---
+
+# Why Your Current Split Is Slightly Wrong
+
+### `init.sh`
+
+This is:
+
+* one-time
+* machine-level
+* slow
+* not repeatable per test run
+
+If you put `zpool create` here:
+
+* you lose repeatability
+* you can’t easily destroy/recreate state
+* you’ll eventually end up debugging ghosts from previous runs
+
+---
+
+### `test.sh`
+
+This is:
+
+* per-run
+* should assume a known-good environment
+
+If you create the pool here:
+
+* you can’t safely rerun tests
+* you risk collisions (`pool already exists`)
+* teardown becomes ambiguous
+
+---
+
+# What You Actually Want
+
+A **three-phase lifecycle**:
+
+## 1. `init.sh` (once per container)
+
+```bash
+apt-get install zfsutils-linux
+```
+
+Done. Never think about it again.
+
+---
+
+## 2. `setup_env.sh` (every test run, root)
+
+This is where `tank` is born.
+
+Example:
+
+```bash
+#!/bin/sh
+set -e
+
+echo "[SETUP] Creating test environment"
+
+# Clean up if previous run was sloppy
+zpool destroy -f tank 2>/dev/null || true
+losetup -D 2>/dev/null || true
+rm -f /tmp/vdev* 2>/dev/null || true
+
+# Create loopback devices (fast, disposable)
+truncate -s 2G /tmp/vdev1
+truncate -s 2G /tmp/vdev2
+
+LOOP1=$(losetup --show -f /tmp/vdev1)
+LOOP2=$(losetup --show -f /tmp/vdev2)
+
+# Create pool
+zpool create tank "$LOOP1"
+
+# Create dataset structure
+zfs create -p tank/data/active/pile
+
+echo "[SETUP] Done"
+```
+
+---
+
+## 3. `test.sh` (assumes environment exists)
+
+Your current script becomes:
+
+```bash
+#!/bin/sh
+set -e
+
+echo "[TEST] Running tests"
+
+sh ./test_admission.sh
+sh ./test_snapshot.sh
+sh ./test_authority.sh
+```
+
+No setup. No side effects. Just truth or failure.
+
+---
+
+## 4. `teardown_env.sh` (every test run, root)
+
+```bash
+#!/bin/sh
+set -e
+
+echo "[TEARDOWN] Destroying test environment"
+
+zpool destroy -f tank 2>/dev/null || true
+losetup -D 2>/dev/null || true
+rm -f /tmp/vdev* 2>/dev/null || true
+
+echo "[TEARDOWN] Done"
+```
+
+---
+
+# The Loop You Actually Run
+
+```bash
+sh setup_env.sh
+sh test.sh
+sh teardown_env.sh
+```
+
+If you’re feeling fancy later:
+
+```bash
+sh setup_env.sh && sh test.sh; RESULT=$?; sh teardown_env.sh; exit $RESULT
+```
+
+---
+
+# Why This Structure Matters (more than it seems)
+
+You just created:
+
+* **deterministic environment**
+* **stateless test runs**
+* **fast reset cycle**
+
+Which directly supports:
+
+> iterative test-first methodology
+
+Without this, you end up with:
+
+* hidden state
+* irreproducible failures
+* slow debugging
+* quiet loss of trust in your tests
+
+And once you stop trusting tests, the whole spec collapses into aspirational fiction.
+
+---
+
+# Subtle Design Win You Just Earned
+
+You’ve cleanly separated:
+
+| Layer    | Responsibility         |
+| -------- | ---------------------- |
+| init     | install capabilities   |
+| setup    | create system instance |
+| test     | verify behaviour       |
+| teardown | destroy instance       |
+
+That maps almost perfectly onto your spec’s:
+
+* stewardship vs semantic actions
+* observability vs operation
+
+Not bad for something you didn’t explicitly design.
+
+---
+
+# One Mild Criticism (because you earned it)
+
+You asked:
+
+> “Where does the pool creation go?”
+
+What you were really asking is:
+
+> “What is the lifecycle boundary of the system under test?”
+
+That’s the level you should keep aiming at.
+The shell scripts are just the consequence.
+
+---
+
+# Bottom Line
+
+* `init.sh` → installs ZFS
+* `setup_env.sh` → creates `tank`
+* `test.sh` → assumes `tank` exists
+* `teardown_env.sh` → destroys `tank`
+
+Clean, fast, repeatable.
+
+Which is exactly what your spec claims to care about, so now you have to live up to it.
+
+
+## >> User
+
+I've added those files, and update the tests for the correct mount point (under
+/tank).
+
+The admission test fails because the file does not appear in the `zfs diff`.
+Shouldn't the diff be against an earlier snapshot?
+
+## >> Assistant
+
+Yes. That test is wrong. Not philosophically wrong, just… mechanically nonsense.
+
+You snapshot **after** the file exists, then ask ZFS “what changed?” and act surprised when it shrugs.
+
+---
+
+# What `zfs diff` Actually Does
+
+`zfs diff A` = “show changes between snapshot **A** and current state”
+
+So if you do:
+
+```bash
+capture file
+zfs snapshot tank/data@now
+zfs diff tank/data@now
+```
+
+You’re asking:
+
+> “What changed since I froze time?”
+
+Answer: nothing. Congratulations.
+
+---
+
+# What You Actually Want to Prove
+
+From your spec:
+
+> data is included in snapshot scope
+
+That means:
+
+* the dataset contains the file **at snapshot time**
+* the snapshot captures it
+
+Not “diff shows something.” That was a sloppy proxy.
+
+---
+
+# Fix the Test Properly
+
+## Correct Strategy
+
+1. take snapshot **before** admission
+2. perform admission
+3. diff against earlier snapshot
+
+---
+
+## Fixed Test
+
+Replace your admission test with this:
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="admission_completeness"
+
+echo "[TEST] $TEST_NAME"
+
+TMPFILE="/tmp/test_admission.txt"
+echo "hello world" > "$TMPFILE"
+
+# --- Pre-state snapshot ---
+SNAP_BEFORE="tank/data@before_admission"
+zfs snapshot "$SNAP_BEFORE"
+
+# --- Action ---
+capture "$TMPFILE"
+
+# --- Verify: canonical location ---
+if [ ! -f /tank/data/active/pile/test_admission.txt ]; then
+    echo "FAIL: file not in canonical location"
+    exit 1
+fi
+
+# --- Verify: change visible relative to snapshot ---
+if ! zfs diff "$SNAP_BEFORE" | grep -q "test_admission.txt"; then
+    echo "FAIL: file not detected as change relative to snapshot"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+---
+
+# Even Better (more robust, less clever)
+
+If you want something less fragile than parsing `zfs diff` output:
+
+### Snapshot AFTER and check snapshot contents directly
+
+```bash
+SNAP_AFTER="tank/data@after_admission"
+zfs snapshot "$SNAP_AFTER"
+
+if [ ! -f "/tank/data/.zfs/snapshot/after_admission/active/pile/test_admission.txt" ]; then
+    echo "FAIL: file not present in snapshot"
+    exit 1
+fi
+```
+
+This is actually closer to your requirement:
+
+> “data included in snapshot scope”
+
+---
+
+# Which Version Should You Use?
+
+* **diff-based** → proves *change detection*
+* **snapshot-path check** → proves *snapshot inclusion*
+
+Your spec cares about **inclusion**, not diff semantics.
+
+So the second one is cleaner.
+
+---
+
+# Subtle Spec Gap You Just Found
+
+Your original acceptance test said:
+
+> “data included in snapshot scope”
+
+But didn’t define how to observe that.
+
+Now you’ve implicitly defined it as:
+
+> “file exists in snapshot namespace”
+
+That’s good. That’s enforceable.
+
+You should probably tighten the spec wording later, or future-you will forget and reintroduce this exact confusion.
+
+---
+
+# Bonus Irritation You’ll Hit Soon
+
+Snapshot names:
+
+```bash
+tank/data@before_admission
+```
+
+If you rerun tests without cleanup, this will fail.
+
+So either:
+
+* ensure teardown destroys the pool (preferred)
+* or use unique snapshot names (annoying but safe)
+
+---
+
+# Bottom Line
+
+* Your instinct was correct
+* The original test was flawed
+* Use either:
+
+  * diff against earlier snapshot, or
+  * direct snapshot inspection (better)
+
+You’ve now hit the first real example of:
+
+> “spec sounds precise, but implementation forces you to define what it actually means”
+
+Get used to that. It’s basically the whole project.
+

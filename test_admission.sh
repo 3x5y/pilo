@@ -13,17 +13,17 @@ echo "hello world" > "$TMPFILE"
 capture "$TMPFILE"
 
 # --- Verify: canonical location ---
-if [ ! -f /data/active/pile/test_admission.txt ]; then
+if [ ! -f /tank/data/active/pile/test_admission.txt ]; then
     echo "FAIL: file not in canonical location"
     exit 1
 fi
 
 # --- Verify: snapshot visibility ---
-SNAP="tank/data@admission_test"
+SNAP="tank/data/active/pile@after_admission"
 zfs snapshot "$SNAP"
 
-if ! zfs diff "$SNAP" | grep -q "test_admission.txt"; then
-    echo "FAIL: file not visible in snapshot diff"
+if [ ! -f "/tank/data/active/pile/.zfs/snapshot/after_admission/test_admission.txt" ]; then
+    echo "FAIL: file not present in snapshot"
     exit 1
 fi
 

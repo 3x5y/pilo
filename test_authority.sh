@@ -11,7 +11,7 @@ echo "authority check" > "$TMPFILE"
 # --- Action ---
 capture "$TMPFILE"
 
-CANONICAL="/data/active/pile/test_authority.txt"
+CANONICAL="/tank/data/active/pile/test_authority.txt"
 
 # --- Verify: exists in canonical location ---
 if [ ! -f "$CANONICAL" ]; then

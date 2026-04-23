@@ -5,12 +5,12 @@ TEST_NAME="snapshot_recoverability"
 
 echo "[TEST] $TEST_NAME"
 
-FILE="/data/active/pile/recovery_test.txt"
+FILE="/tank/data/active/pile/recovery_test.txt"
 
 # --- Setup ---
 echo "recover me" > "$FILE"
 
-SNAP="tank/data@recovery_test"
+SNAP="tank/data/active/pile@recovery_test"
 zfs snapshot "$SNAP"
 
 # --- Action: destroy file ---
