@@ -2137,3 +2137,677 @@ You’ve now hit the first real example of:
 
 Get used to that. It’s basically the whole project.
 
+
+## >> User
+
+Good, that works but I had to change the tests to snapshot the `pile` dataset
+specifically as snapshots are not recursive by default. Now the these first
+tests pass!
+
+I also added `run-tests.sh` to encapsulate the test loop:
+
+```bash
+#!/bin/sh
+
+export PATH=$(dirname $0)/system:$PATH
+
+echo PATH=$PATH
+sh setup_env.sh && sh test.sh
+
+RESULT=$?
+
+sh teardown_env.sh
+
+exit $RESULT
+```
+
+Now, what's next?
+
+## >> Assistant
+
+You got green tests on the first slice. Try not to get emotionally attached, they’re about to get a lot more judgmental.
+
+Also, yes, welcome to ZFS: “recursive” is always implied until it very much isn’t. You handled it correctly.
+
+---
+
+# Where You Are (don’t lose the plot)
+
+Right now you have proven:
+
+* canonical admission exists
+* snapshot inclusion works
+* rollback works
+* authority location is defined (implicitly via path + move semantics)
+
+What you **do not have yet**:
+
+* durability (off-site anything)
+* RPO
+* reconciliation model
+* observability
+* integrity guarantees beyond ZFS
+
+So the next step is not “add more features.”
+It’s: **close the next biggest lie in the system.**
+
+---
+
+# The Next Lie: “Transient State Is Bounded”
+
+Your spec makes a strong claim:
+
+> transient authoritative state must be reconciled within bounded time
+
+Right now:
+
+* there is no transient state model
+* no detection
+* no enforcement
+* no visibility
+
+So this part of the spec is currently fiction.
+
+---
+
+# Next Iteration Goal
+
+## Implement and test:
+
+### **Transient State Detection + Reconciliation**
+
+This is the smallest step that:
+
+* introduces real system behaviour
+* forces observability
+* connects directly to RPO
+
+---
+
+# Minimal Design (don’t get clever)
+
+You already have:
+
+```text
+/tank/data/active/pile
+```
+
+Add:
+
+```text
+/tank/data/spool
+```
+
+Interpretation:
+
+* `spool/` = transient authoritative state
+* `pile/` = canonical admitted state
+
+---
+
+# New Behaviour
+
+### 1. Capture can target spool (transient)
+
+```bash
+capture --transient file.txt
+```
+
+→ lands in `/spool`
+
+### 2. Reconciliation moves to canonical
+
+```bash
+reconcile file.txt
+```
+
+→ moves from `/spool` → `/pile`
+
+---
+
+# New Tests (this is the real work)
+
+## Test 4 — Transient State Visibility
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="transient_visibility"
+echo "[TEST] $TEST_NAME"
+
+FILE="/tank/data/spool/transient.txt"
+echo "temp" > "$FILE"
+
+# simulate detection mechanism
+if ! ls /tank/data/spool | grep -q "transient.txt"; then
+    echo "FAIL: transient state not visible"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+Yes, this is trivial. That’s the point. Start stupid.
+
+---
+
+## Test 5 — Reconciliation
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="transient_reconciliation"
+echo "[TEST] $TEST_NAME"
+
+TMP="/tmp/transient.txt"
+echo "work" > "$TMP"
+
+capture --transient "$TMP"
+
+reconcile transient.txt
+
+if [ ! -f /tank/data/active/pile/transient.txt ]; then
+    echo "FAIL: not reconciled to canonical"
+    exit 1
+fi
+
+if [ -f /tank/data/spool/transient.txt ]; then
+    echo "FAIL: transient state not cleared"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+---
+
+## Test 6 — Transient Age Detection (first non-trivial one)
+
+Now we get slightly serious.
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="transient_age_detection"
+echo "[TEST] $TEST_NAME"
+
+FILE="/tank/data/spool/old.txt"
+echo "old" > "$FILE"
+
+# fake age (2 days old)
+touch -d "2 days ago" "$FILE"
+
+# your future observability command
+if ! check_transient_age | grep -q "old.txt"; then
+    echo "FAIL: old transient not detected"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+---
+
+# Minimal Stub Implementations
+
+## capture (extend it, don’t rewrite it)
+
+```bash
+#!/bin/sh
+set -e
+
+if [ "$1" = "--transient" ]; then
+    SRC="$2"
+    DEST="/tank/data/spool/$(basename "$SRC")"
+else
+    SRC="$1"
+    DEST="/tank/data/active/pile/$(basename "$SRC")"
+fi
+
+mv "$SRC" "$DEST"
+```
+
+---
+
+## reconcile
+
+```bash
+#!/bin/sh
+set -e
+
+FILE="$1"
+
+mv "/tank/data/spool/$FILE" "/tank/data/active/pile/$FILE"
+```
+
+---
+
+## check_transient_age (cheap version)
+
+```bash
+#!/bin/sh
+
+find /tank/data/spool -type f -mtime +1
+```
+
+---
+
+# Update Setup
+
+Add:
+
+```bash
+zfs create -p tank/data/spool
+```
+
+---
+
+# Why This Is the Right Next Step
+
+This iteration forces you to confront:
+
+* **Controlled Transience Principle**
+* **RPO boundary reality**
+* **observability requirements**
+* **workflow completeness (capture → reconcile)**
+
+Without touching:
+
+* cloud
+* replication
+* integrity manifests
+* service sync
+
+So complexity stays low, but conceptual coverage increases.
+
+---
+
+# Subtle Problem You’ll Hit Next
+
+You now have:
+
+* canonical data (pile)
+* transient data (spool)
+
+But your durability model says:
+
+> RPO applies only to reconciled canonical data
+
+So now you’ve created a situation where:
+
+* transient data exists
+* is not protected
+* but looks very similar to canonical data
+
+This is exactly the kind of ambiguity your system is supposed to eliminate.
+
+You’ll need to make that visible soon.
+
+Not now. But soon.
+
+---
+
+# Bottom Line
+
+Next iteration:
+
+* introduce **spool (transient state)**
+* implement **reconcile**
+* add **basic observability (age detection)**
+
+You’re moving from “storage system” to “governed system.”
+
+Which is where things start getting interesting and slightly less forgiving.
+
+
+## >> User
+
+Um, I think we need to tighten up our terminology or concepts to ensure our
+shared understanding is accurate.
+
+First, `spool` is intended to be the dataset for my email, caldav and carddav
+synchronisation. So it's only loosely like a "spool" in the original UNIX sense.
+
+"Transient authoritative state" designates local working changes that haven't
+yet been committed to a git repository; that is, before they are "reconciled".
+The idea is that these changes can be temporarily captured in a "stash" area in
+order to provide a reduced durability level (e.g. locally replicated only) level
+prior to git commit and full cloud replication. (There is also a subtype of this
+state where high-priority changes are incrementally replicated and achieve full
+durability.) I think you sort of capture this in the proposed test, but in the
+main I'm not exactly where this category properly sits.
+
+Are we taking the spec a little too literally and losing sight of the background
+intentions?
+
+As a reminder and guide, here are the canonical classes and how they are
+intended to be treated.
+
+* Project Work: these are intended to use git repositories where feasible (so
+  everything except large mutating binary projects). Working copies are stored
+  on clients (outside of canonical storage) and "reconciled" by git commit
+  (where practical, rsync otherwise). They are almost exclusively modified on
+  clients only and therefore outside of "canonical authority", hence the need
+  for "transient authoritative state".
+* Administrative Information: a smaller set that has a similar mutation profile
+  as Project Work, but resides on the server and has special semantic status due
+  to it describing the system itself.
+* Synchronised Communication Streams: the "spool" mentioned above.
+  Bi-directional mirrors of IMAP (as Maildir), CalDAV and CardDAV.
+* Static Personal Material: static files (PDFs, photos, recordings, etc)
+  encompassing both personally-relevant (either received or locally generated
+  material for filing), and collected material (e.g. books, media). Both types
+  have the same intake process via a "pile", which is a 12-month ageing buffer
+  to allow for deferred classification and retention decisions.
+* Provisional Peripheral Capture: opportunistic capture of client device state
+  (e.g. HOME directories) as a safety net to allow for imperfect discipline and
+  progressive rollout of the system. It is not replicated to the cloud and
+  therefore its protection obligation is "limited but non-zero".
+
+It's very important to honour these intentions rather than to blindly follow
+the specification. If necessary, the specification should be updated to match
+the above intentions.
+
+So with all that said, what's next, realistically?
+
+## >> Assistant
+
+Good, you caught it. I was about to happily bulldoze your model into something “testable” and accidentally erase the distinctions that make the system worth building.
+
+So no, you’re not overthinking it. You’re correcting drift before it hardens into architecture. That’s exactly the moment to push back.
+
+---
+
+# First: Clean up the conceptual mess I introduced
+
+I collapsed three different things into one “spool/transient” blob. That was wrong.
+
+Let’s restate your model in operational terms so tests don’t corrupt it:
+
+## 1. Transient Authoritative State (Project Work)
+
+* Lives on **clients**
+* Outside canonical authority
+* Becomes canonical via **git commit + push**
+* May be optionally **captured (stash)** for partial durability
+
+👉 This is **not a server dataset**
+
+---
+
+## 2. Stash (Peripheral / Safety Net)
+
+* Server-side
+* Not canonical
+* Weak durability (local, maybe snapshots)
+* Catch-all for:
+
+  * imperfect discipline
+  * pre-reconciliation safety
+
+👉 This is **Provisional Peripheral Capture**
+
+---
+
+## 3. Spool (Communication Streams)
+
+* Server-side
+* Canonical
+* Mirror of external services
+* Append-dominant
+
+👉 This is **not transient anything**
+
+---
+
+## 4. Pile (Static Intake)
+
+* Server-side
+* Canonical
+* Deferred classification buffer
+
+---
+
+So the corrected mapping is:
+
+| Concept         | Location | Canonical    | Purpose         |
+| --------------- | -------- | ------------ | --------------- |
+| Transient state | client   | no           | working changes |
+| Stash           | server   | no (limited) | safety net      |
+| Spool           | server   | yes          | service mirror  |
+| Pile            | server   | yes          | intake          |
+
+---
+
+# What went wrong earlier
+
+I tried to force:
+
+> “transient state must be testable”
+
+into:
+
+> “transient state must exist on the server”
+
+That’s false in your system.
+
+Your design explicitly says:
+
+> the risky part happens **off the server**
+
+Which is actually the interesting bit.
+
+---
+
+# So what’s the *real* next step?
+
+Not spool. Not reconciliation. Not stash mechanics.
+
+Those all depend on something more fundamental you still don’t have:
+
+---
+
+# The Next Real Gap: **Dataset Policy Boundaries**
+
+Right now you have:
+
+* `tank/data/active/pile`
+
+That’s it.
+
+But your entire system depends on:
+
+> datasets define behaviour (snapshot, replication, durability)
+
+And you haven’t tested that idea at all.
+
+---
+
+# Next Iteration Goal
+
+## Prove that datasets encode policy differences
+
+Not philosophically. Mechanically.
+
+---
+
+# Minimal Expansion of Layout
+
+Extend setup:
+
+```bash
+zfs create -p tank/data/active/pile
+zfs create -p tank/data/archive
+zfs create -p tank/data/spool
+zfs create -p tank/data/stash
+```
+
+Now you have four classes represented physically.
+
+---
+
+# New Tests (these actually matter)
+
+## Test 4 — Dataset Separation
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="dataset_separation"
+echo "[TEST] $TEST_NAME"
+
+zfs list | grep -q "tank/data/active/pile" || exit 1
+zfs list | grep -q "tank/data/archive" || exit 1
+zfs list | grep -q "tank/data/spool" || exit 1
+zfs list | grep -q "tank/data/stash" || exit 1
+
+echo "PASS: $TEST_NAME"
+```
+
+Boring. Necessary. This anchors your model in reality.
+
+---
+
+## Test 5 — Policy Divergence (snapshots)
+
+Now we stop pretending datasets are just folders.
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="snapshot_policy_divergence"
+echo "[TEST] $TEST_NAME"
+
+# simulate policy
+zfs set com.test:snapshot=frequent tank/data/active/pile
+zfs set com.test:snapshot=rare tank/data/archive
+
+PILE_POLICY=$(zfs get -H -o value com.test:snapshot tank/data/active/pile)
+ARCHIVE_POLICY=$(zfs get -H -o value com.test:snapshot tank/data/archive)
+
+if [ "$PILE_POLICY" = "$ARCHIVE_POLICY" ]; then
+    echo "FAIL: policies not distinct"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+You’re not implementing snapshots yet.
+You’re proving you *can express different behaviour*.
+
+---
+
+## Test 6 — Canonical vs Non-Canonical Boundary
+
+This is the important one.
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="canonical_boundary"
+echo "[TEST] $TEST_NAME"
+
+# canonical
+echo "important" > /tank/data/active/pile/canon.txt
+
+# non-canonical (stash)
+echo "temporary" > /tank/data/stash/temp.txt
+
+# snapshot canonical dataset
+zfs snapshot tank/data/active/pile@canon_test
+
+# verify canonical file exists in snapshot
+if [ ! -f /tank/data/active/pile/.zfs/snapshot/canon_test/canon.txt ]; then
+    echo "FAIL: canonical not protected"
+    exit 1
+fi
+
+# stash is NOT covered (by policy, not mechanics yet)
+# (we're not enforcing, just observing separation)
+
+echo "PASS: $TEST_NAME"
+```
+
+This encodes your most important idea:
+
+> not all data is equally protected
+
+---
+
+# Why This Is the Right Next Step
+
+You are validating:
+
+* the **information model maps to storage**
+* datasets are **policy boundaries**
+* canonical vs non-canonical is **real, not conceptual**
+
+Without touching:
+
+* git
+* clients
+* cloud
+* RPO
+
+---
+
+# About Transient State (what to do with it now)
+
+Do **nothing** yet.
+
+Seriously.
+
+Because:
+
+* it lives on clients
+* you don’t have a client model yet
+* testing it now would be fake
+
+You introduce it when you:
+
+* simulate a client repo
+* test commit/push
+* test loss before reconciliation
+
+That’s a later iteration.
+
+---
+
+# Spec Adjustment (you were right)
+
+You should tighten one thing:
+
+Current ambiguity:
+
+> “transient state may be captured”
+
+Clarify to:
+
+> “transient authoritative state resides on clients and is outside canonical custody; optional server-side capture (stash) provides limited, non-canonical durability”
+
+That prevents exactly the confusion we just had.
+
+---
+
+# Bottom Line
+
+Next step is not more workflows.
+
+It’s proving that:
+
+> your classification system actually exists in the filesystem as enforceable structure
+
+You’re building the *skeleton*, not the muscles.
+
+Right now your system works because it’s simple.
+
+The next phase is making sure it doesn’t collapse when it stops being simple.
+
+

@@ -2,7 +2,7 @@
 
 # Personal Information Management System Specification
 
-## Draft v0.2
+## Draft v0.3
 
 ---
 
@@ -219,6 +219,10 @@ Transient authoritative state is tolerated operationally but is temporary by des
 It does not establish alternate canonical authority.
 
 Transient authoritative state is not covered by durability guarantees unless explicitly captured into a protected dataset.
+
+Transient authoritative state normally resides on clients and is outside
+canonical custody; optional server-side capture (stash) provides limited,
+non-canonical durability.
 
 ---
 
