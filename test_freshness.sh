@@ -10,6 +10,6 @@ zfs create -p "$DATASET" 2>/dev/null || true
 zfs snapshot "$DATASET@test_snap"
 
 # Fake staleness (sleep or just accept "has snapshot")
-OUTPUT=$(system status)
+OUTPUT=$(system-status || true)
 
 echo "$OUTPUT" | grep -q "snapshot"

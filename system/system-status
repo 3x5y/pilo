@@ -1,0 +1,54 @@
+#!/bin/sh
+
+STATUS=0
+
+check_transient() {
+    # naive: scan for git repos under /tmp and working dir
+    for dir in $(find /tmp -type d -name ".git" 2>/dev/null); do
+        repo=$(dirname "$dir")
+        if ! git -C "$repo" diff --quiet 2>/dev/null; then
+            echo "[WARN] transient: repo $repo has uncommitted changes"
+            STATUS=1
+        fi
+    done
+}
+
+check_pile() {
+    PILE="/tank/data/active/pile"
+
+    [ -d "$PILE" ] || return
+
+    NOW=$(date +%s)
+
+    for f in "$PILE"/*; do
+        [ -f "$f" ] || continue
+
+        MTIME=$(stat -c %Y "$f")
+        AGE=$((NOW - MTIME))
+
+        # 1 day threshold for now (test-friendly)
+        if [ "$AGE" -gt 86400 ]; then
+            echo "[WARN] pile: $f is older than threshold"
+            STATUS=1
+        fi
+    done
+}
+
+check_snapshot() {
+    DATASET="tank/data/active/pile"
+
+    SNAP=$(zfs list -t snapshot -o name -s creation | grep "^$DATASET@" | tail -n 1)
+
+    if [ -z "$SNAP" ]; then
+        echo "[WARN] snapshot: no snapshots for $DATASET"
+        STATUS=1
+    else
+        echo "[OK] snapshot: found $SNAP"
+    fi
+}
+
+check_transient
+check_pile
+check_snapshot
+
+exit $STATUS

@@ -11,7 +11,7 @@ echo "data" > "$FILE"
 touch -d "2 days ago" "$FILE"
 
 # Run system status
-OUTPUT=$(system status)
+OUTPUT=$(system-status || true)
 
 echo "$OUTPUT" | grep -q "pile"
 echo "$OUTPUT" | grep -q "old_file.txt"
