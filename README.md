@@ -8,3 +8,5 @@ What I did:
 * Added chat.md
 * Added first failing tests
 * Added init.sh
+* Added setup, teardown, runner and capture implementation
+* Corrected tests now pass
