@@ -1,10 +1,6 @@
 #!/bin/sh
 set -e
 
-TEST_NAME="authority_location"
-
-echo "[TEST] $TEST_NAME"
-
 TMPFILE="/tmp/test_authority.txt"
 echo "authority check" > "$TMPFILE"
 
@@ -32,5 +28,3 @@ if [ "$REALPATH" != "$CANONICAL" ]; then
     echo "FAIL: canonical path is indirect or ambiguous"
     exit 1
 fi
-
-echo "PASS: $TEST_NAME"

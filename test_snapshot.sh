@@ -1,10 +1,6 @@
 #!/bin/sh
 set -e
 
-TEST_NAME="snapshot_recoverability"
-
-echo "[TEST] $TEST_NAME"
-
 FILE="/tank/data/active/pile/recovery_test.txt"
 
 # --- Setup ---
@@ -29,5 +25,3 @@ if [ ! -f "$FILE" ]; then
     echo "FAIL: file not restored after rollback"
     exit 1
 fi
-
-echo "PASS: $TEST_NAME"
