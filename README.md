@@ -6,3 +6,4 @@ What I did:
 
 * Added vibe-drafted specification.md
 * Added chat.md
+* Added first failing tests

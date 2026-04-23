@@ -1402,3 +1402,287 @@ You’re refusing to solve it before it actually exists.
 
 Which, for once, is the correct move.
 
+
+## >> User
+
+OK, give implementations for the three tests already proposed for the first
+milestone, ready to create the stub system implementation:
+
+1. Admission Completeness (reduced form)
+2. Snapshot Recoverability
+3. Authority Location
+
+## >> Assistant
+
+You want something runnable, not another lecture about “conceptual integrity.” Fine. Let’s pin this down so reality can start disagreeing with you.
+
+These tests assume:
+
+* running as **root** (for now, don’t get noble yet)
+* ZFS pool named `tank`
+* dataset mounted at `/data`
+* your stub system exposes:
+
+  * `capture <file>`
+  * `snapshot` (optional for test 2, but we’ll include it)
+
+No magic. Just shell.
+
+---
+
+# 0. Minimal Test Harness Assumptions
+
+You’ll want a predictable layout:
+
+```bash
+/data/active/pile
+```
+
+Create it in setup (not inside tests):
+
+```bash
+zfs create -p tank/data/active/pile
+```
+
+---
+
+# 1. Test: Admission Completeness (reduced form)
+
+## Purpose
+
+Verify that:
+
+* capture moves data into canonical location
+* data is visible to ZFS snapshot system
+
+## Test Script
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="admission_completeness"
+
+echo "[TEST] $TEST_NAME"
+
+# --- Setup ---
+TMPFILE="/tmp/test_admission.txt"
+echo "hello world" > "$TMPFILE"
+
+# --- Action ---
+capture "$TMPFILE"
+
+# --- Verify: canonical location ---
+if [ ! -f /data/active/pile/test_admission.txt ]; then
+    echo "FAIL: file not in canonical location"
+    exit 1
+fi
+
+# --- Verify: snapshot visibility ---
+SNAP="tank/data@admission_test"
+zfs snapshot "$SNAP"
+
+if ! zfs diff "$SNAP" | grep -q "test_admission.txt"; then
+    echo "FAIL: file not visible in snapshot diff"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+## Notes
+
+* This is slightly cheating: you snapshot *after* capture and check presence via diff.
+* Good enough to prove “dataset inclusion,” which is what you actually care about.
+
+---
+
+# 2. Test: Snapshot Recoverability
+
+## Purpose
+
+Prove:
+
+* snapshot captures state
+* rollback restores deleted data
+
+## Test Script
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="snapshot_recoverability"
+
+echo "[TEST] $TEST_NAME"
+
+FILE="/data/active/pile/recovery_test.txt"
+
+# --- Setup ---
+echo "recover me" > "$FILE"
+
+SNAP="tank/data@recovery_test"
+zfs snapshot "$SNAP"
+
+# --- Action: destroy file ---
+rm "$FILE"
+
+if [ -f "$FILE" ]; then
+    echo "FAIL: file not deleted"
+    exit 1
+fi
+
+# --- Action: rollback ---
+zfs rollback "$SNAP"
+
+# --- Verify ---
+if [ ! -f "$FILE" ]; then
+    echo "FAIL: file not restored after rollback"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+## Notes
+
+* This is your **first real durability signal**, even though it’s local only.
+* If this fails, everything else is fiction.
+
+---
+
+# 3. Test: Authority Location
+
+## Purpose
+
+Ensure:
+
+* exactly one canonical location exists
+* no ambiguity or duplication
+
+We’re not proving global uniqueness (that’s harder), just **system-defined authority is consistent**.
+
+## Test Script
+
+```bash
+#!/bin/sh
+set -e
+
+TEST_NAME="authority_location"
+
+echo "[TEST] $TEST_NAME"
+
+TMPFILE="/tmp/test_authority.txt"
+echo "authority check" > "$TMPFILE"
+
+# --- Action ---
+capture "$TMPFILE"
+
+CANONICAL="/data/active/pile/test_authority.txt"
+
+# --- Verify: exists in canonical location ---
+if [ ! -f "$CANONICAL" ]; then
+    echo "FAIL: canonical file missing"
+    exit 1
+fi
+
+# --- Verify: no duplicate in intake source ---
+if [ -f "$TMPFILE" ]; then
+    echo "FAIL: source file still exists (ambiguous authority)"
+    exit 1
+fi
+
+# --- Verify: canonical path resolves cleanly ---
+REALPATH=$(readlink -f "$CANONICAL")
+
+if [ "$REALPATH" != "$CANONICAL" ]; then
+    echo "FAIL: canonical path is indirect or ambiguous"
+    exit 1
+fi
+
+echo "PASS: $TEST_NAME"
+```
+
+## Notes
+
+This encodes a **design decision** you didn’t explicitly lock down:
+
+> capture = move, not copy
+
+If you later change that, this test will break. Good. That’s the point.
+
+---
+
+# 4. Minimal Stub Implementation (so tests pass)
+
+You asked for tests, but you obviously need something to fail against.
+
+Here’s the smallest possible `capture`:
+
+```bash
+#!/bin/sh
+# /usr/local/bin/capture
+
+set -e
+
+SRC="$1"
+DEST="/data/active/pile/$(basename "$SRC")"
+
+mv "$SRC" "$DEST"
+```
+
+And optional snapshot helper:
+
+```bash
+#!/bin/sh
+# /usr/local/bin/snapshot
+
+set -e
+
+zfs snapshot tank/data@$(date +%s)
+```
+
+---
+
+# 5. How to Run (no excuses)
+
+```bash
+# setup once
+zfs create -p tank/data/active/pile
+
+# run tests
+sh test_admission.sh
+sh test_snapshot.sh
+sh test_authority.sh
+```
+
+---
+
+# 6. What You’ve Actually Achieved
+
+If these pass, you now have:
+
+* a real canonical location
+* real ZFS-backed storage
+* real snapshot recovery
+* a concrete definition of “admission”
+
+Which is already more than most “backup systems” ever reach.
+
+---
+
+# 7. What’s Missing (and don’t touch yet)
+
+You have NOT implemented:
+
+* durability (off-site)
+* RPO
+* replication
+* integrity manifests
+
+Good. That means you’re still moving fast.
+
+---
+
+This is the part where the spec stops being impressive and starts being accountable.
+
