@@ -2811,3 +2811,236 @@ Right now your system works because it’s simple.
 The next phase is making sure it doesn’t collapse when it stops being simple.
 
 
+## >> User
+
+While we're adding tests, I've refactored the runner to enable dynamic
+discovery and so each test doesn't need to print its status or name:
+
+```bash
+!/bin/sh
+
+set -e
+
+RED='\e[0;31m'
+GREEN='\e[0;32m'
+RESET='\e[0m'
+
+echo "[TEST] Running tests"
+
+HERE=$(dirname $0)
+for test_file in $HERE/test_*.sh
+do
+    TEST_NAME=$(basename $test_file)
+    echo "[TEST] $test_file"
+    if sh $test_file
+    then
+        echo "[${GREEN}PASS${RESET}] $test_file"
+    else
+        RESULT=$?
+        echo "[${RED}FAIL${RESET}] $test_file"
+        exit $RESULT
+    fi
+done
+```
+
+Now the boundary and separation tests are trivially true; there was no
+"red-green-refactor" failure first. This is a smell in classic TDD. Are these
+tests actually testing something or are we laying down a foundation?
+
+## >> Assistant
+
+You’ve just run into one of those awkward moments where TDD stops being a religion and starts being… engineering.
+
+Those tests feel “trivially true” because right now they *are*. You haven’t built enough system for them to fail in an interesting way. That’s not a failure of TDD, it’s a signal about where you are in the lifecycle.
+
+Let’s be precise about what’s going on.
+
+---
+
+## What those tests currently are
+
+They are **structure-establishing tests**, not **behaviour-verifying tests**.
+
+They answer questions like:
+
+* “Does this dataset exist?”
+* “Is this path where I expect?”
+* “Can I even run commands against it?”
+
+That’s not useless. It’s the equivalent of:
+
+> “Does the building have walls before I test the fire alarms?”
+
+But yes, they won’t give you satisfying red-green cycles because:
+
+* there’s no competing implementation yet
+* there’s no failure mode being exercised
+* the system under test is mostly *absence of mistakes*
+
+---
+
+## Why this is happening (and why it’s fine)
+
+Your spec is **architecture-heavy**:
+
+* authority boundaries
+* durability tiers
+* lifecycle semantics
+
+Those don’t fail like functions do. They fail when:
+
+* something is misplaced
+* something is *missing*
+* something is *ambiguous*
+
+So early tests tend to be:
+
+* existence checks
+* placement checks
+* wiring checks
+
+In other words: **invariants, not behaviours**
+
+---
+
+## The real smell (subtle, but important)
+
+The smell is not “tests passed too easily”.
+
+The smell would be:
+
+> “If I break the system, will this test notice?”
+
+Right now, for your boundary tests, the answer is probably:
+
+> “Only if I delete something obvious.”
+
+That’s weak.
+
+---
+
+## How to fix it (without overengineering)
+
+You don’t throw the tests away. You **weaponise them**.
+
+### 1. Turn structure tests into *violation detectors*
+
+Example:
+
+Instead of:
+
+> “dataset exists”
+
+Test:
+
+* create data in the *wrong* place
+* run system check
+* expect **failure signal**
+
+Now you’re testing:
+
+> “the system detects structural violations”
+
+That’s aligned with your spec (observability + authority enforcement).
+
+---
+
+### 2. Introduce *negative assertions*
+
+Right now you test presence.
+
+Start testing **prohibition**:
+
+* file appears outside canonical dataset → should be flagged
+* archive file modified → should be detected
+* repo exists on client only → should be non-authoritative
+
+Now you’re actually testing rules, not existence.
+
+---
+
+### 3. Force ambiguity and ensure it’s rejected
+
+Your spec is obsessed with:
+
+> “no ambiguous canonical authority”
+
+So test exactly that:
+
+* create two candidate “authoritative” locations
+* run authority check
+* expect failure / warning
+
+If your system happily shrugs, your spec is fiction.
+
+---
+
+### 4. Accept that early TDD here is “scaffolding-first”
+
+Classic TDD assumes:
+
+> small pure functions → immediate behavioural feedback
+
+You’re building:
+
+> a stateful, filesystem-backed, multi-layer system
+
+Different game.
+
+Your early loop is:
+
+1. Define invariant
+2. Encode invariant as test
+3. Build minimal enforcement or detection
+4. Tighten invariant later
+
+That’s still TDD. Just not the toy version people teach.
+
+---
+
+## Concrete next step (not philosophical fluff)
+
+Take one of your “trivial” tests and mutate it into this pattern:
+
+### Example: Authority Location (upgrade)
+
+**Current:**
+
+> Verify canonical repo exists on server
+
+**Better test:**
+
+1. Create repo on *client-only path*
+2. Do NOT push
+3. Run `system check authority`
+4. Expect:
+
+   * flagged as transient / non-canonical
+   * not accepted as authoritative
+
+Now you’re testing:
+
+* authority rules
+* transient state detection
+* observability
+
+That’s three spec requirements in one test.
+
+---
+
+## Blunt conclusion
+
+No, you’re not “doing TDD wrong”.
+
+You’re just early enough that:
+
+* the system is mostly empty
+* the constraints haven’t been stressed yet
+
+Right now you’re laying rails.
+
+Soon you’ll start crashing trains into them. That’s where the tests earn their keep.
+
+And if your tests *still* pass after you deliberately break things, then you’ve got a real problem.
+
+
