@@ -6045,3 +6045,541 @@ And that’s where things stop being tidy.
 You’ve officially moved from “can I copy bits” to “can I rebuild reality.”
 
 
+## >> User
+
+Excellent. Next, please.
+
+## >> Assistant
+
+“Excellent” is optimistic, but sure, we’ll keep going before reality corrects that.
+
+You’ve now got:
+
+* admission ✔
+* snapshots ✔
+* replication ✔
+* **baseline recovery (single dataset)** ✔
+
+Which means you’ve proven a very comforting but limited statement:
+
+> “I can recover *a thing*.”
+
+Your spec, inconveniently, requires:
+
+> “I can recover *the system*.”
+
+Those are not the same problem.
+
+---
+
+# Next iteration: **Multi-dataset baseline recovery**
+
+This is where your nice clean mental model starts getting messy, because now you have to deal with:
+
+* multiple datasets
+* partial ordering
+* consistency assumptions
+* scope definition
+
+All the stuff you’ve been politely ignoring.
+
+---
+
+## What you are testing
+
+> “Given a baseline replica containing multiple canonical datasets, I can restore them into canonical locations in a consistent and usable state.”
+
+Still not automation. Still a checklist. But now it’s a *real* checklist.
+
+---
+
+## Test: Multi-dataset recovery
+
+```sh
+#!/bin/sh
+set -e
+
+DATA_ROOT="$TEST_ROOT"
+REPL_ROOT="$TEST_REPLICA"
+
+# --- create canonical datasets ---
+zfs create -p "$DATA_ROOT/active/pile"
+zfs create -p "$DATA_ROOT/active/projects"
+zfs create -p "$DATA_ROOT/archive"
+
+echo "pile-data" > /tank/data/active/pile/file.txt
+echo "project-data" > /tank/data/active/projects/code.txt
+echo "archive-data" > /tank/data/archive/doc.txt
+
+# snapshot everything consistently
+zfs snapshot -r "$DATA_ROOT@baseline"
+
+# replicate all datasets
+zfs send -R "$DATA_ROOT@baseline" | zfs receive "$REPL_ROOT"
+
+# --- simulate total loss ---
+zfs destroy -r "$DATA_ROOT"
+
+# --- recovery (dataset-by-dataset, explicit) ---
+system-recover-baseline "$REPL_ROOT/active/pile" "$DATA_ROOT/active/pile" baseline
+system-recover-baseline "$REPL_ROOT/active/projects" "$DATA_ROOT/active/projects" baseline
+system-recover-baseline "$REPL_ROOT/archive" "$DATA_ROOT/archive" baseline
+
+# --- verify ---
+grep -q "pile-data" "/tank/data/active/pile/.zfs/snapshot/baseline/file.txt"
+grep -q "project-data" "/tank/data/active/projects/.zfs/snapshot/baseline/code.txt"
+grep -q "archive-data" "/tank/data/archive/.zfs/snapshot/baseline/doc.txt"
+```
+
+---
+
+## Why this is the right next step
+
+Because it forces you to confront three things your spec quietly assumes:
+
+---
+
+### 1. Recovery is not atomic at system level
+
+You just did:
+
+* one snapshot (`-r`)
+* but restored datasets individually
+
+That’s already a mismatch.
+
+You’ve now created a situation where:
+
+* recovery order matters (even if only slightly)
+* partial recovery is possible (and dangerous)
+
+You don’t fix that yet. You *notice* it.
+
+---
+
+### 2. Dataset enumeration is undefined
+
+Right now you hardcoded:
+
+```sh
+active/pile
+active/projects
+archive
+```
+
+Your system does not yet have a way to answer:
+
+> “What datasets must be recovered?”
+
+That’s a real gap. Don’t solve it yet. Just let it bother you.
+
+---
+
+### 3. You’re implicitly defining recovery procedure
+
+This line:
+
+```sh
+system-recover-baseline "$REPL_ROOT/active/pile" ...
+```
+
+is your first **real checklist step**.
+
+You’ve moved from:
+
+> “I have a recovery concept”
+
+to:
+
+> “I have a recovery procedure, even if it’s manual”
+
+That’s a big shift.
+
+---
+
+## What you should *not* do next
+
+Do not immediately build:
+
+* `system-recover-all`
+* dataset registries
+* dependency graphs
+* orchestration layers
+
+That’s how you bury yourself.
+
+---
+
+## What you *should* let emerge
+
+Run this test and pay attention to friction:
+
+* Did you have to remember dataset names?
+* Did ordering feel arbitrary?
+* Did anything unexpectedly fail?
+* Did you feel unsure whether recovery was “complete”?
+
+That discomfort is design signal.
+
+---
+
+## Likely next failure (and it’s a good one)
+
+You’ll realise:
+
+> “I don’t have a single thing that represents ‘the system baseline’”
+
+Right now it’s:
+
+```sh
+$DATA_ROOT@baseline
+```
+
+But after replication and recovery, that identity is… implied, not enforced.
+
+That’s going to push you toward:
+
+* snapshot naming discipline
+* or baseline markers
+* or minimal metadata
+
+But not yet.
+
+---
+
+## Where this is heading
+
+You’re moving toward three unavoidable capabilities:
+
+1. **Define recovery scope**
+2. **Define recovery order (even if trivial)**
+3. **Verify recovery completeness**
+
+Right now you’ve only proven:
+
+* individual pieces can be restored
+
+---
+
+## Bottom line
+
+* You’ve graduated from “recover a dataset” to “recover a system fragment”
+* The complexity jump is real and intentional
+* Do not solve orchestration yet
+* Let the pain accumulate until the simplest abstraction becomes obvious
+
+You’re now testing something that actually resembles your spec instead of just exercising ZFS with extra steps.
+
+
+## >> User
+
+Only one change needed to make that work: add an `-F` option to `zfs receive`
+because the replica dataset already exists.
+
+Does that more or less complete our current functional slice?
+
+To help me get a firmer handle on what we've achieved and where we are headed,
+can you give a summary of where we are now in the context of the specification,
+how we got here, and a rough map for the next few slices.
+
+## >> Assistant
+
+Look at you, accidentally building a real system instead of an elaborate thought experiment. Annoying how that happens.
+
+Short answer: yes, this *basically* completes a coherent first functional slice. Not “done” in any meaningful sense, but you now have something that actually behaves like the spec claims instead of just describing it in polished prose.
+
+Let’s pin down where you are, because otherwise this turns into one of those projects where everything feels unfinished forever.
+
+---
+
+## Where you are in the spec (translated into reality)
+
+You’ve implemented a thin but *real* vertical slice across:
+
+### 1. Canonical custody (Section 5.1)
+
+* Admission exists (files land in canonical datasets)
+* Authority is implicit (ZFS dataset = canonical location)
+* You can *observe* authority (tests check location)
+
+This is primitive, but structurally correct.
+
+---
+
+### 2. Mutation + reversibility (Sections 5.3, 4.5)
+
+* Snapshots give you:
+
+  * rollback capability
+  * historical visibility
+* You’ve proven **recoverability from snapshots**, not just existence
+
+This matters more than it looks. Most “backup systems” never actually test this.
+
+---
+
+### 3. Baseline + incremental durability (Section 4.3, 4.4, 5.4)
+
+You now have:
+
+* Baseline replication (`zfs send | receive`)
+* Incremental replication (`-i`)
+* Forced overwrite on receive (`-F`) to maintain consistency
+* Tests proving:
+
+  * initial replication works
+  * incremental replication works
+  * system-level command wraps primitives
+
+This is the first time your spec’s durability model exists outside your head.
+
+---
+
+### 4. Recovery (Section 5.6)
+
+* `system-recover-baseline` exists
+* It acts as:
+
+  * executable checklist
+  * minimal recovery path
+
+You’ve *explicitly encoded*:
+
+> “Recovery is procedural, not magical”
+
+That’s rare and correct.
+
+---
+
+### 5. Test architecture (meta, but critical)
+
+You now have:
+
+* Isolated test environments (per-test ZFS datasets)
+* Full teardown between tests
+* Deterministic execution
+* A harness that:
+
+  * injects libraries
+  * manages environment lifecycle
+  * keeps tests clean
+
+This is the quiet win. Without this, everything else rots.
+
+---
+
+## How you got here (the part people usually mess up)
+
+You didn’t:
+
+* start by building “the system”
+* overdesign abstractions
+* prematurely model every concept in the spec
+
+Instead you:
+
+1. Picked a **thin vertical slice**
+   (admission → snapshot → replication → recovery)
+
+2. Wrote **tests tied to observable behaviour**, not ideology
+
+3. Let implementation be:
+
+   * ugly
+   * direct
+   * mostly shell scripts
+
+4. Refactored *only when friction appeared*
+
+That last one is the entire game. You resisted the urge to be clever early.
+
+---
+
+## What this slice is missing (and why that’s fine)
+
+Right now your system:
+
+* has no policy enforcement
+* has no observability beyond tests
+* has no concept of “classes” beyond directory structure
+* treats everything like “just data”
+
+Which sounds like a disaster, but it’s actually correct for this stage.
+
+You’ve built **mechanical truth** first:
+
+> data moves, snapshots exist, recovery works
+
+Everything else is interpretation layered on top.
+
+---
+
+## The next slices (in the only order that won’t waste your time)
+
+Here’s where things get interesting.
+
+---
+
+### Slice 2: **Observability + Status (Section 5.8.2)**
+
+Right now:
+
+* you *can* be correct
+* but you can’t *know* you’re correct without running tests
+
+That’s not a system, that’s a lab experiment.
+
+You need:
+
+#### System status command
+
+Something like:
+
+```
+system-status
+```
+
+It should expose:
+
+* last snapshot time
+* last replication time
+* replication lag (RPO visibility)
+* presence of transient state
+* age of pile items (eventually)
+
+#### Why this comes next
+
+Because:
+
+> If you can’t *see* violations, you don’t have a system, you have faith.
+
+---
+
+### Slice 3: **Transient authoritative state (your tricky bit)**
+
+This is where your spec is actually interesting.
+
+You need to model:
+
+* “work exists but is not reconciled”
+* “some of it is protected, some isn’t”
+
+Concretely:
+
+#### Tests you’ll want
+
+* detect uncommitted git changes
+* detect unpushed commits
+* optionally capture working state into `stash`
+
+#### System behaviour
+
+* `system-status` flags:
+
+  * dirty repos
+  * unreconciled state older than threshold
+
+This is where your “controlled transience” idea becomes real.
+
+---
+
+### Slice 4: **Static material lifecycle (pile → archive)**
+
+You already have:
+
+* dataset layout
+
+You don’t yet have:
+
+* lifecycle enforcement
+
+Add:
+
+#### Tests
+
+* file enters pile → gets checksum
+* promotion updates manifest
+* archived file becomes immutable (or detectable change)
+
+#### Implementation
+
+* minimal manifest system (even a flat file is fine)
+* promotion script
+
+This slice gives meaning to “long-term retention”.
+
+---
+
+### Slice 5: **Integrity verification (Section 5.5)**
+
+Right now:
+
+* corruption would silently replicate
+
+You need:
+
+* checksum verification command
+* periodic verification test
+
+Not fancy. Just real.
+
+---
+
+### Slice 6: **Policy + bounds enforcement**
+
+Only after observability exists:
+
+* RPO violation detection
+* overdue snapshot detection
+* pile age violations
+
+This is where your spec stops being descriptive and starts being *enforced*.
+
+---
+
+## Important correction to your instinct earlier
+
+You said:
+
+> “Are we taking the spec too literally?”
+
+No. You were about to do the *opposite* mistake.
+
+The real trap is:
+
+> implementing the **meaning** of the spec before the **mechanics** exist
+
+You avoided that.
+
+Now you’re at the point where:
+
+* mechanics exist
+* meaning can safely be layered on
+
+---
+
+## Final reality check
+
+What you have now is:
+
+* not production-ready
+* not complete
+* not elegant
+
+But it *is*:
+
+* testable
+* resettable
+* grounded in actual system behaviour
+
+Which puts you ahead of about 90% of “serious” system designs that never survive first contact with reality.
+
+---
+
+Next step is obvious, even if it’s a bit dull:
+
+Build `system-status`.
+
+Because right now your system works only when you’re staring directly at it, and that’s not a sustainable lifestyle for either of us.
+
+
