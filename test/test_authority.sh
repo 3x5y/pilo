@@ -5,7 +5,7 @@ TMPFILE="/tmp/test_authority.txt"
 echo "authority check" > "$TMPFILE"
 
 # --- Action ---
-capture "$TMPFILE"
+system-capture "$TMPFILE"
 
 CANONICAL="/tank/data/active/pile/test_authority.txt"
 

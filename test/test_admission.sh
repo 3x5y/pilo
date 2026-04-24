@@ -6,7 +6,7 @@ TMPFILE="/tmp/test_admission.txt"
 echo "hello world" > "$TMPFILE"
 
 # --- Action ---
-capture "$TMPFILE"
+system-capture "$TMPFILE"
 
 # --- Verify: canonical location ---
 if [ ! -f /tank/data/active/pile/test_admission.txt ]; then
