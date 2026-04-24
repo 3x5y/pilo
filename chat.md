@@ -4163,3 +4163,299 @@ Because the real problems ahead are:
 And those are a lot less forgiving than shell path nonsense.
 
 
+## >> User
+
+I've incorporated the suggested fixes and consolidated the test harness into one
+file:
+
+```bash
+#!/bin/sh
+
+set -e
+
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+LIB=$HERE/testlib.sh
+export PATH=$HERE/system:$PATH
+
+RED='\e[0;31m'
+GREEN='\e[0;32m'
+RESET='\e[0m'
+
+sh "$HERE"/env_setup.sh
+
+echo "[TEST] Running tests"
+
+for test_file in $HERE/test_*.sh
+do
+    test_name=$(basename $test_file .sh)
+    [ -e "$test_file" ] || continue
+    echo "[TEST] $test_name"
+    if (. "$LIB"; . "$test_file")
+    then
+        echo "[${GREEN}PASS${RESET}] $test_name"
+    else
+        RESULT=$?
+        echo "[${RED}FAIL${RESET}] $test_name"
+        break
+    fi
+done
+
+sh "$HERE"/env_teardown.sh
+
+exit $RESULT
+```
+
+I assume there's no problem with this consolidated version.
+
+Now, what comes next?
+
+## >> Assistant
+
+It’s fine. Not perfect, but nothing in there is going to quietly sabotage you later, which is the only bar that matters right now.
+
+Two tiny things before you sprint ahead:
+
+* `RESULT` is undefined if everything passes. You’ll exit with whatever garbage happens to be in memory. Initialise it:
+
+```sh
+RESULT=0
+```
+
+* If a test fails, you `break` but still run teardown. Good. That’s exactly the kind of boring reliability people forget and regret later.
+
+That’s it. No grand refactor needed. Resist the urge.
+
+---
+
+## What comes next (and this is where it gets less trivial)
+
+You now have:
+
+* a repeatable environment
+* a test harness
+* basic observability (`system-status`)
+* the ability to detect violations
+
+So now you stop *detecting* problems and start **enforcing invariants**.
+
+---
+
+# Next milestone: **Static Data Integrity (Manifest Layer)**
+
+This is the first place your system does something non-trivial and actually aligns with the spec in a meaningful way.
+
+Right now:
+
+> You can store files and complain about them.
+
+Next:
+
+> You can **prove they haven’t changed**.
+
+That’s a big jump.
+
+---
+
+## Why this now?
+
+Because it touches multiple core requirements at once:
+
+* Static Personal Material rules
+* Integrity Assurance (5.5.x)
+* Manifest handling
+* Recovery correctness later
+
+Also, it’s self-contained. No cloud, no networking, no distributed headaches.
+
+---
+
+## What you’re building
+
+A minimal **manifest system** for the pile.
+
+Not fancy. Just:
+
+* per-file checksum
+* stored in a manifest file
+* verifiable
+
+---
+
+## Tests first (obviously)
+
+### 1. Manifest Creation
+
+```sh
+#!/bin/sh
+set -e
+
+PILE="/tank/data/active/pile"
+FILE="$PILE/test.txt"
+
+echo "hello" > "$FILE"
+
+system-manifest-update
+
+grep -q "test.txt" "$PILE/.manifest"
+```
+
+---
+
+### 2. Incremental Update
+
+```sh
+#!/bin/sh
+set -e
+
+PILE="/tank/data/active/pile"
+FILE="$PILE/test2.txt"
+
+echo "data" > "$FILE"
+
+system-manifest-update
+
+# capture manifest state
+cp "$PILE/.manifest" /tmp/manifest_before
+
+# modify unrelated file
+echo "more" >> "$FILE"
+
+system-manifest-update
+
+# ensure manifest updated but not rebuilt blindly
+grep -q "test2.txt" "$PILE/.manifest"
+```
+
+(Yes, this test is weak. You’ll tighten it later when you hate yourself more.)
+
+---
+
+### 3. Corruption Detection
+
+```sh
+#!/bin/sh
+set -e
+
+PILE="/tank/data/active/pile"
+FILE="$PILE/test3.txt"
+
+echo "original" > "$FILE"
+
+system-manifest-update
+
+# corrupt file
+echo "corruption" > "$FILE"
+
+set +e
+OUTPUT=$(system-manifest-verify 2>&1)
+STATUS=$?
+set -e
+
+[ $STATUS -ne 0 ]
+echo "$OUTPUT" | grep -q "mismatch"
+```
+
+---
+
+## Minimal implementation
+
+Two commands:
+
+```
+system-manifest-update
+system-manifest-verify
+```
+
+---
+
+### `system-manifest-update`
+
+```sh
+#!/bin/sh
+
+PILE="/tank/data/active/pile"
+MANIFEST="$PILE/.manifest"
+
+tmp=$(mktemp)
+
+for f in "$PILE"/*; do
+    [ -f "$f" ] || continue
+    sum=$(sha256sum "$f" | awk '{print $1}')
+    echo "$sum  $(basename "$f")" >> "$tmp"
+done
+
+mv "$tmp" "$MANIFEST"
+```
+
+Brutal. Inefficient. Correct enough.
+
+---
+
+### `system-manifest-verify`
+
+```sh
+#!/bin/sh
+
+PILE="/tank/data/active/pile"
+MANIFEST="$PILE/.manifest"
+
+STATUS=0
+
+while read sum name; do
+    file="$PILE/$name"
+    [ -f "$file" ] || continue
+
+    current=$(sha256sum "$file" | awk '{print $1}')
+
+    if [ "$sum" != "$current" ]; then
+        echo "[ERROR] mismatch: $name"
+        STATUS=1
+    fi
+done < "$MANIFEST"
+
+exit $STATUS
+```
+
+---
+
+## Where this is going (so you don’t get lost)
+
+This evolves into:
+
+* incremental manifest updates
+* integration with `system-status`
+* integrity coverage reporting
+* recovery validation
+
+But not yet. Don’t build the cathedral.
+
+---
+
+## Why this matters more than it looks
+
+Right now your system assumes:
+
+> “files exist → therefore safe”
+
+This step changes that to:
+
+> “files exist AND are verified → therefore trustworthy”
+
+That distinction is the difference between:
+
+* “backup system”
+* and
+* “data integrity system”
+
+---
+
+## Blunt summary
+
+Your harness is good enough.
+
+Now make the system capable of **detecting corruption**, not just structural sloppiness.
+
+Because losing data loudly is bad.
+
+But silently corrupting it while your system smiles and prints `[OK]` is much worse.
+

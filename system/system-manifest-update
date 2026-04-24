@@ -1,0 +1,14 @@
+#!/bin/sh
+
+PILE="/tank/data/active/pile"
+MANIFEST="$PILE/.manifest"
+
+tmp=$(mktemp)
+
+for f in "$PILE"/*; do
+    [ -f "$f" ] || continue
+    sum=$(sha256sum "$f" | awk '{print $1}')
+    echo "$sum  $(basename "$f")" >> "$tmp"
+done
+
+mv "$tmp" "$MANIFEST"
