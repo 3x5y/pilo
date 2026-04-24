@@ -5470,3 +5470,578 @@ That’s building a theatre set before you’ve written the play.
 You’re finally separating “what the system guarantees” from “what the tools happen to do.” That distinction is the whole game.
 
 
+## >> User
+
+Unless I'm missing something, the new tests 3A and 3B exactly duplicate the
+earlier initial replication and incremental replication tests. So unless that is
+incorrect, let's continue with the next iteration.
+
+## >> Assistant
+
+You’re not missing anything. They *are* duplicates.
+
+Which is your system politely telling you:
+
+> “You don’t have enough system behaviour yet to justify more tests.”
+
+This is the part where most people panic and start inventing abstractions to keep the TDD machine fed. Resist that impulse. You’re at the boundary where the next meaningful step is not another variation of replication, but **a different dimension of the system**.
+
+Right now you’ve validated:
+
+* admission → snapshot-visible ✔
+* snapshots → recoverable ✔
+* authority → located ✔
+* replication → functionally correct ✔
+
+All of that is still *forward-flow*. You haven’t tested the one thing that actually matters:
+
+> **Destruction followed by recovery**
+
+---
+
+## Next iteration: Baseline Recovery (your first real system test)
+
+This is where your spec stops being aspirational and starts being uncomfortable.
+
+You’re testing:
+
+> “Given only the baseline replica, can I reconstruct a usable canonical system?”
+
+Not files. Not snapshots. The *system*.
+
+---
+
+## Test: Baseline Recovery (minimal but real)
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+DST="$TEST_REPLICA/pile"
+
+# --- Setup canonical data ---
+echo "important" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@baseline"
+
+# replicate baseline
+zfs send "$SRC@baseline" | zfs receive "$DST"
+
+# --- Simulate total loss ---
+zfs destroy -r "$TEST_ROOT"
+
+# --- Recovery ---
+zfs send "$DST@baseline" | zfs receive "$SRC"
+
+# --- Verify recovery ---
+if ! grep -q "important" "/$SRC/.zfs/snapshot/baseline/file.txt"; then
+    echo "FAIL: baseline recovery missing data"
+    exit 1
+fi
+```
+
+---
+
+## Why this is the correct next step
+
+Because it forces you to confront:
+
+* dataset recreation
+* authority re-establishment
+* snapshot usability after restore
+* implicit assumptions about structure
+
+And most importantly:
+
+> It tests something you *cannot fake with local state still intact*.
+
+---
+
+## Likely failures (good, you want these)
+
+This test will probably break in ways that expose real gaps:
+
+### 1. Dataset structure assumptions
+
+You might discover:
+
+* parent datasets missing
+* mountpoints wrong
+* implicit dependencies not recreated
+
+Good. That’s your system leaking hidden requirements.
+
+---
+
+### 2. Authority confusion
+
+After recovery:
+
+* is `SRC` actually canonical again?
+* or did you just create a copy?
+
+Your spec says:
+
+> recovery establishes new canonical authority
+
+Right now, nothing enforces that. You’re about to notice.
+
+---
+
+### 3. Naming / snapshot discipline
+
+You’re casually using `@baseline`.
+
+Soon you’ll need:
+
+* consistent snapshot naming
+* rotation logic
+* identification of “the” baseline
+
+That problem is coming whether you like it or not.
+
+---
+
+## Important restraint
+
+Do **not** build:
+
+* recovery orchestration scripts
+* metadata tracking
+* fancy snapshot registries
+
+yet.
+
+Let this test fail first. Let it be ugly.
+
+---
+
+## What this unlocks next
+
+Once baseline recovery works, you can move to:
+
+* **complete recovery (baseline + incremental)**
+* **partial recovery (dataset-level)**
+* **recovery verification (integrity + completeness)**
+
+Those are real system capabilities, not variations of “copy some files again”.
+
+---
+
+## Subtle correction to your trajectory
+
+You were drifting toward:
+
+> “Let’s test replication better”
+
+But your system’s real contract is:
+
+> “Can I lose everything and not care?”
+
+Replication is just a means to that end.
+
+---
+
+## Bottom line
+
+* Yes, the replication tests converged because behaviour is exhausted
+* That’s not a problem, it’s a signal
+* The next meaningful axis is **recovery**
+* Start with brutal, simple baseline recovery
+* Let it break before you design anything clever
+
+You’re done proving you can move data around. Time to prove it actually survives.
+
+
+## >> User
+
+I see what this test is meant to do, but it too is only calling ZFS primitives.
+
+It needs to be rewritten to exercise the system replication function.
+
+But it's also a little bit silly, because restoration of a storage pool is
+outside the scope of automation and should be manual and checklist-driven
+instead. So I suppose that raises an important consideration.
+
+## >> Assistant
+
+You’ve hit an actual boundary instead of inventing one, which is refreshing.
+
+Two separate issues are tangled together here:
+
+1. *“This test is just ZFS again.”*
+2. *“Recovery is supposed to be manual, so why am I automating it?”*
+
+Both are valid. Neither means “stop”.
+
+---
+
+## 1. Yes, it’s still ZFS. That’s unavoidable.
+
+Right now your “system” is barely more than:
+
+* dataset conventions
+* a thin wrapper around `zfs send/receive`
+
+So of course the test looks like ZFS. There isn’t enough system behaviour yet to obscure it.
+
+You only stop seeing ZFS when your system starts making **decisions**:
+
+* which snapshot is “the baseline”
+* which datasets are in scope
+* what order to restore them in
+* how authority is re-established
+
+You’re not there yet. So don’t pretend you are.
+
+---
+
+## 2. Recovery being manual does *not* mean “untestable”
+
+This is the more important misunderstanding.
+
+Your spec says recovery is:
+
+> checklist-driven, not fully automated
+
+That does **not** mean:
+
+> “we never execute recovery steps programmatically”
+
+It means:
+
+> “a human is responsible for orchestration, but the *steps themselves* must be reliable and repeatable”
+
+So what you test is:
+
+> **Can the documented recovery steps be executed successfully?**
+
+Not:
+
+> “Is there a one-command `system-restore`?”
+
+---
+
+## So what should the test actually be?
+
+Right now your test is:
+
+> “Can I pipe a snapshot back and get data?”
+
+That’s too low-level.
+
+You need to shift one level up:
+
+> “Given a replicated baseline, can I follow the recovery procedure and reconstruct canonical state?”
+
+---
+
+## Minimal correction (don’t over-engineer)
+
+You don’t need a full `system-recover` yet.
+
+You need a **thin wrapper that encodes your recovery procedure**.
+
+Something like:
+
+```sh
+system-recover-baseline SRC DST SNAP
+```
+
+Where:
+
+* `SRC` = replica dataset
+* `DST` = canonical location
+* `SNAP` = baseline snapshot
+
+Internally it can still just do:
+
+```sh
+zfs send "$SRC@$SNAP" | zfs receive "$DST"
+```
+
+But now:
+
+* the *interface* is yours
+* the *contract* is yours
+* the *test* is about your system, not ZFS
+
+---
+
+## Rewrite the test properly
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+REPL="$TEST_REPLICA/pile"
+
+# --- create canonical data ---
+echo "important" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@baseline"
+
+# --- replicate using system ---
+system-replicate "$SRC" "$REPL"
+
+# --- simulate total loss ---
+zfs destroy -r "$TEST_ROOT"
+
+# --- recover using system ---
+system-recover-baseline "$REPL" "$SRC" baseline
+
+# --- verify ---
+if ! grep -q "important" "/$SRC/.zfs/snapshot/baseline/file.txt"; then
+    echo "FAIL: recovery did not restore canonical data"
+    exit 1
+fi
+```
+
+---
+
+## Why this is the right compromise
+
+* You are **not automating recovery orchestration**
+* You **are validating recovery mechanics**
+* You are testing **your interface**, not raw ZFS
+
+That aligns perfectly with:
+
+> checklist-driven ≠ untestable
+
+---
+
+## The deeper design pressure (this is the real point)
+
+This test is going to force you to answer questions you’ve avoided:
+
+### 1. What is “the baseline snapshot” called?
+
+Right now: `"baseline"` (hand-wavy)
+
+Later:
+
+* timestamp?
+* rotation ID?
+* external metadata?
+
+---
+
+### 2. What is the recovery scope?
+
+You just restored one dataset.
+
+Reality:
+
+* multiple datasets
+* ordering constraints
+* partial recovery
+
+---
+
+### 3. What establishes canonical authority post-recovery?
+
+Your spec claims:
+
+> recovery establishes new canonical authority
+
+Your system currently does… nothing about that.
+
+---
+
+## You’re at an inflection point
+
+Up to now, everything has been:
+
+> “move data correctly”
+
+From here on, it becomes:
+
+> “define system semantics around that data”
+
+That’s where most designs either become coherent… or collapse into scripts.
+
+---
+
+## Bottom line
+
+* Yes, raw ZFS tests are insufficient now
+* No, you should not fully automate recovery
+* Introduce **minimal system-level recovery commands**
+* Test **execution of recovery steps**, not automation of decision-making
+
+You’re no longer testing storage. You’re starting to test **governance**.
+
+
+## >> User
+
+Ah I see now. `system-recover-baseline` is basically an executable checklist.
+Nice.
+
+Give me its implementation.
+
+## >> Assistant
+
+“Executable checklist” is a polite way of saying “script that fails loudly instead of quietly ruining your life later.” Good instinct.
+
+Keep it minimal. This is not orchestration, not policy, not intelligence. It’s just:
+
+> take a known-good snapshot and put it back where it belongs, without being clever
+
+If you make it clever now, you’ll regret it in about three tests.
+
+---
+
+## `system-recover-baseline`
+
+Put this in `system/system-recover-baseline`:
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$1"     # replica dataset (e.g. tank/replica/pile)
+DST="$2"     # canonical dataset (e.g. tank/data/active/pile)
+SNAP="$3"    # snapshot name (e.g. baseline)
+
+if [ -z "$SRC" ] || [ -z "$DST" ] || [ -z "$SNAP" ]; then
+    echo "Usage: system-recover-baseline <src_dataset> <dst_dataset> <snapshot>"
+    exit 1
+fi
+
+SRC_SNAP="${SRC}@${SNAP}"
+
+# --- validate source snapshot exists ---
+if ! zfs list -t snapshot "$SRC_SNAP" >/dev/null 2>&1; then
+    echo "ERROR: source snapshot does not exist: $SRC_SNAP"
+    exit 1
+fi
+
+# --- ensure destination parent exists ---
+DST_PARENT=$(echo "$DST" | sed 's|/[^/]*$||')
+if [ -n "$DST_PARENT" ]; then
+    zfs list "$DST_PARENT" >/dev/null 2>&1 || zfs create -p "$DST_PARENT"
+fi
+
+# --- destroy destination if it exists ---
+if zfs list "$DST" >/dev/null 2>&1; then
+    zfs destroy -r "$DST"
+fi
+
+# --- perform recovery ---
+zfs send "$SRC_SNAP" | zfs receive "$DST"
+
+# --- basic verification: snapshot now present on destination ---
+if ! zfs list -t snapshot "${DST}@${SNAP}" >/dev/null 2>&1; then
+    echo "ERROR: recovery completed but snapshot missing at destination"
+    exit 1
+fi
+
+echo "Recovered $DST from $SRC_SNAP"
+```
+
+Make it executable:
+
+```sh
+chmod +x system/system-recover-baseline
+```
+
+---
+
+## What this does (and deliberately does not do)
+
+### It **does**:
+
+* validate inputs exist
+* enforce destructive restore (no merge nonsense)
+* recreate destination cleanly
+* verify the snapshot actually arrived
+
+### It **does not**:
+
+* pick the snapshot for you
+* restore multiple datasets
+* handle ordering
+* verify full dataset integrity
+* re-establish system-wide authority
+
+All of that is future work. Right now, you’re proving the primitive is solid.
+
+---
+
+## Why the destructive step matters
+
+This line:
+
+```sh
+zfs destroy -r "$DST"
+```
+
+is not optional hygiene. It encodes a policy:
+
+> recovery is authoritative replacement, not reconciliation
+
+That aligns with your spec:
+
+* no ambiguity in canonical authority
+* no accidental merge states
+* no ghost data hanging around
+
+If this ever feels “too aggressive”, that means your higher-level workflow is wrong, not this command.
+
+---
+
+## Subtle edge you just introduced
+
+This command assumes:
+
+> “If I say recover, I really mean it.”
+
+There’s no confirmation, no dry-run, no guardrails.
+
+That’s fine **in tests**. In real usage, this becomes:
+
+* checklist step with human confirmation
+* maybe a `--dry-run` later
+* maybe a “target must not exist” mode
+
+But not yet. Don’t dilute the primitive.
+
+---
+
+## What will probably break next
+
+Your test might now expose:
+
+* missing parent datasets in more complex cases
+* inconsistent naming between replication and recovery
+* assumptions about mountpoints
+
+Good. That’s the system starting to reveal its real shape instead of your imagined one.
+
+---
+
+## Where this leads
+
+Once this is stable, the next unavoidable step is:
+
+> recovery of **multiple datasets with defined order**
+
+Because right now you can restore *a dataset*.
+
+Your spec requires restoring *a system*.
+
+And that’s where things stop being tidy.
+
+---
+
+## Bottom line
+
+* This is intentionally dumb, strict, and destructive
+* That’s exactly what you want at this layer
+* You now have a real system primitive instead of a ZFS demo
+* The next failures will be architectural, not syntactic
+
+You’ve officially moved from “can I copy bits” to “can I rebuild reality.”
+
+
