@@ -3,7 +3,8 @@
 set -e
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-LIB=$HERE/testlib.sh
+TESTLIB="$HERE/test/testlib.sh"
+
 export PATH=$HERE/system:$PATH
 
 RED='\e[0;31m'
@@ -12,16 +13,15 @@ RESET='\e[0m'
 
 RESULT=0
 
-sh "$HERE"/env_setup.sh
+sh "$HERE/test/env_setup.sh"
 
 echo "[TEST] Running tests"
 
-for test_file in $HERE/test_*.sh
+for test_file in "$HERE/test"/test_*.sh
 do
     test_name=$(basename $test_file .sh)
     [ -e "$test_file" ] || continue
-    echo "[TEST] $test_name"
-    if (. "$LIB"; . "$test_file")
+    if (. "$TESTLIB"; . "$test_file")
     then
         echo "[${GREEN}PASS${RESET}] $test_name"
     else
@@ -31,6 +31,6 @@ do
     fi
 done
 
-sh "$HERE"/env_teardown.sh
+sh "$HERE/test/env_teardown.sh"
 
 exit $RESULT
