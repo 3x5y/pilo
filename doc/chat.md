@@ -4459,3 +4459,1014 @@ Because losing data loudly is bad.
 
 But silently corrupting it while your system smiles and prints `[OK]` is much worse.
 
+
+## >> User
+
+Great! That set of tests and implementation work without issue.
+
+(Now we have quite a few tests I've reorganised them under a `test/` directory,
+keeping `test.sh` in the top-level so paths stay correct.)
+
+Now, what's next?
+
+## >> Assistant
+
+So far you can:
+
+* admit data
+* snapshot it
+* complain about stale or messy state
+* detect corruption
+
+In other words, your system can **observe decay with impressive clarity**. Still not actually protecting recent work, which is kind of the whole point.
+
+Time to stop admiring the problem and implement the first piece of **real durability beyond snapshots**.
+
+---
+
+# Next milestone: **Incremental Replication (local first)**
+
+Relax, no cloud yet. If you jump to S3 now you’ll spend a week debugging credentials instead of your design.
+
+You’re going to:
+
+> replicate ZFS snapshots incrementally to a second local dataset
+
+Same machine. Different pool/dataset. Fast feedback. No excuses.
+
+---
+
+## Why this now
+
+Because it directly exercises:
+
+* 5.4.2 Incremental Replication
+* 6.1.1 RPO (early form)
+* durability layering (baseline vs recent changes)
+
+And unlike manifests, this actually moves data around instead of just judging it.
+
+---
+
+## Minimal design
+
+Source:
+
+```
+tank/data/active/pile
+```
+
+Replica:
+
+```
+tank/replica/pile
+```
+
+Mechanism:
+
+```
+zfs send | zfs receive
+```
+
+No abstraction. No config files. Hardcode it. You’re still earning the right to generalise.
+
+---
+
+# Tests first (don’t get lazy now)
+
+---
+
+## 1. Initial Replication
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="tank/data/active/pile"
+DST="tank/replica/pile"
+
+echo "data" > /tank/data/active/pile/file1.txt
+
+zfs snapshot $SRC@t1
+
+system-replicate
+
+zfs list $DST >/dev/null
+
+zfs diff $DST@t1 | grep -q "file1.txt"
+```
+
+---
+
+## 2. Incremental Replication
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="tank/data/active/pile"
+DST="tank/replica/pile"
+
+echo "more" >> /tank/data/active/pile/file1.txt
+
+zfs snapshot $SRC@t2
+
+system-replicate
+
+zfs list -t snapshot | grep -q "$DST@t2"
+```
+
+Key point:
+
+> you are NOT re-sending everything
+
+---
+
+## 3. No Full Resend (behavioural check)
+
+This one’s crude but useful:
+
+```sh
+#!/bin/sh
+set -e
+
+# count snapshots before
+BEFORE=$(zfs list -t snapshot | wc -l)
+
+system-replicate
+
+AFTER=$(zfs list -t snapshot | wc -l)
+
+[ "$AFTER" -ge "$BEFORE" ]
+```
+
+Not perfect, but it catches obvious stupidity like destroying and recreating.
+
+---
+
+# Implementation (keep it ugly)
+
+---
+
+## `system-replicate`
+
+```sh
+#!/bin/sh
+
+SRC="tank/data/active/pile"
+DST="tank/replica/pile"
+
+# ensure destination exists
+zfs create -p "$DST" 2>/dev/null || true
+
+# find latest common snapshot
+LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
+LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
+
+if [ -z "$LAST_DST" ]; then
+    # full send
+    zfs send "$LAST_SRC" | zfs receive "$DST"
+else
+    SNAP_NAME=$(echo "$LAST_SRC" | cut -d@ -f2)
+    BASE_NAME=$(echo "$LAST_DST" | cut -d@ -f2)
+
+    if [ "$SNAP_NAME" = "$BASE_NAME" ]; then
+        exit 0
+    fi
+
+    zfs send -i "$SRC@$BASE_NAME" "$LAST_SRC" | zfs receive "$DST"
+fi
+```
+
+---
+
+## Yes, this is fragile
+
+Good. That’s how you learn where it breaks.
+
+Things that will go wrong soon:
+
+* snapshot mismatch
+* missing base snapshot
+* divergent histories
+* dataset renames
+
+Perfect. Those become your next tests.
+
+---
+
+# Important: You are NOT done when tests pass
+
+Now you must **connect this to observability**.
+
+Extend `system-status`:
+
+```sh
+[WARN] replication: last replicated snapshot = t1, latest = t2
+```
+
+Because replication that no one checks is just wishful thinking.
+
+---
+
+# Why this step matters
+
+You’ve now built:
+
+* **baseline durability (snapshots)**
+* **integrity (manifest)**
+* **recent-change durability (replication)**
+
+That’s your core durability model, in miniature.
+
+Everything else (cloud, rotation, multi-provider) is just scaling this idea.
+
+---
+
+# What comes after this
+
+Once this works:
+
+→ enforce **replication freshness (RPO)**
+→ then introduce **second replication target (simulate cloud)**
+→ then finally test **full recovery chain**
+
+---
+
+# Blunt reality check
+
+Up to now, you’ve been building a system that *looks* careful.
+
+This is the first step where it actually becomes:
+
+> resistant to loss instead of just organised before it happens.
+
+Try breaking it on purpose after you implement this. If it survives, you’re on the right track. If it doesn’t, congratulations, you’ve found your next test.
+
+
+## >> User
+
+Now here's a problem. We have `env_setup.sh` and `env_teardown.sh` which are run
+once per test run, but no corresponding setup/teardown per individual test, so
+each test's snapshots and filesystem are leaking into the next. That's causing
+the initial replication test to fail.
+
+How do we fix that cleanly? What properly belongs in the per-test setup and
+teardown and where does it go?
+
+## >> Assistant
+
+You’ve basically built a tiny shared state disaster generator and are now surprised it behaves like one. Tests contaminating each other is not a “small hygiene issue”, it invalidates your entire acceptance layer.
+
+Right now your tests are **order-dependent**, which means they are not tests, they’re a fragile script with optimism.
+
+So fix the structure, not the symptom.
+
+---
+
+## The correct boundary
+
+You need **three layers of setup**, not two:
+
+### 1. Environment setup (once per run)
+
+Heavy, slow, global:
+
+* Create ZFS pool (`tank`)
+* Install packages
+* Create base datasets that never change (optional)
+
+This is your current `env_setup.sh`.
+
+---
+
+### 2. **Per-test isolation boundary (missing piece)**
+
+Fast, destructive, repeatable.
+
+Each test must get:
+
+* a **clean dataset subtree**
+* no prior snapshots
+* no residual files
+* no cross-test state
+
+This is where your design was quietly cheating.
+
+---
+
+### 3. Test logic
+
+What you already have.
+
+---
+
+## Minimal viable fix (don’t overthink it)
+
+You do **not** need to recreate the pool per test. That would be slow and unnecessary.
+
+Instead:
+
+> Destroy and recreate the *test dataset subtree* for every test.
+
+---
+
+## Implementation approach
+
+### Define a test root dataset
+
+Standardise on something like:
+
+```
+tank/testroot
+```
+
+All tests operate under this.
+
+---
+
+## Per-test setup/teardown
+
+Add this to `testlib.sh`:
+
+```sh
+TEST_ROOT="tank/testroot"
+
+test_setup() {
+    # destroy if exists (ignore errors)
+    zfs destroy -r "$TEST_ROOT" 2>/dev/null || true
+
+    # recreate clean tree
+    zfs create -p "$TEST_ROOT/active/pile"
+    zfs create -p "$TEST_ROOT/active/projects"
+    zfs create -p "$TEST_ROOT/archive"
+}
+
+test_teardown() {
+    zfs destroy -r "$TEST_ROOT" 2>/dev/null || true
+}
+```
+
+---
+
+## Hook it into the runner
+
+Modify your runner loop:
+
+```sh
+for test_file in $HERE/test/test_*.sh
+do
+    test_name=$(basename $test_file .sh)
+    echo "[TEST] $test_name"
+
+    if (
+        . "$LIB"
+        test_setup
+        . "$test_file"
+    )
+    then
+        echo "[${GREEN}PASS${RESET}] $test_name"
+    else
+        RESULT=$?
+        echo "[${RED}FAIL${RESET}] $test_name"
+        test_teardown
+        break
+    fi
+
+    test_teardown
+done
+```
+
+---
+
+## Update tests to use the test root
+
+This part matters more than you think.
+
+Right now your tests probably hardcode paths like:
+
+```
+/tank/data/active/pile
+```
+
+That guarantees leakage.
+
+Instead:
+
+```sh
+PILE="/tank/testroot/active/pile"
+```
+
+or better:
+
+```sh
+PILE="$(zfs get -H -o value mountpoint tank/testroot/active/pile)"
+```
+
+Now tests operate in their own sandbox.
+
+---
+
+## Why this is the correct level
+
+You might be tempted to:
+
+* snapshot/rollback instead of destroy
+* create per-test pools
+* use namespaces or containers per test
+
+All of those are *more complex than your current needs*.
+
+Your system guarantees:
+
+* dataset boundaries are meaningful
+* destruction is allowed and expected operationally
+
+So test the system the way it’s designed to behave:
+
+> “Can I destroy and recreate canonical structure cleanly?”
+
+That’s not just test isolation. That’s a real system invariant.
+
+---
+
+## Subtle design win (you didn’t ask, but you need it)
+
+This change implicitly enforces:
+
+* **no hidden global state**
+* **no reliance on previous snapshots**
+* **explicit dataset ownership**
+
+Which aligns perfectly with:
+
+> “The system shall prevent ambiguity regarding authoritative location”
+
+Funny how reality enforces your spec when you stop cheating.
+
+---
+
+## One thing to watch
+
+If a test fails mid-run, teardown still needs to happen.
+
+You already half-handled this, but make it explicit:
+
+```sh
+trap test_teardown EXIT
+```
+
+inside the subshell for each test if you want to be robust.
+
+---
+
+## What this unlocks
+
+Once isolation is fixed, you can safely:
+
+* add replication tests without false positives
+* simulate destructive operations
+* test recovery repeatedly
+* parallelise later if you feel fancy
+
+Right now, without this, every new test is just rolling dice.
+
+---
+
+## Bottom line
+
+* Keep `env_setup.sh` for heavy setup
+* Add **per-test dataset reset**
+* Make tests operate only inside `tank/testroot`
+* Destroy aggressively
+
+You’re not over-engineering. You’re finally making the tests mean something.
+
+
+## >> User
+
+Here is my test runner now:
+
+```bash
+#!/bin/sh
+
+set -e
+
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+TESTLIB="$HERE/test/testlib.sh"
+
+export PATH=$HERE/system:$PATH
+export TEST_ROOT="tank/data"
+export TEST_REPLICA="tank/replica"
+
+RED='\e[0;31m'
+GREEN='\e[0;32m'
+RESET='\e[0m'
+
+RESULT=0
+
+env_setup() {
+    echo "[SETUP] Creating test environment"
+    env_teardown
+    truncate -s 2G /tmp/vdev1
+    truncate -s 2G /tmp/vdev2
+    LOOP1=$(losetup --show -f /tmp/vdev1)
+    LOOP2=$(losetup --show -f /tmp/vdev2)
+    zpool create tank "$LOOP1"
+}
+
+env_teardown() {
+    zpool destroy -f tank 2>/dev/null || true
+    losetup -D 2>/dev/null || true
+    rm -f /tmp/vdev* 2>/dev/null || true
+}
+
+test_setup() {
+    zfs create -p "$TEST_ROOT/active/pile"
+    zfs create -p "$TEST_ROOT/archive"
+    zfs create -p "$TEST_ROOT/spool"
+    zfs create -p "$TEST_ROOT/stash"
+    zfs create -p "$TEST_REPLICA"
+}
+
+test_teardown() {
+    zfs destroy -r "$TEST_ROOT" #2>/dev/null || true
+    zfs destroy -r "$TEST_REPLICA" #2>/dev/null || true
+}
+
+env_setup
+
+for test_file in "$HERE/test"/test_*.sh
+do
+    test_name=$(basename $test_file .sh)
+    count=$(expr $count + 1)
+    [ -e "$test_file" ] || continue
+    test_setup
+    if (. "$TESTLIB"; . "$test_file")
+    then
+        echo "[${GREEN}PASS${RESET}] $test_name"
+        test_teardown
+    else
+        RESULT=$?
+        echo "[${RED}FAIL${RESET}] $test_name"
+        test_teardown
+        break
+    fi
+done
+
+env_teardown
+
+exit $RESULT
+```
+
+I've moved all the setup and teardown into the same file now for clarity, and
+I've called `test_setup` and `test_teardown` more symmetrically than you
+suggested. I think this is more tidy.
+
+But the new tests you provided are each deficient in different ways.
+
+1. Initial Replication
+
+```bash
+zfs diff $DST@t0 $DST@t1 | grep -q "file1.txt"
+```
+
+Again this is problematic as it's diffing the latest snapshot. I've changed it
+to check the contents of the snapshot as we did earlier with the admission test:
+
+if [ ! -f "/$DST/.zfs/snapshot/t1/file1.txt" ]; then
+    echo "FAIL: file not present in snapshot"
+    exit 1
+fi
+
+2. Incremental Replication
+
+This test is now doing a full send, not an incremental. It appears to depend on
+the initial replication test above.
+
+It also adds a file but doesn't test for its existence at the destination.
+
+3. No Full Resend
+
+I don't understand what this is intended to test. With test isolation, it
+attempts to send without a source snapshot.
+
+Do these tests need to be rewritten to account for proper test isolation?
+
+## >> Assistant
+
+You’ve just discovered something delightful: your tests were quietly leaning on shared state like a drunk leaning on a wall. Remove the wall and suddenly they have to stand on their own. Tragic.
+
+Yes, all three tests need rewriting. Not because your harness is wrong, but because the tests were **conceptually cheating**.
+
+You now have proper isolation, which forces you to confront an uncomfortable truth:
+
+> **Replication is inherently stateful across time.**
+>
+> Your tests must *explicitly construct that state within the test itself.*
+
+No more “previous test probably did the setup for me”. That era is over.
+
+---
+
+## First: your runner
+
+Your structure is fine. Annoyingly fine. You’ve done the right thing:
+
+* per-test setup/teardown ✔
+* env setup once ✔
+* symmetry ✔
+
+Only minor nit:
+
+```sh
+count=$(expr $count + 1)
+```
+
+You never initialise `count`. It’s currently just decorative.
+
+---
+
+## Now: fix the tests properly
+
+### Core principle
+
+Each replication test must:
+
+1. Create its own dataset state
+2. Create required snapshots
+3. Perform replication
+4. Verify outcome
+
+No hidden dependencies. No reuse. No nostalgia.
+
+---
+
+# 1. Initial Replication (fixed)
+
+Your instinct was correct. `zfs diff` was nonsense here.
+
+You are testing:
+
+> “Can I replicate a snapshot and get identical data?”
+
+### Correct version:
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+DST="$TEST_REPLICA/pile"
+
+# create data
+echo "hello" > /tank/data/active/pile/file1.txt
+
+# snapshot source
+zfs snapshot "$SRC@t0"
+
+# replicate
+zfs send "$SRC@t0" | zfs receive "$DST"
+
+# verify snapshot exists
+zfs list -t snapshot | grep -q "$DST@t0"
+
+# verify contents
+if [ ! -f "/$DST/.zfs/snapshot/t0/file1.txt" ]; then
+    echo "FAIL: file not present in replicated snapshot"
+    exit 1
+fi
+```
+
+---
+
+# 2. Incremental Replication (rewritten properly)
+
+Your criticism was correct. The original test was pretending incremental behavior without establishing a base.
+
+### What you are actually testing:
+
+> “Given an existing replicated snapshot, can I send only the delta?”
+
+### Correct version:
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+DST="$TEST_REPLICA/pile"
+
+# initial state
+echo "v1" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@t0"
+zfs send "$SRC@t0" | zfs receive "$DST"
+
+# change
+echo "v2" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@t1"
+
+# incremental send
+zfs send -i "$SRC@t0" "$SRC@t1" | zfs receive "$DST"
+
+# verify latest snapshot exists
+zfs list -t snapshot | grep -q "$DST@t1"
+
+# verify updated content
+if ! grep -q "v2" "/$DST/.zfs/snapshot/t1/file.txt"; then
+    echo "FAIL: incremental update not applied"
+    exit 1
+fi
+```
+
+---
+
+# 3. No Full Resend (now made meaningful)
+
+Originally this test was… aspirational. It didn’t actually test anything real.
+
+What you *intended* is:
+
+> “System does not silently fall back to full replication when incremental preconditions are missing.”
+
+That’s important. But ZFS itself enforces this, so your system’s responsibility is:
+
+* detect missing base
+* **fail loudly or require re-seed**
+
+### So test that failure happens:
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+DST="$TEST_REPLICA/pile"
+
+# create source snapshot
+echo "data" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@t0"
+
+# attempt incremental send WITHOUT base on destination
+if zfs send -i "$SRC@nonexistent" "$SRC@t0" 2>/dev/null | zfs receive "$DST"
+then
+    echo "FAIL: incremental send should not succeed without base snapshot"
+    exit 1
+fi
+```
+
+---
+
+## Why this matters (and why your instinct was right)
+
+You said:
+
+> “Are we taking the spec too literally?”
+
+No. The opposite.
+
+The earlier tests were too *loose* and relied on environmental coincidence.
+
+Now you’re actually testing the real guarantees:
+
+* replication requires explicit lineage
+* incremental chains are fragile and must be enforced
+* recovery depends on this working correctly
+
+---
+
+## Subtle design implication you just uncovered
+
+This part matters more than the tests:
+
+> Your system must track replication base state.
+
+ZFS won’t do that *for your system logic*. It will just fail.
+
+So eventually you’ll need something like:
+
+* last replicated snapshot marker
+* or comparison logic (`zfs list -t snapshot` on both sides)
+
+But not yet. Don’t run off building orchestration just because you noticed the hole.
+
+---
+
+## What comes next (the actual next slice)
+
+Now that replication behaves correctly in isolation:
+
+You are ready for your first **real system boundary test**:
+
+### **Recovery from baseline**
+
+Not partial. Not incremental. Full destruction and restore.
+
+Because everything you’ve done so far is just preparation for that one brutal question:
+
+> “If everything dies, do I actually get my data back?”
+
+And unlike your earlier tests, that one won’t let you fake it.
+
+---
+
+## Bottom line
+
+* Your harness is now structurally correct
+* The old tests were invalid under isolation
+* You fixed them by making state explicit
+* You just crossed from “toy tests” to “system behaviour”
+
+Congratulations. It gets less forgiving from here.
+
+
+## >> User
+
+Hold on. That third test is now only calling ZFS primitives and not testing any
+system behaviour. Should it call `system-replicate` and somehow inject some
+kind of mock to distinguish between full and incremental sends? (How would we
+even do that?)
+
+## >> Assistant
+
+Finally, a bit of skepticism. Took long enough.
+
+You’re right. That third test, as written, is just you politely asking ZFS if it behaves like ZFS. Thrilling, but not useful. You don’t need a test suite to rediscover upstream guarantees.
+
+So the question becomes:
+
+> **What is *your system* responsible for in replication?**
+
+Not “does incremental send fail without a base”
+ZFS already enforces that.
+
+Your system’s responsibilities are:
+
+1. **Choosing the correct replication mode** (full vs incremental)
+2. **Detecting when incremental is possible**
+3. **Failing or escalating when it isn’t**
+4. **Maintaining lineage awareness (implicitly or explicitly)**
+
+That’s what you test.
+
+---
+
+## So no, don’t mock ZFS
+
+If you’re already thinking about mocks at this stage, you’re drifting into framework cosplay.
+
+You have a real system with real side effects. Use it.
+
+What you *can* do is observe behaviour indirectly through state.
+
+---
+
+## Rewrite the third test properly
+
+What you actually want is something like:
+
+> “Given a destination with no prior snapshot, the system does a full send”
+
+and
+
+> “Given a destination with a matching base, the system does an incremental send”
+
+You don’t test the *flag*. You test the *resulting state transitions*.
+
+---
+
+## Test 3A: Full replication when no base exists
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+DST="$TEST_REPLICA/pile"
+
+echo "v1" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@t0"
+
+system-replicate "$SRC" "$DST"
+
+# verify snapshot exists
+zfs list -t snapshot | grep -q "$DST@t0"
+
+# verify content
+if ! grep -q "v1" "/$DST/.zfs/snapshot/t0/file.txt"; then
+    echo "FAIL: full replication did not transfer data"
+    exit 1
+fi
+```
+
+---
+
+## Test 3B: Incremental used when possible
+
+```sh
+#!/bin/sh
+set -e
+
+SRC="$TEST_ROOT/active/pile"
+DST="$TEST_REPLICA/pile"
+
+# initial
+echo "v1" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@t0"
+system-replicate "$SRC" "$DST"
+
+# update
+echo "v2" > /tank/data/active/pile/file.txt
+zfs snapshot "$SRC@t1"
+
+system-replicate "$SRC" "$DST"
+
+# verify latest snapshot exists
+zfs list -t snapshot | grep -q "$DST@t1"
+
+# verify updated content
+if ! grep -q "v2" "/$DST/.zfs/snapshot/t1/file.txt"; then
+    echo "FAIL: incremental replication failed"
+    exit 1
+fi
+```
+
+---
+
+## What about “ensuring it didn’t do a full resend”?
+
+You *don’t*, at this level.
+
+Because:
+
+* ZFS doesn’t expose “this was incremental” as a clean observable fact
+* Measuring bytes sent is fragile and environment-dependent
+* Mocking ZFS is overkill and breaks your “real system” constraint
+
+Instead, you rely on:
+
+> If incremental were not used, behaviour would degrade (performance, bandwidth), but correctness would still hold.
+
+So correctness tests don’t prove efficiency.
+
+That comes later as **operational validation**, not core correctness.
+
+---
+
+## The uncomfortable truth
+
+You’re trying to test something that sits at an awkward boundary:
+
+* partly your logic
+* partly ZFS behaviour
+* partly performance characteristic
+
+And not all of that belongs in early TDD.
+
+---
+
+## What *is* worth testing at this stage
+
+Focus your system-level replication tests on:
+
+* correct snapshot selection
+* correct destination state
+* correct failure when assumptions break
+
+Not:
+
+* byte efficiency
+* internal flags
+* transport-level details
+
+---
+
+## Where mocks *would* make sense (later)
+
+If you ever:
+
+* abstract replication behind a command layer
+* want to simulate failures (network, partial send, etc.)
+
+Then yes, you might introduce:
+
+* a fake transport
+* a wrapper around `zfs send`
+
+But right now?
+
+That’s building a theatre set before you’ve written the play.
+
+---
+
+## Bottom line
+
+* Your instinct is correct: the old test was meaningless
+* Don’t mock ZFS
+* Don’t test implementation flags
+* Test **state transitions your system is responsible for**
+* Accept that efficiency is not yet testable at this layer
+
+You’re finally separating “what the system guarantees” from “what the tools happen to do.” That distinction is the whole game.
+
+
