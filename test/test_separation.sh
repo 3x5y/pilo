@@ -1,7 +1,15 @@
 #!/bin/sh
 set -e
 
-zfs list | grep -q "tank/data/active/pile" || exit 1
-zfs list | grep -q "tank/data/archive" || exit 1
-zfs list | grep -q "tank/data/spool" || exit 1
-zfs list | grep -q "tank/data/stash" || exit 1
+FILE=bad.txt
+TMPFILE=/tmp/$FILE
+
+echo bad > $TMPFILE
+
+system-capture $TMPFILE
+
+# Now assert it did NOT end up somewhere illegal
+if find /tank/data -name $FILE | grep -qv "/tank/data/active/pile/"; then
+    echo "FAIL: file escaped canonical boundary"
+    exit 1
+fi
