@@ -1,30 +1,30 @@
 #!/bin/sh
 set -e
 
-TMPFILE="/tmp/test_authority.txt"
+FILE="test_authority.txt"
+TMPFILE="/tmp/$FILE"
+CANONICAL="/tank/data/active/pile/$FILE"
+
 echo "authority check" > "$TMPFILE"
 
-# --- Action ---
 system-capture "$TMPFILE"
 
-CANONICAL="/tank/data/active/pile/test_authority.txt"
-
-# --- Verify: exists in canonical location ---
-if [ ! -f "$CANONICAL" ]; then
+if [ ! -f "$CANONICAL" ]
+then
     echo "FAIL: canonical file missing"
     exit 1
 fi
 
-# --- Verify: no duplicate in intake source ---
-if [ -f "$TMPFILE" ]; then
+if [ -f "$TMPFILE" ]
+then
     echo "FAIL: source file still exists (ambiguous authority)"
     exit 1
 fi
 
-# --- Verify: canonical path resolves cleanly ---
 REALPATH=$(readlink -f "$CANONICAL")
 
-if [ "$REALPATH" != "$CANONICAL" ]; then
+if [ "$REALPATH" != "$CANONICAL" ]
+then
     echo "FAIL: canonical path is indirect or ambiguous"
     exit 1
 fi
