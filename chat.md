@@ -3044,3 +3044,697 @@ Soon you’ll start crashing trains into them. That’s where the tests earn the
 And if your tests *still* pass after you deliberately break things, then you’ve got a real problem.
 
 
+## >> User
+
+Good, let's carry on. What comes next?
+
+## >> Assistant
+
+You’ve proven you can *create things* and *not immediately lose them*. Congratulations, the bar is on the floor and you’ve cleared it.
+
+Now you need to move from “stuff exists” to “the system enforces its own rules instead of quietly rotting.”
+
+The next step is **observability + violation detection**, because your entire spec leans on:
+
+> “The system shall surface violations…”
+
+Right now your system doesn’t *know* when it’s wrong. That’s a bigger problem than missing features.
+
+---
+
+## Next milestone: **System State & Violation Detection**
+
+You build a single command:
+
+```
+system status
+```
+
+It doesn’t fix anything. It just tells you uncomfortable truths.
+
+---
+
+## Why this comes next (not replication, not cloud, not anything sexy)
+
+Because without this:
+
+* you can’t test non-functional requirements
+* you can’t enforce bounds (RPO, transient age, pile age)
+* your “discipline-based system” becomes wishful thinking
+
+Right now, violations are invisible → therefore permanent.
+
+---
+
+## Minimal scope (don’t get clever)
+
+Your first version should check exactly three things:
+
+### 1. Transient State Presence (projects)
+
+**Test: Transient Detection**
+
+Setup:
+
+* create git repo (client-style working copy)
+* modify file
+* do NOT commit
+
+Action:
+
+* run `system status`
+
+Verify:
+
+* reports “unreconciled transient state exists”
+* identifies repo path
+
+---
+
+### 2. Pile Age Visibility (static material)
+
+**Test: Pile Age Reporting**
+
+Setup:
+
+* create file in pile
+* artificially backdate it (touch -d)
+
+Action:
+
+* run `system status`
+
+Verify:
+
+* reports file age
+* flags if exceeding threshold (you can fake threshold low for test)
+
+---
+
+### 3. Snapshot Recency (cheap proxy for durability awareness)
+
+You don’t have cloud replication yet, so don’t pretend.
+
+**Test: Snapshot Freshness**
+
+Setup:
+
+* create dataset
+* take snapshot
+* wait or fake timestamp gap
+
+Action:
+
+* run `system status`
+
+Verify:
+
+* reports last snapshot time
+* flags if stale
+
+---
+
+## Implementation approach (keep it primitive)
+
+Do NOT build a framework. You’ll regret it.
+
+Just:
+
+```
+system/
+  status
+  lib/
+    git.sh
+    zfs.sh
+    time.sh
+```
+
+`status` prints plain text. Example:
+
+```
+[WARN] transient: repo /projects/foo has uncommitted changes
+[OK]   pile: no overdue items
+[WARN] snapshots: dataset tank/data/active/pile last snapshot 3h ago
+```
+
+No JSON. No schemas. You’re not building Kubernetes.
+
+---
+
+## How this connects back to your spec
+
+You are now directly exercising:
+
+* 5.8.2 Observability
+* 6.8.2 Transient State Bound
+* 6.8.1 Provisional Retention Bound
+* 6.9.1 State Visibility
+
+Which means:
+
+You’ve finally left the “toy filesystem demo” phase.
+
+---
+
+## Important constraint (don’t dodge this)
+
+Your tests must:
+
+* **create violations intentionally**
+* then verify they are detected
+
+If your tests only confirm “everything is fine,” you’re writing propaganda, not verification.
+
+---
+
+## What you are NOT doing yet
+
+Resist the urge to jump ahead:
+
+* no cloud replication
+* no dual providers
+* no SOS pack
+* no full recovery automation
+
+You don’t even know if your system can *notice it’s broken*. Fix that first.
+
+---
+
+## After this milestone
+
+Once `system status` can reliably expose:
+
+* transient drift
+* ageing backlog
+* durability lag
+
+Then and only then you move to:
+
+> **Incremental replication (RPO enforcement)**
+
+Because then you’ll actually be able to *measure* whether it’s working.
+
+---
+
+## Blunt summary
+
+You’ve built storage.
+
+Now build **self-awareness**.
+
+Otherwise this whole system is just a very organised way to lose data quietly.
+
+
+## >> User
+
+OK, give the implementation, test-first.
+
+## >> Assistant
+
+You’ve reached the part where the system stops being a polite file pile and starts judging your behaviour. Progress.
+
+We’ll do this properly: **tests first**, minimal implementation, no architecture cosplay.
+
+---
+
+# Step 1: Define the tests
+
+Create three tests that **force violations**.
+
+---
+
+## 1. Transient State Detection
+
+```sh
+#!/bin/sh
+set -e
+
+# Create repo (simulating client working copy)
+mkdir -p /tmp/test_repo
+cd /tmp/test_repo
+git init -q
+
+echo "data" > file.txt
+git add file.txt
+git commit -m "init" -q
+
+# Create transient state (uncommitted change)
+echo "change" >> file.txt
+
+# Run system status
+OUTPUT=$(system status)
+
+echo "$OUTPUT" | grep -q "transient"
+```
+
+What this proves:
+
+* system detects uncommitted changes
+* aligns with transient authoritative state
+
+---
+
+## 2. Pile Age Detection
+
+```sh
+#!/bin/sh
+set -e
+
+PILE="/tank/data/active/pile"
+FILE="$PILE/old_file.txt"
+
+mkdir -p "$PILE"
+echo "data" > "$FILE"
+
+# Backdate file (2 days ago)
+touch -d "2 days ago" "$FILE"
+
+# Run system status
+OUTPUT=$(system status)
+
+echo "$OUTPUT" | grep -q "pile"
+echo "$OUTPUT" | grep -q "old_file.txt"
+```
+
+We’re not enforcing 12 months yet. Just proving detection works.
+
+---
+
+## 3. Snapshot Freshness
+
+```sh
+#!/bin/sh
+set -e
+
+DATASET="tank/data/active/pile"
+
+# Ensure dataset exists
+zfs create -p "$DATASET" 2>/dev/null || true
+
+# Take snapshot
+zfs snapshot "$DATASET@test_snap"
+
+# Fake staleness (sleep or just accept "has snapshot")
+OUTPUT=$(system status)
+
+echo "$OUTPUT" | grep -q "snapshot"
+```
+
+This is intentionally weak. We’ll tighten it later.
+
+---
+
+# Step 2: Minimal implementation
+
+Now create:
+
+```
+system/status
+```
+
+---
+
+## `system/status`
+
+```sh
+#!/bin/sh
+
+STATUS=0
+
+check_transient() {
+    # naive: scan for git repos under /tmp and working dir
+    for dir in $(find /tmp -type d -name ".git" 2>/dev/null); do
+        repo=$(dirname "$dir")
+        if ! git -C "$repo" diff --quiet 2>/dev/null; then
+            echo "[WARN] transient: repo $repo has uncommitted changes"
+            STATUS=1
+        fi
+    done
+}
+
+check_pile() {
+    PILE="/tank/data/active/pile"
+
+    [ -d "$PILE" ] || return
+
+    NOW=$(date +%s)
+
+    for f in "$PILE"/*; do
+        [ -f "$f" ] || continue
+
+        MTIME=$(stat -c %Y "$f")
+        AGE=$((NOW - MTIME))
+
+        # 1 day threshold for now (test-friendly)
+        if [ "$AGE" -gt 86400 ]; then
+            echo "[WARN] pile: $f is older than threshold"
+            STATUS=1
+        fi
+    done
+}
+
+check_snapshot() {
+    DATASET="tank/data/active/pile"
+
+    SNAP=$(zfs list -t snapshot -o name -s creation | grep "^$DATASET@" | tail -n 1)
+
+    if [ -z "$SNAP" ]; then
+        echo "[WARN] snapshot: no snapshots for $DATASET"
+        STATUS=1
+    else
+        echo "[OK] snapshot: found $SNAP"
+    fi
+}
+
+check_transient
+check_pile
+check_snapshot
+
+exit $STATUS
+```
+
+---
+
+# Step 3: Wire it into your runner
+
+You already did the smart thing:
+
+```sh
+export PATH=$(dirname $0)/system:$PATH
+```
+
+So just:
+
+```sh
+chmod +x system/status
+```
+
+---
+
+# Step 4: Reality check (this is important)
+
+This implementation is:
+
+* ugly
+* incomplete
+* inefficient
+* full of hardcoded paths
+
+Good. That’s exactly where you should be.
+
+Because what you just built is:
+
+> the first executable version of your *observability model*
+
+---
+
+# What will break next (and should)
+
+Run your tests a few times and you’ll hit issues:
+
+### 1. Git repo discovery is garbage
+
+You’re scanning `/tmp` like a raccoon.
+
+→ Later fix: define explicit project roots.
+
+---
+
+### 2. Snapshot check is superficial
+
+It only checks existence, not recency.
+
+→ Later fix: parse creation time.
+
+---
+
+### 3. Pile logic is naive
+
+No aggregation, no reporting structure.
+
+→ Later fix: summary + counts.
+
+---
+
+# Why this is the correct next step
+
+You now have:
+
+* a command that can fail
+* tests that induce failure
+* a place to hang future constraints
+
+You’ve crossed from:
+
+> “system stores data”
+
+to:
+
+> “system detects when guarantees are violated”
+
+That’s the entire game.
+
+---
+
+# What comes immediately after
+
+Don’t drift. Next iteration is obvious:
+
+### Tighten snapshot test → enforce time-based staleness
+
+Because that’s your first real **RPO-adjacent signal**.
+
+And if your system can’t even tell you “your data is 6 hours stale,” everything else in your spec is decorative fiction.
+
+
+## >> User
+
+That works but I had to make three small changes.
+
+First, I had to ensure an absolute path for PATH in the test runner:
+
+```bash
+export PATH=$(realpath ${0%/*})/system:$PATH
+```
+
+because the transient test changes directory:
+
+```bash
+cd /tmp/test_repo
+```
+
+Because of the failure caused by the relative path, this temporary directory
+wasn't getting cleaned up, so I had to had a cleanup to the test:
+
+```bash
+trap 'rm -rf /tmp/test_repo' EXIT
+```
+
+And finally, the tests needed to ignore the exit code from the status command
+(and `system status` wasn't a valid command):
+
+```bash
+OUTPUT=$(system-status || true)
+```
+
+Do these small changes need any cleaning up before proceeding?
+
+## >> Assistant
+
+You’ve just discovered the glamorous reality of shell-based systems: everything works until you `cd` once and the whole illusion collapses.
+
+Short answer: yes, these are “small” fixes, but two of them are actually pointing at structural cracks. Ignore them now and they’ll metastasise into hours of confusion later.
+
+Let’s go through them without pretending they’re all equal.
+
+---
+
+## 1. Absolute PATH via `realpath`
+
+```sh
+export PATH=$(realpath ${0%/*})/system:$PATH
+```
+
+This is correct. Keep it.
+
+What you’ve really done is fix:
+
+> “test execution depends on current working directory”
+
+That’s unacceptable in a system that explicitly allows operations across datasets and paths.
+
+### Slightly cleaner version
+
+```sh
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export PATH="$HERE/system:$PATH"
+```
+
+Less dependency on `realpath`, more portable. Not urgent, just less brittle.
+
+---
+
+## 2. Trap cleanup for `/tmp/test_repo`
+
+```sh
+trap 'rm -rf /tmp/test_repo' EXIT
+```
+
+This is not a “nice-to-have”. This is **non-negotiable**.
+
+You are building:
+
+> repeatable, isolated, destructive tests
+
+Leaving residue breaks all three.
+
+### But your current version is still sloppy
+
+Hardcoding `/tmp/test_repo` is asking for collisions.
+
+Fix it properly:
+
+```sh
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+cd "$TMPDIR"
+git init -q
+```
+
+Now your test:
+
+* doesn’t collide
+* doesn’t leak
+* doesn’t depend on previous failures
+
+---
+
+## 3. `system-status` vs `system status`
+
+You accidentally made a design decision here.
+
+Right now:
+
+```sh
+system-status
+```
+
+…because your `PATH` points directly at the `system/` directory.
+
+That’s fine for now. In fact, it’s good.
+
+Trying to implement a subcommand dispatcher (`system status`) at this stage would be premature abstraction. You don’t even know your command surface yet.
+
+So:
+
+> Keep flat commands for now.
+
+When it starts to hurt, *then* you introduce a wrapper.
+
+---
+
+## 4. Ignoring exit code
+
+```sh
+OUTPUT=$(system-status || true)
+```
+
+This one needs a bit more thought.
+
+You’re doing it because:
+
+* the command returns non-zero on warnings
+* you still want to inspect output
+
+That’s valid. But it reveals ambiguity:
+
+> Is a warning a failure?
+
+Right now your system says:
+
+* exit 0 → all good
+* exit 1 → something violated
+
+Your tests are treating:
+
+* exit 1 → expected behaviour
+
+That’s slightly backwards.
+
+---
+
+### Cleaner pattern
+
+Capture both:
+
+```sh
+OUTPUT=$(system-status 2>&1)
+STATUS=$?
+```
+
+Then assert both:
+
+```sh
+[ $STATUS -ne 0 ]
+echo "$OUTPUT" | grep -q "transient"
+```
+
+Now your test explicitly says:
+
+> “This should fail, and here’s why.”
+
+Much clearer, and future-proof when you add more conditions.
+
+---
+
+## The real takeaway (the part you’re supposed to notice)
+
+All three issues came from the same root cause:
+
+> **Hidden assumptions about execution context**
+
+Specifically:
+
+* working directory
+* filesystem state
+* command resolution
+* cleanup responsibility
+
+Your system spec *hates* hidden assumptions. It keeps screaming:
+
+> “explicit, observable, bounded”
+
+So your test harness needs to obey the same philosophy.
+
+---
+
+## Minimal cleanup before proceeding
+
+Do this and move on:
+
+1. Replace hardcoded `/tmp/test_repo` with `mktemp -d`
+2. Capture exit status explicitly instead of `|| true`
+3. Keep absolute PATH (your fix is fine)
+
+Do NOT:
+
+* build a CLI framework
+* refactor command structure
+* overdesign test harness
+
+You’re still in the phase where speed matters more than elegance.
+
+---
+
+## Slightly uncomfortable truth
+
+You’re already seeing it:
+
+> The hardest part of this system is not ZFS, not replication, not recovery.
+
+It’s **making state and assumptions explicit enough that tests don’t lie to you**.
+
+Everything else is just plumbing.
+
+
