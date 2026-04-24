@@ -11,7 +11,6 @@ echo "data" > "$FILE"
 touch -d "2 days ago" "$FILE"
 
 # Run system status
-OUTPUT=$(system-status || true)
 capture_status system-status
 
 [ $STATUS -ne 0 ]

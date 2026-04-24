@@ -16,8 +16,6 @@ git commit -m "init" -q
 echo "change" >> file.txt
 
 # Run system status
-OUTPUT=$(system-status || true)
-
 capture_status system-status
 
 [ $STATUS -ne 0 ]
