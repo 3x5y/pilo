@@ -3738,3 +3738,428 @@ It’s **making state and assumptions explicit enough that tests don’t lie to 
 Everything else is just plumbing.
 
 
+## >> User
+
+Regarding the exit code your analysis is incorrect. The problem is that each
+test script begins with `set -e` so it will fail early if any command returns
+nonzero, and this was pre-empting the correct verification step.
+
+Semantically, the test doesn't care about the command's exit code, so would the
+cleanest approach at this early stage be just to change the command to skip
+returning nonzero, and defer exit codes until they become useful?
+
+Otherwise, I've applied the other changes as suggested.
+
+## >> Assistant
+
+No, don’t neuter the exit codes just because your test harness is being a bit dramatic.
+
+What you’re seeing isn’t a problem with `system-status`. It’s a problem with how `set -e` behaves like an overcaffeinated hall monitor. It aborts on *any* nonzero, even when that nonzero is the thing you’re explicitly trying to test.
+
+If you remove exit codes now, you’re quietly discarding one of your most valuable signals. Later, when you actually need to distinguish “healthy” from “violating constraints,” you’ll have to retrofit semantics into something that’s already lying to you.
+
+That’s how systems become “it prints warnings but everything exits 0,” which is basically operational nihilism.
+
+---
+
+## What’s actually going on
+
+With:
+
+```sh
+set -e
+OUTPUT=$(system-status)
+```
+
+If `system-status` returns nonzero, the shell exits *before* assignment completes. You never get to assert anything. That’s the real issue.
+
+---
+
+## Clean solution (keep exit codes, control the shell)
+
+You don’t disable exit codes. You **locally override `set -e`** where needed.
+
+### Pattern:
+
+```sh
+set +e
+OUTPUT=$(system-status 2>&1)
+STATUS=$?
+set -e
+```
+
+Now you have:
+
+* `STATUS` → semantic result
+* `OUTPUT` → observable behaviour
+* test flow → intact
+
+And your test can say explicitly:
+
+```sh
+[ $STATUS -ne 0 ]
+echo "$OUTPUT" | grep -q "transient"
+```
+
+That’s honest, readable, and future-proof.
+
+---
+
+## Why your proposed approach is a trap
+
+> “just skip returning nonzero for now”
+
+That sounds harmless. It isn’t.
+
+You’re building a system whose spec explicitly includes:
+
+* violation detection
+* observability
+* bounded guarantees
+
+Exit codes are the **simplest machine-readable expression of violation**.
+
+If you drop them now:
+
+* your tests stop encoding expectations about failure
+* your CLI becomes “log-only”
+* automation later becomes painful
+
+You’d be trading a tiny inconvenience now for a structural weakness later.
+
+---
+
+## Slight refinement (if you want it cleaner)
+
+Wrap it:
+
+```sh
+capture_status() {
+    set +e
+    OUTPUT=$("$@" 2>&1)
+    STATUS=$?
+    set -e
+}
+```
+
+Then in tests:
+
+```sh
+capture_status system-status
+
+[ $STATUS -ne 0 ]
+echo "$OUTPUT" | grep -q "transient"
+```
+
+Now your tests don’t look like shell gymnastics.
+
+---
+
+## One more subtle point (worth noticing)
+
+Right now:
+
+* any warning → exit 1
+
+That’s fine *for now*, but eventually you’ll want:
+
+* 0 → OK
+* 1 → warnings
+* 2 → hard failures
+
+Don’t implement that yet. Just… don’t paint yourself into a corner by removing exit codes entirely.
+
+---
+
+## Bottom line
+
+Your instinct to simplify is understandable, but this is one of those places where restraint matters:
+
+* Keep exit codes
+* Control `set -e` locally
+* Make tests explicitly assert failure when appropriate
+
+You’re not fighting the shell. You’re teaching it to behave like an adult.
+
+
+## >> User
+
+OK, but that function needs to factored out into a library file (`testlib.sh`)
+to source in the test scripts, and now we have the problem of finding library
+files. Either I use a relative path in each file
+
+```bash
+. ./testlib.sh
+```
+
+or I need to copy and paste a magic incantation for each test script:
+
+
+```bash
+. ${0%/*}/testlib.sh
+```
+
+I'm not happy with either. Is there a better way? What about modifying my test
+runner to automatically include the file? For example, this appears to work:
+
+```bash
+#!/bin/sh
+
+set -e
+
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+LIB=$HERE/testlib.sh
+
+RED='\e[0;31m'
+GREEN='\e[0;32m'
+RESET='\e[0m'
+
+echo "[TEST] Running tests"
+
+for test_file in $HERE/test_*.sh
+do
+    test_name=$(basename $test_file .sh)
+    echo "[TEST] $test_name"
+
+    if (. "$LIB" && . "$test_file")
+    then
+        echo "[${GREEN}PASS${RESET}] $test_name"
+    else
+        RESULT=$?
+        echo "[${RED}FAIL${RESET}] $test_name"
+        exit $RESULT
+    fi
+done
+```
+
+## >> Assistant
+
+You’ve basically reinvented a tiny test framework because the shell refuses to behave like a grown-up language. Welcome to the club.
+
+Short answer: what you’ve done is actually the **least bad option so far**. It’s not just “working”, it’s structurally the right direction for this stage.
+
+Let’s break it down so you don’t accidentally “improve” it into something worse.
+
+---
+
+## Your approach: sourcing via the runner
+
+```sh
+if (. "$LIB" && . "$test_file")
+```
+
+This gives you:
+
+* a clean test file (no boilerplate)
+* consistent environment
+* centralised control
+* per-test isolation via subshell
+
+That last point matters more than you probably realise:
+
+> each test runs in its own subshell → side effects don’t leak
+
+That’s exactly what you want.
+
+---
+
+## Why your alternatives are worse
+
+### 1. Relative include
+
+```sh
+. ./testlib.sh
+```
+
+Breaks immediately if:
+
+* test is run from a different directory
+* runner changes working directory
+* future you forgets and runs a test directly
+
+So this is fragile and will betray you later.
+
+---
+
+### 2. `${0%/*}` incantation in every file
+
+```sh
+. ${0%/*}/testlib.sh
+```
+
+Technically correct. Practically:
+
+* duplicated everywhere
+* easy to get subtly wrong
+* ugly enough that you’ll resent it
+
+And resentment leads to “quick hacks”, which leads to bugs.
+
+---
+
+## Your runner-based injection: what’s good
+
+You’ve achieved:
+
+* **single source of truth** for test helpers
+* **no per-test boilerplate**
+* **controlled execution context**
+* **easy future extension** (you can inject more later)
+
+This aligns nicely with your system philosophy:
+
+> explicit control, minimal hidden behaviour
+
+Ironically, this is one place where a *bit* of central magic is justified.
+
+---
+
+## Minor improvements (not mandatory, but worth it)
+
+### 1. Make failure clearer
+
+Right now:
+
+```sh
+if (. "$LIB" && . "$test_file")
+```
+
+If `testlib.sh` ever breaks, every test fails and you won’t know why.
+
+Safer:
+
+```sh
+(
+  . "$LIB"
+  . "$test_file"
+)
+```
+
+Cleaner semantics:
+
+* load lib
+* run test
+* fail if either fails
+
+Same behaviour, less ambiguity.
+
+---
+
+### 2. Export helpers explicitly (optional)
+
+If `testlib.sh` defines functions, you’re fine.
+
+If it sets variables, consider:
+
+```sh
+set -a
+. "$LIB"
+set +a
+```
+
+Only if you actually need exported vars. Don’t cargo-cult it.
+
+---
+
+### 3. Guard against glob failure
+
+This one bites later:
+
+```sh
+for test_file in "$HERE"/test_*.sh
+```
+
+If no files match, shell may pass literal `test_*.sh`.
+
+Safer:
+
+```sh
+for test_file in "$HERE"/test_*.sh; do
+  [ -e "$test_file" ] || continue
+```
+
+Not urgent, but saves a future “why is it trying to run a file that doesn’t exist” moment.
+
+---
+
+## The deeper design point (the one that actually matters)
+
+You’ve just made an implicit decision:
+
+> **tests are not standalone executables**
+
+They are:
+
+> **scripts executed within a controlled harness**
+
+That’s good.
+
+It means you can later:
+
+* inject environment variables
+* simulate failures
+* stub commands
+* control permissions (root vs user)
+* add timing controls
+
+All without touching individual tests.
+
+---
+
+## Should you worry about “magic”?
+
+A little. But not here.
+
+Bad magic is:
+
+* invisible
+* inconsistent
+* surprising
+
+Your runner is:
+
+* explicit
+* centralised
+* predictable
+
+So it’s acceptable.
+
+---
+
+## What you should NOT do next
+
+Resist these temptations:
+
+* building a full test framework
+* adding fixtures, hooks, lifecycle abstractions
+* making tests “discoverable modules” or whatever
+
+You’re still in:
+
+> “prove the system is real”
+
+not:
+
+> “design the perfect testing ecosystem”
+
+---
+
+## Bottom line
+
+Your solution is:
+
+* correct
+* maintainable
+* aligned with your system philosophy
+
+Make the small structural tweaks above, then move on.
+
+Because the real problems ahead are:
+
+* modelling authority violations properly
+* enforcing time-based guarantees
+* handling root vs user boundaries without turning your tests into a permissions circus
+
+And those are a lot less forgiving than shell path nonsense.
+
+

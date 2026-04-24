@@ -2,11 +2,10 @@
 set -e
 
 # Create repo (simulating client working copy)
-mkdir -p /tmp/test_repo
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
 
-trap 'rm -rf /tmp/test_repo' EXIT
-
-cd /tmp/test_repo
+cd "$TMPDIR"
 git init -q
 
 echo "data" > file.txt
@@ -19,4 +18,7 @@ echo "change" >> file.txt
 # Run system status
 OUTPUT=$(system-status || true)
 
+capture_status system-status
+
+[ $STATUS -ne 0 ]
 echo "$OUTPUT" | grep -q "transient"
