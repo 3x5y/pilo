@@ -1,22 +1,20 @@
 #!/bin/sh
 set -e
 
-# Create repo (simulating client working copy)
 TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"' EXIT
+trap 'rm -rf $TMPDIR' EXIT
 
-cd "$TMPDIR"
+cd $TMPDIR
 git init -q
 
-echo "data" > file.txt
+echo data > file.txt
 git add file.txt
-git commit -m "init" -q
+git commit -m init -q
 
-# Create transient state (uncommitted change)
-echo "change" >> file.txt
+echo change >> file.txt
 
-# Run system status
 capture_status system-status
 
-[ $STATUS -ne 0 ]
-echo "$OUTPUT" | grep -q "transient"
+[ $STATUS -ne 0 ] || fail status returned success
+echo "$OUTPUT" | assert_grep transient
+

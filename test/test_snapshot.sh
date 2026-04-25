@@ -1,25 +1,17 @@
 #!/bin/sh
 set -e
 
-FILE="/tank/data/active/pile/recovery_test.txt"
+FILE=/tank/data/active/pile/recovery_test.txt
 
-echo "recover me" > "$FILE"
+echo recover me > $FILE
 
-SNAP="tank/data/active/pile@recovery_test"
-zfs snapshot "$SNAP"
+SNAP=tank/data/active/pile@recovery_test
+zfs snapshot $SNAP
 
-rm "$FILE"
+rm $FILE
 
-if [ -f "$FILE" ]
-then
-    echo "FAIL: file not deleted"
-    exit 1
-fi
+assert_not_exists $FILE
 
-zfs rollback "$SNAP"
+zfs rollback $SNAP
 
-if [ ! -f "$FILE" ]
-then
-    echo "FAIL: file not restored after rollback"
-    exit 1
-fi
+assert_file_exists $FILE

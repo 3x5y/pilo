@@ -44,24 +44,33 @@ test_teardown() {
     zfs destroy -r "$TEST_REPLICA" 2>/dev/null || true
 }
 
+run_tests() {
+    for test_file in "$@"
+    do
+        test_name=$(basename $test_file .sh)
+        [ -e "$test_file" ] || continue
+        test_setup
+        if (. "$TESTLIB"; . "$test_file")
+        then
+            echo "[${GREEN}PASS${RESET}] $test_name"
+            test_teardown
+        else
+            RESULT=$?
+            echo "[${RED}FAIL${RESET}] $test_name"
+            test_teardown
+            break
+        fi
+    done
+}
+
 env_setup
 
-for test_file in "$HERE/test"/test_*.sh
-do
-    test_name=$(basename $test_file .sh)
-    [ -e "$test_file" ] || continue
-    test_setup
-    if (. "$TESTLIB"; . "$test_file")
-    then
-        echo "[${GREEN}PASS${RESET}] $test_name"
-        test_teardown
-    else
-        RESULT=$?
-        echo "[${RED}FAIL${RESET}] $test_name"
-        test_teardown
-        break
-    fi
-done
+if [ -n "$1" ]
+then
+    run_tests "$@"
+else
+    run_tests "$HERE/test"/test_*.sh
+fi
 
 env_teardown
 

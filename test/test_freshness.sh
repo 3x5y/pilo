@@ -1,16 +1,13 @@
 #!/bin/sh
 set -e
 
-DATASET="tank/data/active/pile"
+DATASET=tank/data/active/pile
 
-# Ensure dataset exists
-zfs create -p "$DATASET" 2>/dev/null || true
+zfs create -p $DATASET 2>/dev/null || true
 
-# Take snapshot
-zfs snapshot "$DATASET@test_snap"
+zfs snapshot $DATASET@test_snap
 
-# Fake staleness (sleep or just accept "has snapshot")
 capture_status system-status
 
-[ $STATUS -eq 0 ]
-echo "$OUTPUT" | grep -q "snapshot"
+[ $STATUS -eq 0 ] || fail status returned nonzero
+echo $OUTPUT | assert_grep snapshot
