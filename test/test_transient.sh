@@ -1,10 +1,9 @@
 #!/bin/sh
 set -e
 
-TMPDIR=$(mktemp -d)
-trap 'rm -rf $TMPDIR' EXIT
-
-cd $TMPDIR
+WORKDIR=/tank/data/active/admin-work
+mkdir -p $WORKDIR
+cd $WORKDIR
 git init -q
 
 echo data > file.txt

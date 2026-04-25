@@ -3,8 +3,8 @@
 STATUS=0
 
 check_transient() {
-    # naive: scan for git repos under /tmp and working dir
-    for dir in $(find /tmp -type d -name ".git" 2>/dev/null); do
+    # naive: scan for git repos under /tank/data/active and working dir
+    for dir in $(find /tank/data/active -type d -name ".git" 2>/dev/null); do
         repo=$(dirname "$dir")
         if ! git -C "$repo" diff --quiet 2>/dev/null; then
             echo "[WARN] transient: repo $repo has uncommitted changes"
@@ -19,6 +19,7 @@ check_pile() {
     [ -d "$PILE" ] || return
 
     NOW=$(date +%s)
+    MAX_AGE=${CONFIG_PILE_MAX_AGE:-86400}
 
     for f in "$PILE"/*; do
         [ -f "$f" ] || continue
@@ -27,7 +28,7 @@ check_pile() {
         AGE=$((NOW - MTIME))
 
         # 1 day threshold for now (test-friendly)
-        if [ "$AGE" -gt 86400 ]; then
+        if [ "$AGE" -gt "$MAX_AGE" ]; then
             echo "[WARN] pile: $f is older than threshold"
             STATUS=1
         fi
@@ -37,13 +38,28 @@ check_pile() {
 check_snapshot() {
     DATASET="tank/data/active/pile"
 
-    SNAP=$(zfs list -t snapshot -o name -s creation | grep "^$DATASET@" | tail -n 1)
+    SNAP_INFO=$(zfs list -t snapshot -o name,creation -s creation \
+                | grep "^$DATASET@" | tail -n 1)
 
-    if [ -z "$SNAP" ]; then
-        echo "[WARN] snapshot: no snapshots for $DATASET"
+    SNAP_NAME=$(echo "$SNAP_INFO" | awk '{print $1}')
+    SNAP_TIME=$(echo "$SNAP_INFO" | cut -d' ' -f2-)
+
+    if [ -z "$SNAP_NAME" ]; then
+        echo "[WARN] snapshot: none for $DATASET"
+        STATUS=1
+        return
+    fi
+
+    SNAP_EPOCH=$(date -d "$SNAP_TIME" +%s)
+    NOW=$(date +%s)
+    MAX_AGE=${CONFIG_SNAPSHOT_MAX_AGE:-3600}
+    AGE=$((NOW - SNAP_EPOCH))
+
+    if [ "$AGE" -gt "$MAX_AGE" ]; then
+        echo "[WARN] snapshot: stale ($AGE s)"
         STATUS=1
     else
-        echo "[OK] snapshot: found $SNAP"
+        echo "[OK] snapshot: fresh ($AGE s)"
     fi
 }
 

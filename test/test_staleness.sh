@@ -5,10 +5,11 @@ DATASET=tank/data/active/pile
 
 zfs create -p $DATASET 2>/dev/null || true
 
-zfs snapshot $DATASET@fresh
+zfs snapshot $DATASET@stale
+sleep 2
 
-export CONFIG_SNAPSHOT_MAX_AGE=60
+export CONFIG_SNAPSHOT_MAX_AGE=1
 capture_status system-status
 
-[ $STATUS -eq 0 ] || fail status returned nonzero
+[ $STATUS -ne 0 ] || fail status returned nonzero
 echo "$OUTPUT" | assert_grep snapshot
