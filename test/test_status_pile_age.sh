@@ -10,7 +10,7 @@ echo data > $FILE
 touch -d '2 hours ago' $FILE
 
 export CONFIG_PILE_MAX_AGE=60
-capture_status system-status
+capture_status system-status pile
 
 [ $STATUS -ne 0 ] || fail status returned zero
 echo "$OUTPUT" | assert_grep pile:
