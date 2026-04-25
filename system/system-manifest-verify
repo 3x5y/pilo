@@ -1,20 +1,9 @@
 #!/bin/sh
 
-PILE="/tank/data/active/pile"
-MANIFEST="$PILE/.manifest"
+set -e
 
-STATUS=0
+PILE=/tank/data/active/pile
+MANIFEST=$PILE/.manifest
 
-while read sum name; do
-    file="$PILE/$name"
-    [ -f "$file" ] || continue
-
-    current=$(sha256sum "$file" | awk '{print $1}')
-
-    if [ "$sum" != "$current" ]; then
-        echo "[ERROR] mismatch: $name"
-        STATUS=1
-    fi
-done < "$MANIFEST"
-
-exit $STATUS
+cd $PILE
+sha256sum --quiet --strict -c $MANIFEST

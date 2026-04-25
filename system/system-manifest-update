@@ -1,14 +1,14 @@
 #!/bin/sh
 
-PILE="/tank/data/active/pile"
-MANIFEST="$PILE/.manifest"
+PILE=/tank/data/active/pile
+MANIFEST=$PILE/.manifest
 
-tmp=$(mktemp)
+TMP=$(mktemp)
 
-for f in "$PILE"/*; do
-    [ -f "$f" ] || continue
-    sum=$(sha256sum "$f" | awk '{print $1}')
-    echo "$sum  $(basename "$f")" >> "$tmp"
-done
+cd $PILE
 
-mv "$tmp" "$MANIFEST"
+find . -maxdepth 1 -type f ! -name .manifest -print0 \
+  | LC_COLLATE=C sort -z \
+  | xargs -0 sha256sum > "$TMP"
+
+mv "$TMP" $MANIFEST

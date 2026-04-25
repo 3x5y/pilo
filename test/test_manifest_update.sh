@@ -8,9 +8,9 @@ echo data > $FILE
 
 system-manifest-update
 
-cp $PILE/.manifest /tmp/manifest_before
 echo more >> $FILE
 
 system-manifest-update
 
-assert_grep test2.txt < $PILE/.manifest
+(cd "$PILE" && sha256sum --quiet --strict -c .manifest)
+

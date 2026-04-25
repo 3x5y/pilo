@@ -8,4 +8,4 @@ echo hello > $FILE
 
 system-manifest-update
 
-assert_grep test.txt < $PILE/.manifest
+(cd "$PILE" && sha256sum --quiet --strict -c .manifest)
