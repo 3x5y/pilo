@@ -25,5 +25,5 @@ assert_grep() {
 }
 
 assert_not_grep() {
-    grep -q "$1" || fail "unexpected: '$1'"
+    grep -v -q "$1" || fail "unexpected: '$1'"
 }
