@@ -51,5 +51,5 @@ system-manifest-update
     sha256sum * > "$tmp" 2>/dev/null || true
     zfs set readonly=off $DATASET
     mv "$tmp" .manifest
-    zfs set readonly=off $DATASET
+    zfs set readonly=on $DATASET
 )
