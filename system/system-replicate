@@ -3,8 +3,8 @@
 SRC="$1"
 DST="$2"
 
-[ -z "$SRC" ] && SRC="tank/data/active/pile-readonly"
-[ -z "$DST" ] && DST="tank/replica/pile-readonly"
+[ -z "$SRC" ] && SRC=tank/data
+[ -z "$DST" ] && DST=tank/replica
 
 HAS_CHILDREN=$(zfs list -H -o name -r "$SRC" | wc -l)
 
