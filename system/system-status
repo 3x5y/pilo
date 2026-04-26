@@ -71,7 +71,7 @@ check_snapshot() {
 
 check_replication() {
     SRC=tank/data
-    DST=tank/replica
+    DST=tank/replica/data
 
     LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
     LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)

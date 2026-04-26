@@ -2,15 +2,15 @@
 set -e
 
 SRC=$TEST_ROOT/active
-DST=$TEST_REPLICA/active
+DST=$TEST_REPLICA/data/active
 
 echo v1 > /$SRC/admin/file.txt
-zfs snapshot -r $SRC@t0
-system-replicate $SRC $DST
+system-snapshot t0
+system-replicate
 
 echo v2 > /$SRC/admin/file.txt
-zfs snapshot -r $SRC@t1
-system-replicate $SRC $DST
+system-snapshot t1
+system-replicate
 
 zfs list -t snapshot | assert_grep $DST@t1
 assert_grep v2 < /$DST/admin/.zfs/snapshot/t1/file.txt

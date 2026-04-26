@@ -2,7 +2,7 @@
 set -e
 
 system-snapshot t0
-system-replicate $TEST_ROOT $TEST_REPLICA
+system-replicate
 
 capture_status system-replicate $TEST_ROOT $TEST_REPLICA
 assert_command_ok replication should be no-op

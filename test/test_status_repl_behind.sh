@@ -1,11 +1,9 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile-readonly
-
 # initial snapshot + replication
 zfs snapshot -r $TEST_ROOT@t0
-system-replicate $TEST_ROOT $TEST_REPLICA
+system-replicate
 
 capture_status system-status replication
 

@@ -1,9 +1,7 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile-readonly
-
-zfs snapshot $SRC@t0
+zfs snapshot -r $TEST_ROOT@t0
 
 capture_status system-status replication
 assert_command_fail expected replication warning
