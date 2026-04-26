@@ -15,5 +15,7 @@ system-ingest-pile
 
 # no duplication, no failure
 assert_file_exists $CANONICAL
+assert_grep data < $CANONICAL
+assert_not_exists $INTAKE
 [ $(stat -c%Y $CANONICAL) -eq $mtime ] \
     || fail mtime does not match
