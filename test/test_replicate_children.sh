@@ -1,8 +1,6 @@
 #!/bin/sh
 set -e
 
-ROOT=$TEST_ROOT
-DST=$TEST_REPLICA/data
 ADMIN=$TEST_ROOT/active/admin
 STATIC=$TEST_ROOT/static
 
@@ -16,5 +14,5 @@ with_dataset_writable $STATIC sh -c "echo s1 > /$STATIC/doc.txt"
 system-snapshot t1
 system-replicate
 
-assert_grep a1 < /$DST/active/admin/.zfs/snapshot/t1/file.txt
-assert_grep s1 < /$DST/static/.zfs/snapshot/t1/doc.txt
+assert_grep a1 < /$TEST_REPLICA/active/admin/.zfs/snapshot/t1/file.txt
+assert_grep s1 < /$TEST_REPLICA/static/.zfs/snapshot/t1/doc.txt

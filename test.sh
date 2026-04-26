@@ -7,7 +7,7 @@ TESTLIB="$HERE/test/lib.sh"
 
 export PATH=$HERE/system:$PATH
 export TEST_ROOT="tank/data"
-export TEST_REPLICA="tank/replica"
+export TEST_REPLICA="tank/replica/data"
 
 RED='\e[0;31m'
 GREEN='\e[0;32m'

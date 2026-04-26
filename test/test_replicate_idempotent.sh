@@ -2,7 +2,7 @@
 set -e
 
 SRC=$TEST_ROOT/active
-DST=$TEST_REPLICA/data/active
+DST=$TEST_REPLICA/active
 
 echo data > /$SRC/admin/file.txt
 system-snapshot t0

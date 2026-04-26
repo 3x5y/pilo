@@ -1,37 +1,28 @@
 #!/bin/sh
 set -e
 
-DATA_ROOT=$TEST_ROOT
-REPL_ROOT=$TEST_REPLICA
-
 # --- create full system state ---
-
-# pile
 echo pile > /tmp/p.txt
 system-capture /tmp/p.txt
 system-ingest-pile
 
-# admin
 echo admin > /tank/data/active/admin/code.txt
 
-# static
 with_dataset_writable tank/data/static \
     sh -c "echo static > /tank/data/static/doc.txt"
 
-# snapshot + replicate
-zfs snapshot -r $DATA_ROOT@baseline
-system-replicate $DATA_ROOT $REPL_ROOT
+system-snapshot baseline
+system-replicate
 
 # --- destroy everything ---
-zfs destroy -r $DATA_ROOT
+zfs destroy -r $TEST_ROOT
 
 # --- recover ONLY pile ---
 system-recover-baseline \
-    $REPL_ROOT/active/pile-readonly \
-    $DATA_ROOT/active/pile-readonly baseline >/dev/null
+    $TEST_REPLICA/active/pile-readonly \
+    $TEST_ROOT/active/pile-readonly baseline >/dev/null
 
 # --- system should now be inconsistent ---
-
 capture_status system-status
 assert_command_fail "partial recovery not detected"
 echo "$OUTPUT" | assert_grep "incomplete"

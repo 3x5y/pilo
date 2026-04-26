@@ -1,11 +1,8 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT
-DST=$TEST_REPLICA
-
 system-snapshot baseline
-system-replicate "$SRC" "$DST"
+system-replicate
 
-zfs list -t snapshot | assert_grep "$DST@baseline"
-zfs list -t snapshot | assert_grep "$DST/active@baseline"
+zfs list -t snapshot | assert_grep $TEST_REPLICA@baseline
+zfs list -t snapshot | assert_grep $TEST_REPLICA/active@baseline

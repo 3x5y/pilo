@@ -1,19 +1,14 @@
 #!/bin/sh
 set -e
 
-DATA_ROOT=$TEST_ROOT
-REPL_ROOT=$TEST_REPLICA
-
-echo pile > /tmp/file.txt
-system-capture /tmp/file.txt
-system-ingest-pile
+echo admin > /tank/data/active/admin/file.txt
 echo temp > /tank/data/stash/temp.txt
-zfs snapshot -r $DATA_ROOT@baseline
-system-replicate $DATA_ROOT $REPL_ROOT
-zfs destroy -r $DATA_ROOT
+system-snapshot baseline
+system-replicate
+zfs destroy -r $TEST_ROOT
 
-system-recover-baseline $REPL_ROOT/active/pile-readonly \
-                        $DATA_ROOT/active/pile-readonly baseline >/dev/null
+system-recover-baseline $TEST_REPLICA/active/admin \
+                        $TEST_ROOT/active/admin baseline >/dev/null
 
-assert_grep pile < /tank/data/active/pile-readonly/.zfs/snapshot/baseline/file.txt
+assert_grep admin < /tank/data/active/admin/.zfs/snapshot/baseline/file.txt
 assert_not_exists /tank/data/stash/temp.txt

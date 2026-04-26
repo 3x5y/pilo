@@ -1,16 +1,13 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile-readonly
-REPL=$TEST_REPLICA/pile-readonly
-
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
-system-ingest-pile
-zfs snapshot $SRC@baseline
+echo data > /tank/data/active/admin/file.txt
+system-snapshot baseline
 # deliberately skip replication
 zfs destroy -r $TEST_ROOT
 
-capture_status system-recover-baseline $REPL $SRC baseline
+capture_status system-recover-baseline \
+    $TEST_REPLICA/active/admin \
+    $TEST_ROOT/active/admin baseline >/dev/null
 
 assert_command_fail recovery succeeded without replica data
