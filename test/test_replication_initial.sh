@@ -1,13 +1,16 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile
-DST=$TEST_REPLICA/pile
+SRC=$TEST_ROOT/active/pile-readonly
+DST=$TEST_REPLICA/pile-readonly
 
-echo hello > /tank/data/active/pile/file1.txt
+echo hello > /tmp/file.txt
+system-capture /tmp/file.txt
+system-ingest-pile
+
 zfs snapshot $SRC@t0
 
 system-replicate
 
 zfs list -t snapshot | assert_grep $DST@t0
-assert_file_exists /$DST/.zfs/snapshot/t0/file1.txt
+assert_file_exists /$DST/.zfs/snapshot/t0/file.txt

@@ -1,11 +1,12 @@
 #!/bin/sh
 set -e
 
-PILE=/tank/data/active/pile
-FILE=$PILE/new_file.txt
+FILE=new_file.txt
 
-mkdir -p $PILE
-echo data > $FILE
+# new file
+echo data > /tmp/$FILE
+system-capture /tmp/$FILE
+system-ingest-pile
 
 capture_status system-status pile
 

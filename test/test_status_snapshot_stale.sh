@@ -1,9 +1,7 @@
 #!/bin/sh
 set -e
 
-DATASET=tank/data/active/pile
-
-zfs create -p $DATASET 2>/dev/null || true
+DATASET=tank/data/active/pile-readonly
 
 zfs snapshot $DATASET@stale
 sleep 2

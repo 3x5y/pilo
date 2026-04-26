@@ -1,7 +1,7 @@
 #!/bin/sh
 
-SRC="tank/data/active/pile"
-DST="tank/replica/pile"
+SRC="tank/data/active/pile-readonly"
+DST="tank/replica/pile-readonly"
 
 # find latest common snapshot
 LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)

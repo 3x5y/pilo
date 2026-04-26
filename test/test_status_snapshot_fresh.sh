@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-DATASET=tank/data/active/pile
+DATASET=tank/data/active/pile-readonly
 
 zfs create -p $DATASET 2>/dev/null || true
 

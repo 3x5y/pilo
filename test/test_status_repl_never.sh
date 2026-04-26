@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile
+SRC=$TEST_ROOT/active/pile-readonly
 
-echo data > /tank/data/active/pile/file.txt
 zfs snapshot $SRC@t0
 
 capture_status system-status replication

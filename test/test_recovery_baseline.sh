@@ -1,10 +1,13 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile
-REPL=$TEST_REPLICA/pile
+SRC=$TEST_ROOT/active/pile-readonly
+REPL=$TEST_REPLICA/pile-readonly
 
-echo important > /tank/data/active/pile/file.txt
+echo important > /tmp/file.txt
+system-capture /tmp/file.txt
+system-ingest-pile
+
 zfs snapshot $SRC@baseline
 
 system-replicate $SRC $REPL

@@ -1,11 +1,12 @@
 #!/bin/sh
 set -e
 
-FILE=/tank/data/active/pile/recovery_test.txt
+SRC=tank/data/active/pile-readonly
+FILE=/$SRC/recovery_test.txt
 
 echo recover me > $FILE
 
-SNAP=tank/data/active/pile@recovery_test
+SNAP=$SRC@recovery_test
 zfs snapshot $SNAP
 
 rm $FILE

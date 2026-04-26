@@ -1,13 +1,12 @@
 #!/bin/sh
 set -e
 
-PILE=/tank/data/active/pile
-FILE=$PILE/old_file.txt
+FILE=old_file.txt
 
-mkdir -p $PILE
-echo data > $FILE
-
-touch -d '2 hours ago' $FILE
+echo data > /tmp/$FILE
+touch -d '2 hours ago' /tmp/$FILE
+system-capture /tmp/$FILE
+system-ingest-pile
 
 export CONFIG_PILE_MAX_AGE=60
 capture_status system-status pile

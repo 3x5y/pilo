@@ -2,9 +2,11 @@
 set -e
 
 PILE=/tank/data/active/pile
-FILE=$PILE/test3.txt
+FILE=test.txt
 
-echo valid > $FILE
+echo valid > /tmp/$FILE
+system-capture /tmp/$FILE
+system-ingest-pile
 
 system-manifest-update
 

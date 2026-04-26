@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile
-DST=$TEST_REPLICA/pile
+SRC=$TEST_ROOT/active/pile-readonly
+DST=$TEST_REPLICA/pile-readonly
 
-echo v1 > /tank/data/active/pile/file.txt
+echo v1 > /$SRC/file.txt
 zfs snapshot $SRC@t0
 system-replicate
 
-echo v2 > /tank/data/active/pile/file.txt
+echo v2 > /$SRC/file.txt
 zfs snapshot $SRC@t1
 system-replicate
 

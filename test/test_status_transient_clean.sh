@@ -11,5 +11,4 @@ git add file.txt
 git commit -m init -q
 
 capture_status system-status transient
-
 [ $STATUS -eq 0 ] || fail expected clean transient state

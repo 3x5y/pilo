@@ -1,9 +1,5 @@
 #!/bin/sh
-# /usr/local/bin/capture
 
 set -e
 
-SRC="$1"
-DEST="/tank/data/active/pile/$(basename "$SRC")"
-
-mv "$SRC" "$DEST"
+cp -a "$1" /tank/data/active/pile-intake/

@@ -1,17 +1,15 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile
+SRC=$TEST_ROOT/active/pile-readonly
 
 # initial snapshot + replication
-echo v1 > /tank/data/active/pile/file.txt
 zfs snapshot $SRC@t0
 system-replicate
 
 capture_status system-status replication
 
 # new snapshot, NOT replicated
-echo v2 > /tank/data/active/pile/file.txt
 zfs snapshot $SRC@t1
 
 capture_status system-status replication

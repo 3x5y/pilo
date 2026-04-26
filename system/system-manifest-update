@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PILE=/tank/data/active/pile
+PILE=/tank/data/active/pile-readonly
 MANIFEST=$PILE/.manifest
 
 TMP=$(mktemp)
