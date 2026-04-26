@@ -1,0 +1,43 @@
+#!/bin/sh
+set -e
+
+NAME="$1"
+TARGET="$2"
+
+PILE="/tank/data/active/pile-readonly"
+BASE="/tank/data/static"
+
+[ -n "$NAME" ] && [ -n "$TARGET" ] || {
+    echo "usage: system-file-item <filename> <destination>"
+    exit 1
+}
+
+SRC="$PILE/$NAME"
+DST="$BASE/$TARGET"
+
+case "$TARGET" in
+    filing/*|collection)
+        ;;
+    *)
+        echo "ERROR: invalid destination $TARGET"
+        exit 1
+        ;;
+esac
+
+[ -f "$SRC" ] || {
+    echo "ERROR: source file missing"
+    exit 1
+}
+
+mkdir -p "$DST"
+
+mv "$SRC" "$DST/"
+
+# update manifests
+system-manifest-update
+(
+    cd "$DST"
+    tmp=$(mktemp)
+    sha256sum * > "$tmp" 2>/dev/null || true
+    mv "$tmp" .manifest
+)
