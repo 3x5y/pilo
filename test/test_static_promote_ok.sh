@@ -12,6 +12,3 @@ system-static-promote test.txt filing/2026
 
 assert_not_exists $SRC/test.txt "file still in pile"
 assert_file_exists $DST/test.txt "file not moved to filing"
-
-ls -la $SRC
-ls -la /tank/data/static
