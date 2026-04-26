@@ -29,7 +29,12 @@ esac
     exit 1
 }
 
-mkdir -p "$DST"
+DATASET="$BASE/$TARGET"
+
+if ! zfs list "$DATASET" >/dev/null 2>&1; then
+    echo "ERROR: dataset does not exist: $DATASET"
+    exit 1
+fi
 
 mv "$SRC" "$DST/"
 

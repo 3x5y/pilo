@@ -12,12 +12,10 @@ system-capture /tmp/p.txt
 system-ingest-pile
 
 # admin
-mkdir -p /tank/data/active/admin
 echo admin > /tank/data/active/admin/code.txt
 
-# archive
-mkdir -p /tank/data/archive
-echo archive > /tank/data/archive/doc.txt
+# static
+echo static > /tank/data/static/doc.txt
 
 # snapshot + replicate
 zfs snapshot -r $DATA_ROOT@baseline

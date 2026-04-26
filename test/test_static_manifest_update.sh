@@ -4,8 +4,6 @@ set -e
 SRC=/tank/data/active/pile-readonly
 DST=/tank/data/static/collection
 
-mkdir -p $DST
-
 echo data > $SRC/item.txt
 
 system-manifest-update

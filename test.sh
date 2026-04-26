@@ -36,7 +36,7 @@ test_setup() {
     zfs create -p $TEST_ROOT/active/pile-readonly
     zfs create -p $TEST_ROOT/active/admin
     zfs create -p $TEST_ROOT/stash
-    zfs create -p $TEST_ROOT/archive
+    zfs create -p $TEST_ROOT/static/collection
     zfs create -p "$TEST_REPLICA"
 }
 
