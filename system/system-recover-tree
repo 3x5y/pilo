@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+SRC="$1"
+DST="$2"
+SNAP="$3"
+
+[ -n "$SRC" ] && [ -n "$DST" ] && [ -n "$SNAP" ] || {
+    echo "usage: system-recover-tree <src_root> <dst_root> <snapshot>"
+    exit 1
+}
+
+zfs destroy -r "$DST" 2>/dev/null || true
+
+zfs send -R "$SRC@$SNAP" | zfs receive "$DST"

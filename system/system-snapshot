@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+ROOT="tank/data"
+NAME="$1"
+
+[ -n "$NAME" ] || {
+    echo "usage: system-snapshot <name>"
+    exit 1
+}
+
+zfs snapshot -r "$ROOT@$NAME"
