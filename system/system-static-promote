@@ -48,7 +48,9 @@ system-manifest-update
 (
     cd "$DST"
     tmp=$(mktemp)
-    sha256sum * > "$tmp" 2>/dev/null || true
+    find . -maxdepth 1 -type f ! -name .manifest -print0 \
+      | LC_COLLATE=C sort -z \
+      | xargs -r0 sha256sum > "$tmp"
     zfs set readonly=off $DATASET
     mv "$tmp" .manifest
     zfs set readonly=on $DATASET
