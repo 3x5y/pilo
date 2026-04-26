@@ -1,19 +1,8 @@
 #!/bin/sh
+set -e
 
-SRC="$1"
-DST="$2"
-
-[ -z "$SRC" ] && SRC=tank/data
-[ -z "$DST" ] && DST=tank/replica/data
-
-HAS_CHILDREN=$(zfs list -H -o name -r "$SRC" | wc -l)
-
-if [ "$HAS_CHILDREN" -gt 1 ]
-then
-    OPTS=-R
-else
-    OPTS=
-fi
+SRC="${1:-tank/data}"
+DST="${2:-tank/replica/data}"
 
 LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
 LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
@@ -26,7 +15,7 @@ fi
 
 if [ -z "$LAST_DST" ]
 then
-    zfs send $OPTS "$LAST_SRC" \
+    zfs send -R "$LAST_SRC" \
         | zfs receive -F "$DST"
 else
     SNAP_NAME=$(echo "$LAST_SRC" | cut -d@ -f2)
@@ -43,6 +32,6 @@ else
         exit 1
     fi
 
-    zfs send $OPTS -i "$SRC@$BASE_NAME" "$LAST_SRC" \
+    zfs send -R -i "$SRC@$BASE_NAME" "$LAST_SRC" \
         | zfs receive -F "$DST"
 fi

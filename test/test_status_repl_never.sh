@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-zfs snapshot -r $TEST_ROOT@t0
+system-snapshot t0
 
 capture_status system-status replication
 assert_command_fail expected replication warning

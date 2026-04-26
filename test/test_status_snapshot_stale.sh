@@ -3,7 +3,7 @@ set -e
 
 DATASET=tank/data/active/pile-readonly
 
-zfs snapshot $DATASET@stale
+system-snapshot stale
 sleep 2
 
 export CONFIG_SNAPSHOT_MAX_AGE=1

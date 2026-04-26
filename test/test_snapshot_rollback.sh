@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+# tests ZFS instead of system commands for unknown reason?
+
 SRC=tank/data/active/admin
 FILE=/$SRC/recovery_test.txt
 
