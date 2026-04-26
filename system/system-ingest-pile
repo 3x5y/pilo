@@ -9,12 +9,23 @@ zfs set readonly=off $PILE
 for src in $INTAKE/*
 do
     [ -f "$src" ] || continue
-    if [ -f /$PILE/$(basename "$src") ]
-    then
-        rm "$src"
-    else
-        mv "$src" /$PILE/
-    fi
-done
 
-zfs set readonly=on $PILE
+    name=$(basename "$src")
+    dst="/$PILE/$name"
+
+    if [ -f "$dst" ]
+    then
+        if cmp -s "$src" "$dst"
+        then
+            rm "$src" # idempotent
+        else
+            echo "ERROR: name collision with different content: '$name'"
+            exit 1
+        fi
+    else
+        zfs set readonly=off $PILE
+        mv "$src" "$dst"
+        zfs set readonly=on $PILE
+    fi
+
+done
