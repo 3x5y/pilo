@@ -13,6 +13,6 @@ capture_status system-status replication
 zfs snapshot $SRC@t1
 
 capture_status system-status replication
-[ $STATUS -ne 0 ] || fail expected replication drift
+assert_command_fail expected replication drift
 echo "$OUTPUT" | assert_grep replication
 echo "$OUTPUT" | assert_grep t1

@@ -8,5 +8,5 @@ sleep 2
 
 export CONFIG_SNAPSHOT_MAX_AGE=1
 capture_status system-status snapshot
-[ $STATUS -ne 0 ] || fail status returned nonzero
+assert_command_fail status returned zero
 echo "$OUTPUT" | assert_grep snapshot

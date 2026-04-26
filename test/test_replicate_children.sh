@@ -6,13 +6,10 @@ DST=$TEST_REPLICA
 
 echo v1 > /tank/data/active/pile-readonly/file.txt
 echo a1 > /tank/data/archive/doc.txt
-
 system-snapshot t0
 system-replicate $ROOT $DST
-
 echo v2 >> /tank/data/active/pile-readonly/file.txt
 echo a2 >> /tank/data/archive/doc.txt
-
 system-snapshot t1
 
 system-replicate $ROOT $DST

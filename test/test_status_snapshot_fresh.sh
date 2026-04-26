@@ -9,6 +9,5 @@ zfs snapshot $DATASET@fresh
 
 export CONFIG_SNAPSHOT_MAX_AGE=60
 capture_status system-status snapshot
-
-[ $STATUS -eq 0 ] || fail status returned nonzero
+assert_command_ok status returned nonzero
 echo "$OUTPUT" | assert_grep snapshot

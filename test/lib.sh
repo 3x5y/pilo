@@ -9,13 +9,13 @@ capture_status() {
     fi
 }
 
-assert_command_success() {
+assert_command_ok() {
     if [ $STATUS -eq 0 ]
     then
         return
     fi
     echo "$OUTPUT"
-    fail "command failed"
+    fail "command failed:" "$@"
 }
 
 assert_command_fail() {
@@ -24,7 +24,7 @@ assert_command_fail() {
         return
     fi
     echo "$OUTPUT"
-    fail "command did not fail"
+    fail "command did not fail:" "$@"
 }
 
 fail() {

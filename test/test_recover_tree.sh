@@ -3,7 +3,6 @@ set -e
 
 system-snapshot baseline
 system-replicate $TEST_ROOT $TEST_REPLICA
-
 zfs destroy -r $TEST_ROOT
 
 # recover whole root, not per-dataset

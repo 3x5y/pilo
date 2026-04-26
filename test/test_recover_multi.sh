@@ -9,11 +9,8 @@ echo archive-data > /tank/data/archive/doc.txt
 echo pile-data > /tmp/file.txt
 system-capture /tmp/file.txt
 system-ingest-pile
-
 zfs snapshot -r $DATA_ROOT@baseline
-
 zfs send -R $DATA_ROOT@baseline | zfs receive -F $REPL_ROOT
-
 zfs destroy -r $DATA_ROOT
 
 system-recover-baseline $REPL_ROOT/active/pile-readonly \

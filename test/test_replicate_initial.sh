@@ -7,7 +7,6 @@ DST=$TEST_REPLICA/pile-readonly
 echo hello > /tmp/file.txt
 system-capture /tmp/file.txt
 system-ingest-pile
-
 zfs snapshot $SRC@t0
 
 system-replicate

@@ -12,6 +12,6 @@ git commit -m init -q
 echo change >> file.txt
 
 capture_status system-status transient
-[ $STATUS -ne 0 ] || fail status returned success
+assert_command_fail status returned success
 echo "$OUTPUT" | assert_grep transient
 

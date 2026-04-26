@@ -5,7 +5,8 @@ SRC="$1"     # replica dataset (e.g. tank/replica/pile)
 DST="$2"     # canonical dataset (e.g. tank/data/active/pile)
 SNAP="$3"    # snapshot name (e.g. baseline)
 
-if [ -z "$SRC" ] || [ -z "$DST" ] || [ -z "$SNAP" ]; then
+if [ -z "$SRC" ] || [ -z "$DST" ] || [ -z "$SNAP" ]
+then
     echo "Usage: system-recover-baseline <src_dataset> <dst_dataset> <snapshot>"
     exit 1
 fi
@@ -13,19 +14,22 @@ fi
 SRC_SNAP="${SRC}@${SNAP}"
 
 # --- validate source snapshot exists ---
-if ! zfs list -t snapshot "$SRC_SNAP" >/dev/null 2>&1; then
+if ! zfs list -t snapshot "$SRC_SNAP" >/dev/null 2>&1
+then
     echo "ERROR: source snapshot does not exist: $SRC_SNAP"
     exit 1
 fi
 
 # --- ensure destination parent exists ---
 DST_PARENT=$(echo "$DST" | sed 's|/[^/]*$||')
-if [ -n "$DST_PARENT" ]; then
+if [ -n "$DST_PARENT" ]
+then
     zfs list "$DST_PARENT" >/dev/null 2>&1 || zfs create -p "$DST_PARENT"
 fi
 
 # --- destroy destination if it exists ---
-if zfs list "$DST" >/dev/null 2>&1; then
+if zfs list "$DST" >/dev/null 2>&1
+then
     zfs destroy -r "$DST"
 fi
 
@@ -33,7 +37,8 @@ fi
 zfs send "$SRC_SNAP" | zfs receive "$DST"
 
 # --- basic verification: snapshot now present on destination ---
-if ! zfs list -t snapshot "${DST}@${SNAP}" >/dev/null 2>&1; then
+if ! zfs list -t snapshot "${DST}@${SNAP}" >/dev/null 2>&1
+then
     echo "ERROR: recovery completed but snapshot missing at destination"
     exit 1
 fi

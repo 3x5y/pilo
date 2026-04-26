@@ -15,4 +15,4 @@ zfs destroy -r $TEST_ROOT
 system-recover-baseline $REPL $SRC baseline >/dev/null
 
 capture_status system-manifest-verify
-assert_command_success
+assert_command_ok manifest verification failed after recovery

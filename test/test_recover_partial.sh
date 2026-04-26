@@ -34,7 +34,5 @@ system-recover-baseline \
 # --- system should now be inconsistent ---
 
 capture_status system-status
-
-[ $STATUS -ne 0 ] || fail "partial recovery not detected"
-
+assert_command_fail "partial recovery not detected"
 echo "$OUTPUT" | assert_grep "incomplete"

@@ -7,7 +7,6 @@ DST=$TEST_REPLICA/pile-readonly
 echo v1 > /$SRC/file.txt
 zfs snapshot $SRC@t0
 system-replicate
-
 echo v2 > /$SRC/file.txt
 zfs snapshot $SRC@t1
 system-replicate

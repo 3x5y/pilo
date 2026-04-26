@@ -12,5 +12,5 @@ system-manifest-update
 echo corruption > $PILE/$FILE
 
 capture_status system-manifest-verify
-[ $STATUS -ne 0 ] || fail manifest-verify returned success
+assert_command_fail manifest-verify returned success
 echo "$OUTPUT" | assert_grep FAILED

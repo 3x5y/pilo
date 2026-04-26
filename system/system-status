@@ -4,9 +4,11 @@ STATUS=0
 
 check_transient() {
     # naive: scan for git repos under /tank/data/active and working dir
-    for dir in $(find /tank/data/active -type d -name ".git" 2>/dev/null); do
+    for dir in $(find /tank/data/active -type d -name ".git" 2>/dev/null)
+    do
         repo=$(dirname "$dir")
-        if ! git -C "$repo" diff --quiet 2>/dev/null; then
+        if ! git -C "$repo" diff --quiet 2>/dev/null
+        then
             echo "[WARN] transient: repo $repo has uncommitted changes"
             STATUS=1
         fi
@@ -21,14 +23,16 @@ check_pile() {
     NOW=$(date +%s)
     MAX_AGE=${CONFIG_PILE_MAX_AGE:-86400}
 
-    for f in "$PILE"/*; do
+    for f in "$PILE"/*
+    do
         [ -f "$f" ] || continue
 
         MTIME=$(stat -c %Y "$f")
         AGE=$((NOW - MTIME))
 
         # 1 day threshold for now (test-friendly)
-        if [ "$AGE" -gt "$MAX_AGE" ]; then
+        if [ "$AGE" -gt "$MAX_AGE" ]
+        then
             echo "[WARN] pile: $f is older than threshold"
             STATUS=1
         fi
@@ -44,7 +48,8 @@ check_snapshot() {
     SNAP_NAME=$(echo "$SNAP_INFO" | awk '{print $1}')
     SNAP_TIME=$(echo "$SNAP_INFO" | cut -d' ' -f2-)
 
-    if [ -z "$SNAP_NAME" ]; then
+    if [ -z "$SNAP_NAME" ]
+    then
         echo "[WARN] snapshot: none for $DATASET"
         STATUS=1
         return
@@ -55,7 +60,8 @@ check_snapshot() {
     MAX_AGE=${CONFIG_SNAPSHOT_MAX_AGE:-3600}
     AGE=$((NOW - SNAP_EPOCH))
 
-    if [ "$AGE" -gt "$MAX_AGE" ]; then
+    if [ "$AGE" -gt "$MAX_AGE" ]
+    then
         echo "[WARN] snapshot: stale ($AGE s)"
         STATUS=1
     else
@@ -70,14 +76,16 @@ check_replication() {
     LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
     LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
 
-    if [ -z "$LAST_SRC" ]; then
+    if [ -z "$LAST_SRC" ]
+    then
         LAST_SRC='**MISSING**'
     fi
 
     SRC_NAME=$(echo "$LAST_SRC" | cut -d@ -f2)
     DST_NAME=$(echo "$LAST_DST" | cut -d@ -f2)
 
-    if [ "$SRC_NAME" != "$DST_NAME" ]; then
+    if [ "$SRC_NAME" != "$DST_NAME" ]
+    then
         echo "[WARN] replication: latest=$SRC_NAME replicated=$DST_NAME"
         STATUS=1
     else
@@ -95,15 +103,18 @@ tank/data/archive
     MISSING=0
     PRESENT=0
 
-    for ds in $REQUIRED; do
-        if zfs list "$ds" >/dev/null 2>&1; then
+    for ds in $REQUIRED
+    do
+        if zfs list "$ds" >/dev/null 2>&1
+        then
             PRESENT=$((PRESENT + 1))
         else
             MISSING=$((MISSING + 1))
         fi
     done
 
-    if [ "$PRESENT" -gt 0 ] && [ "$MISSING" -gt 0 ]; then
+    if [ "$PRESENT" -gt 0 ] && [ "$MISSING" -gt 0 ]
+    then
         echo "[WARN] incomplete: partial dataset recovery detected"
         STATUS=1
     fi

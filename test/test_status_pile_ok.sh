@@ -9,5 +9,5 @@ system-capture /tmp/$FILE
 system-ingest-pile
 
 capture_status system-status pile
+assert_command_ok expected no pile age warning
 
-[ $STATUS -eq 0 ] || fail expected no pile age warning
