@@ -3,8 +3,7 @@ set -e
 
 INTAKE=/tank/data/active/pile-intake
 PILE=tank/data/active/pile-readonly
-
-zfs set readonly=off $PILE
+MANIFEST=/$PILE/.manifest
 
 for src in $INTAKE/*
 do
@@ -29,3 +28,15 @@ do
     fi
 
 done
+
+# rebuild manifest from scratch
+TMP=$(mktemp)
+cd /$PILE
+
+find . -maxdepth 1 -type f ! -name .manifest -print0 \
+  | LC_COLLATE=C sort -z \
+  | xargs -0 sha256sum > "$TMP"
+
+zfs set readonly=off $PILE
+mv "$TMP" "$MANIFEST"
+zfs set readonly=on $PILE
