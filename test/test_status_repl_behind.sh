@@ -4,13 +4,13 @@ set -e
 SRC=$TEST_ROOT/active/pile-readonly
 
 # initial snapshot + replication
-zfs snapshot $SRC@t0
-system-replicate
+zfs snapshot -r $TEST_ROOT@t0
+system-replicate $TEST_ROOT $TEST_REPLICA
 
 capture_status system-status replication
 
 # new snapshot, NOT replicated
-zfs snapshot $SRC@t1
+zfs snapshot -r $TEST_ROOT@t1
 
 capture_status system-status replication
 assert_command_fail expected replication drift

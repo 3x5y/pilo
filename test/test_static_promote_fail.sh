@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
 
-echo x > /tank/data/active/pile-readonly/bad.txt
+echo x > /tmp/bad.txt
+system-capture /tmp/bad.txt
+system-ingest-pile
 
 capture_status system-static-promote bad.txt nonsense/path
 

@@ -4,16 +4,16 @@ set -e
 NAME="$1"
 TARGET="$2"
 
-PILE="/tank/data/active/pile-readonly"
-BASE="/tank/data/static"
+PILE="tank/data/active/pile-readonly"
+STATIC="tank/data/static"
 
 [ -n "$NAME" ] && [ -n "$TARGET" ] || {
     echo "usage: system-file-item <filename> <destination>"
     exit 1
 }
 
-SRC="$PILE/$NAME"
-DST="$BASE/$TARGET"
+SRC="/$PILE/$NAME"
+DST="/$STATIC/$TARGET"
 
 case "$TARGET" in
     filing/*|collection)
@@ -29,14 +29,19 @@ esac
     exit 1
 }
 
-DATASET="$BASE/$TARGET"
+DATASET="$STATIC/$TARGET"
 
 if ! zfs list "$DATASET" >/dev/null 2>&1; then
     echo "ERROR: dataset does not exist: $DATASET"
     exit 1
 fi
 
-mv "$SRC" "$DST/"
+zfs set readonly=off $DATASET
+cp "$SRC" "$DST/"
+zfs set readonly=on $DATASET
+zfs set readonly=off $PILE
+rm "$SRC"
+zfs set readonly=on $PILE
 
 # update manifests
 system-manifest-update
@@ -44,5 +49,7 @@ system-manifest-update
     cd "$DST"
     tmp=$(mktemp)
     sha256sum * > "$tmp" 2>/dev/null || true
+    zfs set readonly=off $DATASET
     mv "$tmp" .manifest
+    zfs set readonly=off $DATASET
 )

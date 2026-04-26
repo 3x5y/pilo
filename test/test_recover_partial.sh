@@ -15,7 +15,8 @@ system-ingest-pile
 echo admin > /tank/data/active/admin/code.txt
 
 # static
-echo static > /tank/data/static/doc.txt
+with_dataset_writable tank/data/static \
+    sh -c "echo static > /tank/data/static/doc.txt"
 
 # snapshot + replicate
 zfs snapshot -r $DATA_ROOT@baseline

@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-WORKDIR=/tank/data/active/admin-work
-mkdir -p $WORKDIR
+WORKDIR=/tank/data/active/admin/work
+mkdir $WORKDIR
 cd $WORKDIR
 git init -q
 

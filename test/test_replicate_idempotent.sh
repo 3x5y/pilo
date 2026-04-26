@@ -1,16 +1,14 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile-readonly
-DST=$TEST_REPLICA/pile-readonly
+SRC=$TEST_ROOT/active
+DST=$TEST_REPLICA/active
 
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
-system-ingest-pile
-zfs snapshot $SRC@t0
+echo data > /$SRC/admin/file.txt
+zfs snapshot -r $SRC@t0
 
-system-replicate
-system-replicate
+system-replicate $SRC $DST
+system-replicate $SRC $DST
 
 zfs list -t snapshot | assert_grep $DST@t0
 COUNT=$(zfs list -t snapshot | grep $DST@ | wc -l)

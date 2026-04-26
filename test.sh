@@ -38,6 +38,7 @@ test_setup() {
     zfs create -p $TEST_ROOT/stash
     zfs create -p $TEST_ROOT/static/collection
     zfs create -p "$TEST_REPLICA"
+    system-init # FIXME: belongs elsewhere??
 }
 
 test_teardown() {

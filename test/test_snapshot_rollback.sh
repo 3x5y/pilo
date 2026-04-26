@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-SRC=tank/data/active/pile-readonly
+SRC=tank/data/active/admin
 FILE=/$SRC/recovery_test.txt
 
 echo recover me > $FILE

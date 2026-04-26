@@ -1,15 +1,16 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/pile-readonly
-DST=$TEST_REPLICA/pile-readonly
+SRC=$TEST_ROOT/active
+DST=$TEST_REPLICA/active
 
-echo v1 > /$SRC/file.txt
-zfs snapshot $SRC@t0
-system-replicate
-echo v2 > /$SRC/file.txt
-zfs snapshot $SRC@t1
-system-replicate
+echo v1 > /$SRC/admin/file.txt
+zfs snapshot -r $SRC@t0
+system-replicate $SRC $DST
+
+echo v2 > /$SRC/admin/file.txt
+zfs snapshot -r $SRC@t1
+system-replicate $SRC $DST
 
 zfs list -t snapshot | assert_grep $DST@t1
-assert_grep v2 < /$DST/.zfs/snapshot/t1/file.txt
+assert_grep v2 < /$DST/admin/.zfs/snapshot/t1/file.txt

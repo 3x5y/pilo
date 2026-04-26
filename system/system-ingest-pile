@@ -2,15 +2,19 @@
 set -e
 
 INTAKE=/tank/data/active/pile-intake
-CANON=/tank/data/active/pile-readonly
+PILE=tank/data/active/pile-readonly
+
+zfs set readonly=off $PILE
 
 for src in $INTAKE/*
 do
     [ -f "$src" ] || continue
-    if [ -f $CANON/$(basename "$src") ]
+    if [ -f /$PILE/$(basename "$src") ]
     then
         rm "$src"
     else
-        mv "$src" $CANON/
+        mv "$src" /$PILE/
     fi
 done
+
+zfs set readonly=on $PILE

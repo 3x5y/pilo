@@ -1,5 +1,15 @@
 #!/bin/sh
 
+with_dataset_writable() {
+    DATASET="$1"
+    shift
+    zfs set readonly=off "$DATASET"
+    "$@"
+    RESULT=$?
+    zfs set readonly=on "$DATASET"
+    return $RESULT
+}
+
 capture_status() {
     if OUTPUT=$("$@" 2>&1)
     then

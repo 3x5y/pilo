@@ -1,10 +1,11 @@
 #!/bin/sh
 set -e
 
-SRC=/tank/data/active/pile-readonly
 DST=/tank/data/static/collection
 
-echo data > $SRC/item.txt
+echo important > /tmp/item.txt
+system-capture /tmp/item.txt
+system-ingest-pile
 
 system-manifest-update
 

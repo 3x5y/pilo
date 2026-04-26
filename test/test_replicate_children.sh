@@ -3,13 +3,16 @@ set -e
 
 ROOT=$TEST_ROOT
 DST=$TEST_REPLICA
+PILE=$TEST_ROOT/active/pile-readonly
+STATIC=$TEST_ROOT/static
 
-echo v1 > /tank/data/active/pile-readonly/file.txt
-echo a1 > /tank/data/static/doc.txt
+with_dataset_writable $PILE sh -c "echo v1 > /$PILE/file.txt"
+with_dataset_writable $STATIC sh -c "echo a1 > /$STATIC/doc.txt"
 system-snapshot t0
+
 system-replicate $ROOT $DST
-echo v2 >> /tank/data/active/pile-readonly/file.txt
-echo a2 >> /tank/data/static/doc.txt
+with_dataset_writable $PILE sh -c "echo v2 > /$PILE/file.txt"
+with_dataset_writable $STATIC sh -c "echo a2 > /$STATIC/doc.txt"
 system-snapshot t1
 
 system-replicate $ROOT $DST

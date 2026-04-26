@@ -1,14 +1,16 @@
 #!/bin/sh
 
-PILE=/tank/data/active/pile-readonly
-MANIFEST=$PILE/.manifest
+PILE=tank/data/active/pile-readonly
+MANIFEST=/$PILE/.manifest
 
 TMP=$(mktemp)
 
-cd $PILE
+cd /$PILE
 
 find . -maxdepth 1 -type f ! -name .manifest -print0 \
   | LC_COLLATE=C sort -z \
   | xargs -0 sha256sum > "$TMP"
 
+zfs set readonly=off $PILE
 mv "$TMP" $MANIFEST
+zfs set readonly=on $PILE

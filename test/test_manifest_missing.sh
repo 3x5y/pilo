@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-PILE=/tank/data/active/pile-readonly
+PILE=tank/data/active/pile-readonly
 FILE=test_missing.txt
 
 echo data > /tmp/$FILE
@@ -9,7 +9,7 @@ system-capture /tmp/$FILE
 system-ingest-pile
 system-manifest-update
 
-rm $PILE/$FILE
+with_dataset_writable $PILE rm /$PILE/$FILE
 
 capture_status system-manifest-verify
 assert_command_fail expected failure for missing file
