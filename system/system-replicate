@@ -37,6 +37,12 @@ else
         exit 0
     fi
 
+    if ! zfs list -t snapshot "$SRC@$BASE_NAME" >/dev/null 2>&1
+    then
+        echo "ERROR: base snapshot missing on source: $SRC@$BASE_NAME"
+        exit 1
+    fi
+
     zfs send $OPTS -i "$SRC@$BASE_NAME" "$LAST_SRC" \
         | zfs receive -F "$DST"
 fi
