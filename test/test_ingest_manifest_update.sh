@@ -13,4 +13,4 @@ assert_file_exists $PILE/$FILE
 
 # manifest must contain correct checksum entry
 (cd $PILE && sha256sum --quiet --strict -c .manifest)
-grep -q "$FILE" $PILE/.manifest || fail "missing manifest entry"
+grep -q "./$FILE$" $PILE/.manifest || fail "missing manifest entry"
