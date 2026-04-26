@@ -85,6 +85,30 @@ check_replication() {
     fi
 }
 
+check_completeness() {
+    REQUIRED="
+tank/data/active/pile-readonly
+tank/data/active/admin
+tank/data/archive
+"
+
+    MISSING=0
+    PRESENT=0
+
+    for ds in $REQUIRED; do
+        if zfs list "$ds" >/dev/null 2>&1; then
+            PRESENT=$((PRESENT + 1))
+        else
+            MISSING=$((MISSING + 1))
+        fi
+    done
+
+    if [ "$PRESENT" -gt 0 ] && [ "$MISSING" -gt 0 ]; then
+        echo "[WARN] incomplete: partial dataset recovery detected"
+        STATUS=1
+    fi
+}
+
 CHECK="$1"
 
 case "$CHECK" in
@@ -98,6 +122,9 @@ case "$CHECK" in
 esac
 case "$CHECK" in
     ""|replication) check_replication ;;
+esac
+case "$CHECK" in
+    ""|completeness) check_completeness ;;
 esac
 
 exit $STATUS

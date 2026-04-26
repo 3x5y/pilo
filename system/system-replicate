@@ -1,21 +1,42 @@
 #!/bin/sh
 
-SRC="tank/data/active/pile-readonly"
-DST="tank/replica/pile-readonly"
+SRC="$1"
+DST="$2"
 
-# find latest common snapshot
+[ -z "$SRC" ] && SRC="tank/data/active/pile-readonly"
+[ -z "$DST" ] && DST="tank/replica/pile-readonly"
+
+HAS_CHILDREN=$(zfs list -H -o name -r "$SRC" | wc -l)
+
+if [ "$HAS_CHILDREN" -gt 1 ]
+then
+    OPTS=-R
+else
+    OPTS=
+fi
+
 LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
 LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
 
-if [ -z "$LAST_DST" ]; then
-    zfs send "$LAST_SRC" | zfs receive "$DST"
+if [ -z "$LAST_SRC" ]
+then
+    echo "ERROR: no source snapshot"
+    exit 1
+fi
+
+if [ -z "$LAST_DST" ]
+then
+    zfs send $OPTS "$LAST_SRC" \
+        | zfs receive -F "$DST"
 else
     SNAP_NAME=$(echo "$LAST_SRC" | cut -d@ -f2)
     BASE_NAME=$(echo "$LAST_DST" | cut -d@ -f2)
 
-    if [ "$SNAP_NAME" = "$BASE_NAME" ]; then
+    if [ "$SNAP_NAME" = "$BASE_NAME" ]
+    then
         exit 0
     fi
 
-    zfs send -i "$SRC@$BASE_NAME" "$LAST_SRC" | zfs receive "$DST"
+    zfs send $OPTS -i "$SRC@$BASE_NAME" "$LAST_SRC" \
+        | zfs receive -F "$DST"
 fi
