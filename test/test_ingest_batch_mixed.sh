@@ -20,10 +20,10 @@ capture_status system-ingest-pile
 assert_command_fail
 
 # b.txt must NOT be partially applied
-assert_not_exists $PILE/b.txt
+assert_not_exists $PILE/in/b.txt
 
 # canonical must remain unchanged
-assert_grep original < $PILE/a.txt
+assert_grep original < $PILE/in/a.txt
 
 # manifest must still verify
 (cd $PILE && sha256sum --quiet --strict -c .manifest)

@@ -18,6 +18,6 @@ system-recover-baseline $TEST_REPLICA/active/admin \
 system-recover-baseline $TEST_REPLICA/static \
                         $TEST_ROOT/static baseline >/dev/null
 
-assert_grep pile-data < /tank/data/active/pile-readonly/.zfs/snapshot/baseline/file.txt
+assert_grep pile-data < /tank/data/active/pile-readonly/.zfs/snapshot/baseline/in/file.txt
 assert_grep admin-data < /tank/data/active/admin/.zfs/snapshot/baseline/code.txt
 assert_grep static-data < /tank/data/static/.zfs/snapshot/baseline/doc.txt

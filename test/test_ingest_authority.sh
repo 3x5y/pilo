@@ -3,7 +3,7 @@ set -e
 
 FILE=file.txt
 INTAKE=/tank/data/active/pile-intake/$FILE
-CANONICAL=/tank/data/active/pile-readonly/$FILE
+CANONICAL=/tank/data/active/pile-readonly/in/$FILE
 
 echo data > /tmp/$FILE
 system-capture /tmp/$FILE

@@ -6,14 +6,14 @@ FILE=file.txt
 echo good > /tmp/$FILE
 system-capture /tmp/$FILE
 system-ingest-pile
-system-static-promote $FILE collection
+system-static-promote in/$FILE collection
 
 # reintroduce conflicting version
 echo bad > /tmp/$FILE
 system-capture /tmp/$FILE
 system-ingest-pile
 
-capture_status system-static-promote $FILE collection
+capture_status system-static-promote in/$FILE collection
 
 assert_command_fail expected conflict
 echo "$OUTPUT" | assert_grep ERROR.*conflict.*$FILE

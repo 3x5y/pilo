@@ -3,7 +3,6 @@ set -e
 
 INTAKE=/tank/data/active/pile-intake
 PILE=tank/data/active/pile-readonly
-MANIFEST=/$PILE/.manifest
 
 TMP_LIST=$(mktemp)
 trap "rm -f '$TMP_LIST'" EXIT
@@ -13,7 +12,7 @@ find "$INTAKE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
 while IFS= read -r src
 do
     rel=${src#$INTAKE/}
-    dst="/$PILE/$rel"
+    dst="/$PILE/in/$rel"
     dst_dir=$(dirname "$dst")
 
     if [ -f "$dst" ]

@@ -11,14 +11,14 @@ system-ingest-pile
 with_dataset_writable $PILE \
     mkdir -p /$PILE/sort
 with_dataset_writable $PILE \
-    mv /$PILE/file.txt /$PILE/sort/file.txt
+    mv /$PILE/in/file.txt /$PILE/sort/file.txt
 
 system-manifest-update
 
 grep -q " \./sort/file.txt$" /$PILE/.manifest \
     || fail "updated path missing"
 
-! grep -q " \./file.txt$" /$PILE/.manifest \
+! grep -q " \./in/file.txt$" /$PILE/.manifest \
     || fail "old path still present"
 
 (cd /$PILE && sha256sum --quiet --strict -c .manifest)

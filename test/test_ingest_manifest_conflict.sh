@@ -20,4 +20,4 @@ echo "$OUTPUT" | assert_grep "collision"
 (cd $PILE && sha256sum --quiet --strict -c .manifest)
 
 # canonical unchanged
-assert_grep original < $PILE/$FILE
+assert_grep original < $PILE/in/$FILE

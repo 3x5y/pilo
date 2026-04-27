@@ -16,6 +16,6 @@ system-ingest-pile
 (cd $PILE && sha256sum --quiet --strict -c .manifest)
 
 # only one entry
-COUNT=$(grep -c " ./$FILE$" $PILE/.manifest) \
+COUNT=$(grep -c " \./in/$FILE$" $PILE/.manifest) \
     || fail "file not present in manifest"
 [ "$COUNT" -eq 1 ] || fail "duplicate manifest entries"

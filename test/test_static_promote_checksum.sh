@@ -9,7 +9,7 @@ echo good > /tmp/$FILE
 system-capture /tmp/$FILE
 system-ingest-pile
 
-system-static-promote $FILE collection
+system-static-promote in/$FILE collection
 
 # verify integrity via checksum
 cmp "$SRC" "$DST" 2>/dev/null && fail "source should be removed"

@@ -9,6 +9,6 @@ system-ingest-pile
 
 system-manifest-update
 
-system-static-promote item.txt collection
+system-static-promote in/item.txt collection
 
 assert_grep item.txt < $DST/.manifest

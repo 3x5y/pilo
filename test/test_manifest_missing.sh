@@ -9,7 +9,8 @@ system-capture /tmp/$FILE
 system-ingest-pile
 system-manifest-update
 
-with_dataset_writable $PILE rm /$PILE/$FILE
+with_dataset_writable $PILE \
+    rm /$PILE/in/$FILE
 
 capture_status system-manifest-verify
 assert_command_fail expected failure for missing file

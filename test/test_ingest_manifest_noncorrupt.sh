@@ -20,4 +20,4 @@ assert_command_fail
 (cd $PILE && sha256sum --quiet --strict -c .manifest)
 
 # and still reflect original state
-assert_grep good < $PILE/b.txt
+assert_grep good < $PILE/in/b.txt
