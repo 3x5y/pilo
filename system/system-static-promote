@@ -39,6 +39,14 @@ fi
 zfs set readonly=off $DATASET
 cp "$SRC" "$DST/"
 zfs set readonly=on $DATASET
+
+# verify checksum before deleting source
+if ! cmp -s "$SRC" "$DST/$NAME"
+then
+    echo "ERROR: copy verification failed"
+    exit 1
+fi
+
 zfs set readonly=off $PILE
 rm "$SRC"
 zfs set readonly=on $PILE
