@@ -1,43 +1,33 @@
 #!/bin/sh
 set -e
 
-NAME="$1"
-TARGET="$2"
-
 PILE="tank/data/active/pile-readonly"
 STATIC="tank/data/static"
+OUT="/$PILE/out"
 
-[ -n "$NAME" ] && [ -n "$TARGET" ] || {
-    echo "usage: system-file-item <filename> <destination>"
-    exit 1
-}
+[ -d "$OUT" ] || mkdir -p "$OUT"
 
-basename=$(basename "$NAME")
-SRC="/$PILE/$NAME"
-DST="/$STATIC/$TARGET"
+# validate allowed top-level dirs
+for d in "$OUT"/*
+do
+    [ -e "$d" ] || continue
+    name=$(basename "$d")
 
-case "$TARGET" in
-    filing/*|collection)
-        ;;
-    *)
-        echo "ERROR: invalid destination $TARGET"
-        exit 1
-        ;;
-esac
+    case "$name" in
+        collection|filing) ;;
+        *)
+            echo "ERROR: invalid /out/ structure: $name"
+            exit 1
+            ;;
+    esac
+done
 
-[ -f "$SRC" ] || {
-    echo "ERROR: source file missing"
-    exit 1
-}
-
-DATASET="$STATIC/$TARGET"
-
-if ! zfs list "$DATASET" >/dev/null 2>&1; then
-    echo "ERROR: dataset does not exist: $DATASET"
+if [ -z "$(find "$OUT" -type f -print -quit)" ]
+then
+    echo "ERROR: /out/ directory empty"
     exit 1
 fi
 
-DST_FILE="$DST/$basename"
 
 with_writable() {
     local dataset=$1
@@ -51,32 +41,65 @@ with_writable() {
     [ $result -eq 0 ] || exit $result
 }
 
-if [ -f "$DST_FILE" ]
-then
-    if ! cmp -s "$SRC" "$DST_FILE"
-    then
-        echo "ERROR: destination conflict for $basename"
-        exit 1
-    else
-        : # no-op: idempotent operation
-    fi
-else
-    with_writable $DATASET \
-        cp "$SRC" "$DST/"
-fi
 
-with_writable $PILE \
-    rm "$SRC"
+process_file() {
+    local src="$1"
+    local target="$2"
+    local name=$(basename "$src")
+    local dst="/$STATIC/$target/$name"
+    local dataset="$STATIC/$target"
+
+    if ! zfs list "$dataset" >/dev/null 2>&1; then
+        echo "ERROR: dataset does not exist: $dataset"
+        exit 1
+    fi
+
+    if [ -f "$dst" ]
+    then
+        if ! cmp -s "$src" "$dst"
+        then
+            echo "ERROR: destination conflict for $name"
+            exit 1
+        fi
+    else
+        with_writable $dataset \
+            cp "$src" "$dst"
+    fi
+
+    with_writable $PILE \
+        rm "$src"
+}
+
+COL_TMP=$(mktemp)
+FIL_TMP=$(mktemp)
+trap "rm -f '$COL_TMP' '$FIL_TMP'" EXIT
+
+# collection
+find "$OUT/collection" -type f > "$COL_TMP"
+while IFS= read -r f
+do
+    process_file "$f" "collection"
+done < "$COL_TMP"
+
+# filing
+find "$OUT/filing" -type f > "$FIL_TMP"
+while IFS= read -r f
+do
+    rel=${f#$OUT/filing/}
+    year=$(echo "$rel" | cut -d/ -f1)
+    process_file "$f" "filing/$year"
+done < "$FIL_TMP"
 
 # update manifests
 system-manifest-update
 (
-    cd "$DST"
+    cd "/$STATIC"
     tmp=$(mktemp)
-    find . -maxdepth 1 -type f ! -name .manifest -print0 \
+    find . -type f ! -name .manifest -print0 \
       | LC_COLLATE=C sort -z \
       | xargs -r0 sha256sum > "$tmp"
-    zfs set readonly=off $DATASET
+    zfs set readonly=off $STATIC
     mv "$tmp" .manifest
-    zfs set readonly=on $DATASET
+    zfs set readonly=on $STATIC
 )
+

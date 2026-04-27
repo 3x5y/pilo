@@ -2,6 +2,7 @@
 
 APT_INSTALL="
     git
+    tree
     zfsutils-linux
 "
 

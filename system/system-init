@@ -15,6 +15,12 @@ zfs set readonly=off $ROOT/active/pile-intake
 zfs set readonly=off $ROOT/active/admin
 zfs set readonly=off $ROOT/stash
 
+mkdir /$ROOT/active/pile-readonly/in
+mkdir /$ROOT/active/pile-readonly/sort
+mkdir /$ROOT/active/pile-readonly/out
+mkdir /$ROOT/active/pile-readonly/out/collection
+mkdir /$ROOT/active/pile-readonly/out/filing
+
 # protected areas
 zfs set readonly=on $ROOT/active/pile-readonly
 zfs set readonly=on $ROOT/static

@@ -37,6 +37,7 @@ test_setup() {
     zfs create -p $TEST_ROOT/active/admin
     zfs create -p $TEST_ROOT/stash
     zfs create -p $TEST_ROOT/static/collection
+    zfs create -p $TEST_ROOT/static/filing/2025
     zfs create -p "$TEST_REPLICA"
     system-init # FIXME: belongs elsewhere??
 }

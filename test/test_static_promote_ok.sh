@@ -1,15 +1,17 @@
 #!/bin/sh
 set -e
 
-SRC=/tank/data/active/pile-readonly
+PILE=tank/data/active/pile-readonly
 DST=/tank/data/static/collection
+FILE=file.txt
 
-echo x > /tmp/file.txt
-system-capture /tmp/file.txt
+echo x > /tmp/$FILE
+system-capture /tmp/$FILE
 system-ingest-pile
-#system-manifest-update # FIXME
 
-system-static-promote in/file.txt collection
+with_writable $PILE \
+    mv /$PILE/in/$FILE /$PILE/out/collection
+system-static-promote
 
-assert_not_exists $SRC/file.txt "file still in pile"
+assert_not_exists /$PILE/out/collection/$FILE "file still in pile"
 assert_file_exists $DST/file.txt "file not moved to filing"

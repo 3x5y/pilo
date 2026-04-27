@@ -1,8 +1,6 @@
 #!/bin/sh
 set -e
 
-system-init
-
 FILE=file.txt
 echo important > /tmp/$FILE
 system-capture /tmp/$FILE

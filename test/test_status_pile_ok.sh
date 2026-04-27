@@ -10,4 +10,3 @@ system-ingest-pile
 
 capture_status system-status pile
 assert_command_ok expected no pile age warning
-
