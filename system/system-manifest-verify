@@ -6,4 +6,5 @@ PILE=/tank/data/active/pile-readonly
 MANIFEST=$PILE/.manifest
 
 cd $PILE
+[ -s "$MANIFEST" ] || exit 0
 sha256sum --quiet --strict -c $MANIFEST
