@@ -5,12 +5,16 @@ INTAKE=/tank/data/active/pile-intake
 PILE=tank/data/active/pile-readonly
 MANIFEST=/$PILE/.manifest
 
-for src in $INTAKE/*
-do
-    [ -f "$src" ] || continue
+TMP_LIST=$(mktemp)
+trap "rm -f '$TMP_LIST'" EXIT
 
-    name=$(basename "$src")
-    dst="/$PILE/$name"
+find "$INTAKE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
+
+while IFS= read -r src
+do
+    rel=${src#$INTAKE/}
+    dst="/$PILE/$rel"
+    dst_dir=$(dirname "$dst")
 
     if [ -f "$dst" ]
     then
@@ -18,16 +22,15 @@ do
         then
             rm "$src" # idempotent
         else
-            echo "ERROR: name collision with different content: '$name'"
+            echo "ERROR: name collision with different content: '$rel'"
             exit 1
         fi
     else
         zfs set readonly=off $PILE
+        mkdir -p "$dst_dir"
         mv "$src" "$dst"
         zfs set readonly=on $PILE
     fi
+done < "$TMP_LIST"
 
-done
-
-# rebuild manifest from scratch
 system-manifest-update

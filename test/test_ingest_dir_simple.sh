@@ -7,6 +7,6 @@ PILE=/tank/data/active/pile-readonly
 mkdir -p $INTAKE/foo
 echo data > $INTAKE/foo/file.txt
 
-system-ingest-dir
+system-ingest-pile
 
-assert_file_exists $PILE/in/foo/file.txt
+assert_file_exists $PILE/foo/file.txt
