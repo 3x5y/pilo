@@ -8,6 +8,5 @@ mkdir -p $INTAKE/foo
 echo data > $INTAKE/foo/file.txt
 
 system-ingest-dir
-ls -lR $INTAKE $PILE
 
 assert_file_exists $PILE/in/foo/file.txt
