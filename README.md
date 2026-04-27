@@ -22,6 +22,8 @@ lxc network set lxdbr0 ipv6.address none
 
 ```bash
 lxc init --vm ubuntu:25.10 pilodev0
+lxc config set pilodev0 limits.cpu 4
+lxc config set pilodev0 limits.memory 8GiB
 lxc config device add pilodev0 src disk source=$(realpath $PWD) path=/src
 lxc start pilodev0
 ```
