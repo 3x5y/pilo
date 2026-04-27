@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+INTAKE=/tank/data/active/pile-intake
+PILE=tank/data/active/pile-readonly
+MANIFEST=/$PILE/.manifest
+
+# process files recursively
+find "$INTAKE" -type f | while read -r src
+do
+    rel=${src#$INTAKE/}
+    dst="/$PILE/in/$rel"
+    dst_dir=$(dirname "$dst")
+
+    if [ -f "$dst" ]
+    then
+        if cmp -s "$src" "$dst"
+        then
+            rm "$src"
+        else
+            echo "ERROR: name collision with different content: '$rel'"
+            exit 1
+        fi
+    else
+        zfs set readonly=off $PILE
+        mkdir -p "$dst_dir"
+        mv "$src" "$dst"
+        zfs set readonly=on $PILE
+    fi
+done
+
+system-manifest-update
