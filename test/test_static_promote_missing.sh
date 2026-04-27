@@ -12,5 +12,4 @@ system-static-promote $FILE collection
 capture_status system-static-promote $FILE collection
 
 assert_command_fail expected missing source failure
-echo "$OUTPUT"
 echo "$OUTPUT" | assert_grep "source file missing"
