@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+PILE=tank/data/active/pile-readonly
+
+with_writable() {
+    dataset=$1
+    shift
+    zfs set readonly=off $dataset
+    set +e
+    "$@"
+    result=$?
+    set -e
+    zfs set readonly=on $dataset
+    [ $result -eq 0 ] || exit $result
+}
+
+with_writable $PILE \
+    find "/$PILE" -mindepth 2 -type d -empty -delete
