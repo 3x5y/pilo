@@ -14,4 +14,4 @@ with_writable $PILE \
 capture_status system-static-promote
 
 assert_command_fail "accepted non-existent dataset"
-echo "$OUTPUT" | assert_grep "dataset does not exist"
+echo "$OUTPUT" | assert_grep "invalid filing structure"

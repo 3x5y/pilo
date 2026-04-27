@@ -45,9 +45,10 @@ with_writable() {
 process_file() {
     local src="$1"
     local target="$2"
-    local name=$(basename "$src")
-    local dst="/$STATIC/$target/$name"
+    local relpath="$3"
     local dataset="$STATIC/$target"
+    local dst="/$STATIC/$target/$relpath"
+    local dst_dir=$(dirname "$dst")
 
     if ! zfs list "$dataset" >/dev/null 2>&1; then
         echo "ERROR: dataset does not exist: $dataset"
@@ -58,10 +59,12 @@ process_file() {
     then
         if ! cmp -s "$src" "$dst"
         then
-            echo "ERROR: destination conflict for $name"
+            echo "ERROR: destination conflict for $relpath"
             exit 1
         fi
     else
+        with_writable $dataset \
+            mkdir -p "$dst_dir"
         with_writable $dataset \
             cp "$src" "$dst"
     fi
@@ -78,7 +81,8 @@ trap "rm -f '$COL_TMP' '$FIL_TMP'" EXIT
 find "$OUT/collection" -type f > "$COL_TMP"
 while IFS= read -r f
 do
-    process_file "$f" "collection"
+    rel=${f#$OUT/collection/}
+    process_file "$f" collection "$rel"
 done < "$COL_TMP"
 
 # filing
@@ -86,17 +90,17 @@ find "$OUT/filing" -type f > "$FIL_TMP"
 while IFS= read -r f
 do
     rel=${f#$OUT/filing/}
-    rel=${f#$OUT/filing/}
     case "$rel" in
         */*)
-            year=${rel%%/*}
+            dataset=${rel%%/*}
+            subpath=${rel#*/}
             ;;
         *)
             echo "ERROR: invalid filing structure"
             exit 1
             ;;
     esac
-    process_file "$f" "filing/$year"
+    process_file "$f" "filing/$dataset" "$subpath"
 done < "$FIL_TMP"
 
 # update manifests
