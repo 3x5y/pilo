@@ -12,6 +12,7 @@ STATIC="tank/data/static"
     exit 1
 }
 
+basename=$(basename "$NAME")
 SRC="/$PILE/$NAME"
 DST="/$STATIC/$TARGET"
 
@@ -36,7 +37,7 @@ if ! zfs list "$DATASET" >/dev/null 2>&1; then
     exit 1
 fi
 
-DST_FILE="$DST/$NAME"
+DST_FILE="$DST/$basename"
 
 with_writable() {
     local dataset=$1
@@ -52,9 +53,9 @@ with_writable() {
 
 if [ -f "$DST_FILE" ]
 then
-    if ! cmp -s "$SRC" "$DST/$NAME"
+    if ! cmp -s "$SRC" "$DST_FILE"
     then
-        echo "ERROR: destination conflict for $NAME"
+        echo "ERROR: destination conflict for $basename"
         exit 1
     else
         : # no-op: idempotent operation
