@@ -36,6 +36,14 @@ if ! zfs list "$DATASET" >/dev/null 2>&1; then
     exit 1
 fi
 
+DST_FILE="$DST/$NAME"
+
+if [ -f "$DST_FILE" ] && ! cmp -s "$SRC" "$DST_FILE"
+then
+    echo "ERROR: destination conflict for $NAME"
+    exit 1
+fi
+
 zfs set readonly=off $DATASET
 cp "$SRC" "$DST/"
 zfs set readonly=on $DATASET
