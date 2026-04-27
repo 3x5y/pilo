@@ -38,26 +38,34 @@ fi
 
 DST_FILE="$DST/$NAME"
 
-if [ -f "$DST_FILE" ] && ! cmp -s "$SRC" "$DST_FILE"
+with_writable() {
+    local dataset=$1
+    shift
+    zfs set readonly=off $dataset
+    set +e
+    "$@"
+    local result=$?
+    set -e
+    zfs set readonly=on $dataset
+    [ $result -eq 0 ] || exit $result
+}
+
+if [ -f "$DST_FILE" ]
 then
-    echo "ERROR: destination conflict for $NAME"
-    exit 1
+    if ! cmp -s "$SRC" "$DST/$NAME"
+    then
+        echo "ERROR: destination conflict for $NAME"
+        exit 1
+    else
+        : # no-op: idempotent operation
+    fi
+else
+    with_writable $DATASET \
+        cp "$SRC" "$DST/"
 fi
 
-zfs set readonly=off $DATASET
-cp "$SRC" "$DST/"
-zfs set readonly=on $DATASET
-
-# verify checksum before deleting source
-if ! cmp -s "$SRC" "$DST/$NAME"
-then
-    echo "ERROR: copy verification failed"
-    exit 1
-fi
-
-zfs set readonly=off $PILE
-rm "$SRC"
-zfs set readonly=on $PILE
+with_writable $PILE \
+    rm "$SRC"
 
 # update manifests
 system-manifest-update
