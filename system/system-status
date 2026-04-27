@@ -23,10 +23,12 @@ check_pile() {
     NOW=$(date +%s)
     MAX_AGE=${CONFIG_PILE_MAX_AGE:-86400}
 
-    for f in "$PILE"/*
-    do
-        [ -f "$f" ] || continue
+    TMP_LIST=$(mktemp)
+    trap "rm -f '$TMP_LIST'" EXIT
 
+    find "$PILE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
+    while IFS= read f
+    do
         MTIME=$(stat -c %Y "$f")
         AGE=$((NOW - MTIME))
 
@@ -36,7 +38,7 @@ check_pile() {
             echo "[WARN] pile: $f is older than threshold"
             STATUS=1
         fi
-    done
+    done < "$TMP_LIST"
 }
 
 check_snapshot() {
