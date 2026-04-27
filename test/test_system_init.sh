@@ -3,7 +3,7 @@ set -e
 
 INTAKE=$TEST_ROOT/active/pile-intake
 PILE=$TEST_ROOT/active/pile-readonly
-STATIC=$TEST_ROOT/static
+STATIC=$TEST_ROOT/static/collection
 
 [ $(zfs get -H -o value readonly $INTAKE) = off ] \
     || fail $INTAKE not readonly after init

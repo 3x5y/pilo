@@ -9,7 +9,7 @@ system-capture /tmp/$FILE
 system-ingest-pile
 
 # simulate interrupted promotion
-with_writable tank/data/static \
+with_writable tank/data/static/collection \
     cp /tank/data/active/pile-readonly/in/$FILE /tank/data/static/collection/
 
 # now run promote again

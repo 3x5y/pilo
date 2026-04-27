@@ -23,4 +23,5 @@ mkdir /$ROOT/active/pile-readonly/out/filing
 
 # protected areas
 zfs set readonly=on $ROOT/active/pile-readonly
-zfs set readonly=on $ROOT/static
+zfs set readonly=on $ROOT/static/collection
+zfs set readonly=on $ROOT/static/filing/2025

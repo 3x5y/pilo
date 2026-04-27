@@ -86,7 +86,16 @@ find "$OUT/filing" -type f > "$FIL_TMP"
 while IFS= read -r f
 do
     rel=${f#$OUT/filing/}
-    year=$(echo "$rel" | cut -d/ -f1)
+    rel=${f#$OUT/filing/}
+    case "$rel" in
+        */*)
+            year=${rel%%/*}
+            ;;
+        *)
+            echo "ERROR: invalid filing structure"
+            exit 1
+            ;;
+    esac
     process_file "$f" "filing/$year"
 done < "$FIL_TMP"
 
