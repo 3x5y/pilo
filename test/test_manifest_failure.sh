@@ -9,7 +9,7 @@ system-capture /tmp/$FILE
 system-ingest-pile
 system-manifest-update
 
-with_dataset_writable $PILE \
+with_writable $PILE \
     sh -c "echo corruption > /$PILE/in/$FILE"
 
 capture_status system-manifest-verify

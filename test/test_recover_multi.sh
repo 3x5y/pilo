@@ -2,7 +2,7 @@
 set -e
 
 echo admin-data > /tank/data/active/admin/code.txt
-with_dataset_writable tank/data/static \
+with_writable tank/data/static \
     sh -c "echo static-data > /tank/data/static/doc.txt"
 echo pile-data > /tmp/file.txt
 system-capture /tmp/file.txt

@@ -8,7 +8,7 @@ system-ingest-pile
 
 echo admin > /tank/data/active/admin/code.txt
 
-with_dataset_writable tank/data/static \
+with_writable tank/data/static \
     sh -c "echo static > /tank/data/static/doc.txt"
 
 system-snapshot baseline

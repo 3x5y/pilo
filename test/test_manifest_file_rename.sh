@@ -8,9 +8,9 @@ system-capture /tmp/file.txt
 system-ingest-pile
 
 # reorganise
-with_dataset_writable $PILE \
+with_writable $PILE \
     mkdir -p /$PILE/sort
-with_dataset_writable $PILE \
+with_writable $PILE \
     mv /$PILE/in/file.txt /$PILE/sort/file.txt
 
 system-manifest-update

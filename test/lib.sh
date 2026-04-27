@@ -1,6 +1,6 @@
 #!/bin/sh
 
-with_dataset_writable() {
+with_writable() {
     DATASET="$1"
     shift
     zfs set readonly=off "$DATASET"
