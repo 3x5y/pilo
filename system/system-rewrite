@@ -69,6 +69,7 @@ exec_op() {
 }
 
 tmp=$(mktemp)
+SEEN=$(mktemp)
 printf "%s\n" "$CMD" > "$tmp"
 
 TAB='	'
@@ -84,8 +85,16 @@ do
         echo "ERROR: invalid command: $op '$src' '$dst'"
         exit 1
     }
+    if grep -Fxq "$src" "$SEEN"
+    then
+        echo "ERROR: duplicate source in script: $src"
+        exit 1
+    fi
+    echo "$src" >> "$SEEN"
     exec_op validate "$op" "$src" "$dst"
 done < $tmp
+
+rm -f "$SEEN"
 
 zfs set readonly=off $PILE
 while IFS="$TAB" read -r op src dst extra
