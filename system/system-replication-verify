@@ -42,3 +42,9 @@ fi
 #        exit 1
 #    fi
 #done
+
+if [ "$SRC_GUID" != "$DST_GUID" ]
+then
+    echo "ERROR: replication behind"
+    exit 1
+fi
