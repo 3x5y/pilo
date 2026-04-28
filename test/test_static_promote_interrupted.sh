@@ -1,22 +1,19 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-PILE=tank/data/active/pile-readonly
-
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+file=file.txt
+dst=collection
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
-# simulate interrupted promotion
-with_writable tank/data/static/collection \
-    cp /tank/data/active/pile-readonly/in/$FILE /tank/data/static/collection/
-
-# now run promote again
+# simulate interrupted promotion with copy
+with_writable $STATIC/$dst \
+    cp /$PILE/in/$file /$STATIC/$dst/$file
 with_writable $PILE \
-    mv /$PILE/in/$FILE /$PILE/out/collection
+    mv /$PILE/in/$file /$PILE/out/$dst/$file
+
 system-static-promote
 
 # invariant: only exists in static
-assert_not_exists /tank/data/active/pile-readonly/out/collection/$FILE
-assert_file_exists /tank/data/static/collection/$FILE
+assert_not_exists /$PILE/out/$dst/$file
+assert_file_exists /$STATIC/$dst/$file

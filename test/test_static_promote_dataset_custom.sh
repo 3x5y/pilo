@@ -1,21 +1,17 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-DATASET=tank/data/static/filing/1990-2000
-
-zfs create -p -o readonly=on $DATASET
-
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
+file=old-file.txt
+archive=filing/1990-2000
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mkdir -p /$PILE/out/filing/1990-2000
-
+    mkdir -p /$PILE/out/$archive
 with_writable $PILE \
-    mv /$PILE/in/file.txt /$PILE/out/filing/1990-2000/file.txt
+    mv /$PILE/in/$file /$PILE/out/$archive/$file
+zfs create -p -o readonly=on $STATIC/$archive
 
 system-static-promote
 
-assert_file_exists /tank/data/static/filing/1990-2000/file.txt
+assert_file_exists /$STATIC/$archive/$file

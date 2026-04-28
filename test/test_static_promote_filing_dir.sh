@@ -1,18 +1,18 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-DST=tank/data/static/filing/2025
-
-zfs create -p $DST
-
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
+dir=a/b
+file=file.txt
+archive=filing/2025
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
-with_writable $PILE mkdir -p /$PILE/out/filing/2025/a/b
-with_writable $PILE mv /$PILE/in/file.txt /$PILE/out/filing/2025/a/b/file.txt
+with_writable $PILE \
+    mkdir -p /$PILE/out/$archive/$dir
+with_writable $PILE \
+    mv /$PILE/in/$file /$PILE/out/$archive/$dir
+zfs create -p $STATIC/$archive
 
 system-static-promote
 
-assert_file_exists /$DST/a/b/file.txt
+assert_file_exists /$STATIC/$archive/$dir/$file

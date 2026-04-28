@@ -1,17 +1,15 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
+file=bad.txt
+archive=filing/2099
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mkdir -p /$PILE/out/filing/2099
-
+    mkdir -p /$PILE/out/$archive
 with_writable $PILE \
-    mv /$PILE/in/file.txt /$PILE/out/filing/2099/file.txt
+    mv /$PILE/in/$file /$PILE/out/$archive/$file
 
 # dataset does NOT exist
 capture_status system-static-promote

@@ -1,21 +1,17 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-PILE=tank/data/active/pile-readonly
-DST=tank/data/static/filing/2025
-
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+file=some-file.txt
+archive=filing/2025
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mkdir -p /$PILE/out/filing/2025
-
+    mkdir -p /$PILE/out/$archive
 with_writable $PILE \
-    mv /$PILE/in/$FILE /$PILE/out/filing/2025/$FILE
+    mv /$PILE/in/$file /$PILE/out/$archive/$file
 
 system-static-promote
 
-assert_file_exists /$DST/$FILE
-assert_not_exists /$PILE/out/filing/2025/$FILE
+assert_file_exists /$STATIC/$archive/$file
+assert_not_exists /$PILE/out/$archive/$file

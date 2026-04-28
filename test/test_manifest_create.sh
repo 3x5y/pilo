@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
 
-PILE=/tank/data/active/pile-readonly
-FILE=test.txt
-
-echo hello > /tmp/$FILE
-system-capture /tmp/$FILE
+file=test.txt
+mkfile hello $file
+capture_file $file
 system-ingest-pile
 system-manifest-update
 
-(cd "$PILE" && sha256sum --quiet --strict -c .manifest)
+assert_manifest_valid /$PILE

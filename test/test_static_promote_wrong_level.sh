@@ -1,19 +1,14 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
+file=bad.txt
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mkdir -p /$PILE/out/filing
-
-with_writable $PILE \
-    mv /$PILE/in/file.txt /$PILE/out/filing/file.txt
+    mv /$PILE/in/$file /$PILE/out/filing/$file
 
 capture_status system-static-promote
 
-assert_command_fail
+assert_command_fail accepted invalid structure
 echo "$OUTPUT" | assert_grep "invalid filing structure"

@@ -1,14 +1,12 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-PILE=tank/data/active/pile-readonly
-
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+file=file.txt
+mkfile data $file
+capture_file $file
 system-ingest-pile
 with_writable $PILE \
-    mv /$PILE/in/$FILE /$PILE/out/collection
+    mv /$PILE/in/$file /$PILE/out/collection/
 system-static-promote
 
 # second promotion attempt (no re-ingest)

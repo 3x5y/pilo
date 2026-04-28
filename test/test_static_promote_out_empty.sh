@@ -1,9 +1,7 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-
-with_writable $PILE\
+with_writable $PILE \
     mkdir -p /$PILE/out/collection
 
 capture_status system-static-promote

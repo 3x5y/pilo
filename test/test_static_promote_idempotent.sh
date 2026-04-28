@@ -1,29 +1,24 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-PILE=tank/data/active/pile-readonly
-
-with_writable $PILE \
-    mkdir -p /$PILE/out/collection/a
-
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+file=file.txt
+dst=collection/a
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mv /$PILE/in/$FILE /$PILE/out/collection/a
-
+    mkdir -p /$PILE/out/$dst
+with_writable $PILE \
+    mv /$PILE/in/$file /$PILE/out/$dst
 system-static-promote
-
 # reintroduce identical
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mv /$PILE/in/$FILE /$PILE/out/collection/a
+    mv /$PILE/in/$file /$PILE/out/$dst
 
 system-static-promote
-assert_file_exists /tank/data/static/collection/a/$FILE
-assert_not_exists /tank/data/active/pile-readonly/out/collection/$FILE
+
+assert_file_exists /$STATIC/$dst/$file
+assert_not_exists /$PILE/out/$dst/$file

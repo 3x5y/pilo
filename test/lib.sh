@@ -4,6 +4,7 @@
 
 export INTAKE=tank/data/active/pile-intake
 export PILE=tank/data/active/pile-readonly
+export STATIC=tank/data/static
 
 
 ### setup helpers
@@ -61,11 +62,14 @@ assert_not_exists() {
 }
 
 assert_grep() {
-    grep -q "$1" || fail "expected: '$1'"
+    grep -q "$1" || fail "grep expected: '$1'"
 }
 
-__assert_not_grep__broken() {
-    grep -v -q "$1" || fail "unexpected: '$1'"
+assert_not_grep() {
+    if grep -q "$1"
+    then
+        fail "grep found '$1'"
+    fi
 }
 
 assert_command_ok() {

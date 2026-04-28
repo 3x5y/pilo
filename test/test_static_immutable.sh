@@ -1,14 +1,13 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-FILE=file.txt
-echo important > /tmp/$FILE
-system-capture /tmp/$FILE
+file=immutable.txt
+mkfile important $file
+capture_file $file
 system-ingest-pile
 
 # attempt modification after promotion
-if (echo tamper >> /$PILE/in/$FILE) 2>/dev/null
+if (echo tamper >> /$PILE/in/$file) 2>/dev/null
 then
     fail file writable after promotion
 fi

@@ -1,19 +1,18 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-FILE=file.txt
-
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+file=new-file.txt
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mv /$PILE/in/$FILE /$PILE/out/collection
+    mv /$PILE/in/$file /$PILE/out/collection
+
 system-static-promote
 
 # static manifest valid
-(cd /tank/data/static && sha256sum --quiet --strict -c .manifest)
-
+assert_manifest_valid /$STATIC
 # pile manifest valid
+assert_manifest_valid /$PILE
+# also system command
 system-manifest-verify || fail pile manifest invalid

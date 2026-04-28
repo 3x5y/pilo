@@ -1,18 +1,16 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-
-echo data > /tmp/file.txt
-system-capture /tmp/file.txt
+file=file.txt
+dir=a/b
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 with_writable $PILE \
-    mkdir -p /$PILE/out/collection/a/b
+    mkdir -p /$PILE/out/collection/$dir
 with_writable $PILE \
-    mv /$PILE/in/file.txt /$PILE/out/collection/a/b/file.txt
+    mv /$PILE/in/$file /$PILE/out/collection/$dir/$file
 
 system-static-promote
 
-grep -q " \./collection/a/b/file.txt$" /tank/data/static/.manifest \
-    || fail "missing preserved path in manifest"
+assert_manifest_entry /$STATIC " \./collection/$dir/$file$"

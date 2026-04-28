@@ -1,10 +1,7 @@
 #!/bin/sh
 set -e
 
-FILE=test.txt
-
-echo valid > /tmp/$FILE
-system-capture /tmp/$FILE
+mkfile valid foo.txt
 system-ingest-pile
 
 system-manifest-update

@@ -1,17 +1,16 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-DST=/tank/data/static/collection
-
-echo important > /tmp/item.txt
-system-capture /tmp/item.txt
+file=manifest-item.txt
+mkfile important $file
+capture_file $file
 system-ingest-pile
-
 system-manifest-update
-
 with_writable $PILE \
-    mv /$PILE/in/item.txt /$PILE/out/collection/item.txt
+    mv /$PILE/in/$file /$PILE/out/collection/$file
+
 system-static-promote
 
-#assert_grep item.txt < $DST/.manifest
+#assert_grep " \./collection/$file$" < /$STATIC/.manifest
+assert_manifest_entry /$STATIC " \./collection/$file$"
+assert_manifest_valid /$STATIC

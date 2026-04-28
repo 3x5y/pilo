@@ -1,12 +1,11 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-
+dir=random
 with_writable $PILE \
-    mkdir -p /$PILE/out/random
+    mkdir -p /$PILE/out/$dir
 with_writable $PILE \
-    sh -c "echo data > /$PILE/out/random/file.txt"
+    touch /$PILE/out/$dir/file.txt
 
 capture_status system-static-promote
 
