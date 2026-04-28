@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+ROOT="tank/data"
+
+ts=$(date +%s)
+
+zfs snapshot -r "$ROOT@r-$ts"
