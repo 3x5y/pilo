@@ -8,9 +8,10 @@ capture_file a.txt
 capture_file b.txt
 system-ingest-pile
 
+# NB tabs!!
 system-rewrite "
-mv in/a.txt sort/a.txt
-mv in/b.txt sort/b.txt
+mv	in/a.txt	sort/a.txt
+mv	in/b.txt	sort/b.txt
 "
 
 assert_file_exists /$PILE/sort/a.txt

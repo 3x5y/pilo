@@ -67,15 +67,15 @@ tmp=$(mktemp)
 printf "%s\n" "$CMD" > "$tmp"
 
 zfs set readonly=off $PILE
-while IFS= read -r line
+TAB='	'
+while IFS="$TAB" read -r op src dst
 do
-    [ -n "$line" ] || continue
-    set -- $line
-    [ "$#" -eq 3 ] || {
-        echo "ERROR: invalid command: $line"
+    [ -n "$op" ] || continue
+    [ -n "$src" ] && [ -n "$dst" ] || {
+        echo "ERROR: invalid command: $op '$src' '$dst'"
         exit 1
     }
-    exec_op "$1" "$2" "$3"
+    exec_op "$op" "$src" "$dst"
 done < $tmp
 
 zfs set readonly=on $PILE

@@ -12,16 +12,16 @@ export STATIC=$TEST_ROOT/static
 ### setup helpers
 
 mkfile() {
-    echo "$1" > $TMP/$2
+    echo "$1" > $TMP/"$2"
 }
 
 mkintake() {
     mkdir -p /$INTAKE/$(dirname "$2")
-    echo "$1" > /$INTAKE/$2
+    echo "$1" > /$INTAKE/"$2"
 }
 
 capture_file() {
-    system-capture $TMP/$1
+    system-capture $TMP/"$1"
 }
 
 with_writable() {

@@ -6,7 +6,8 @@ mkfile data $file
 capture_file $file
 system-ingest-pile
 
-system-rewrite "mv in/$file sort/$file"
+# NB tabs!!
+system-rewrite "mv	in/$file	sort/$file"
 
 assert_not_exists /$PILE/in/$file
 assert_file_exists /$PILE/sort/$file
