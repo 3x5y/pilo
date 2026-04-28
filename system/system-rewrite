@@ -35,9 +35,22 @@ DST="/$PILE/$dst"
 # ensure destination directory exists
 DIR=$(dirname "$DST")
 
-zfs set readonly=off $PILE
-mkdir -p "$DIR"
-mv "$SRC" "$DST"
-zfs set readonly=on $PILE
+if [ -f "$DST" ]
+then
+    if cmp -s "$SRC" "$DST"
+    then
+        zfs set readonly=off $PILE
+        rm "$SRC"
+        zfs set readonly=on $PILE
+    else
+        echo "ERROR: destination conflict: $dst"
+        exit 1
+    fi
+else
+    zfs set readonly=off $PILE
+    mkdir -pv "$DIR"
+    mv -v "$SRC" "$DST"
+    zfs set readonly=on $PILE
+fi
 
 system-manifest-update
