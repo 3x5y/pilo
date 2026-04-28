@@ -1,23 +1,22 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-
-mkfile good $FILE
-capture_file $FILE
+file=file.txt
+mkfile good $file
+capture_file $file
 system-ingest-pile
 
-system-rewrite "mv in/$FILE sort/$FILE"
+system-rewrite "mv in/$file sort/$file"
 
 # recreate conflicting source
-mkfile bad $FILE
-capture_file $FILE
+mkfile bad $file
+capture_file $file
 system-ingest-pile
 
-capture_status system-rewrite "mv in/$FILE sort/$FILE"
+capture_status system-rewrite "mv in/$file sort/$file"
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep conflict
 
 # original must remain
-assert_grep good < /$PILE/sort/$FILE
+assert_grep good < /$PILE/sort/$file
