@@ -1,13 +1,10 @@
 #!/bin/sh
 set -e
 
-DATASET=tank/data/active/pile-readonly
-
-zfs create -p $DATASET 2>/dev/null || true
-
 system-snapshot fresh
 
-export CONFIG_SNAPSHOT_MAX_AGE=60
+export CONFIG_SNAPSHOT_MAX_AGE=60 # redundant but explicit
 capture_status system-status snapshot
+
 assert_command_ok status returned nonzero
 echo "$OUTPUT" | assert_grep snapshot

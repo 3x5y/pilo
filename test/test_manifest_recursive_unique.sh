@@ -6,5 +6,5 @@ mkintake data b/file.txt
 
 system-ingest-pile
 
-COUNT=$(grep -c "file.txt$" /$PILE/.manifest)
-[ "$COUNT" -eq 2 ] || fail "expected two distinct entries"
+count=$(grep -c "file.txt$" /$PILE/.manifest)
+[ "$count" -eq 2 ] || fail "expected two distinct entries"

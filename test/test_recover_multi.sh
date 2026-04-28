@@ -1,23 +1,29 @@
 #!/bin/sh
 set -e
 
-echo admin-data > /tank/data/active/admin/code.txt
-with_writable tank/data/static \
-    sh -c "echo static-data > /tank/data/static/doc.txt"
-echo pile-data > /tmp/file.txt
-system-capture /tmp/file.txt
+admin=$ACTIVE/admin
+repl_pile=$TEST_REPLICA/active/pile-readonly
+repl_admin=$TEST_REPLICA/active/admin
+repl_static=$TEST_REPLICA/static
+admin_file=admin.txt
+pile_file=file.txt
+static_file=doc.txt
+
+snap=baseline
+echo admin-data > /$admin/$admin_file
+with_writable $STATIC \
+    sh -c "echo static-data > /$STATIC/$static_file"
+mkfile pile-data file.txt
+capture_file file.txt
 system-ingest-pile
-system-snapshot baseline
+system-snapshot $snap
 system-replicate
 zfs destroy -r $TEST_ROOT
 
-system-recover-baseline $TEST_REPLICA/active/pile-readonly \
-                        $TEST_ROOT/active/pile-readonly baseline >/dev/null
-system-recover-baseline $TEST_REPLICA/active/admin \
-                        $TEST_ROOT/active/admin baseline >/dev/null
-system-recover-baseline $TEST_REPLICA/static \
-                        $TEST_ROOT/static baseline >/dev/null
+system-recover-baseline $repl_static $STATIC $snap >/dev/null
+system-recover-baseline $repl_pile $PILE $snap >/dev/null
+system-recover-baseline $repl_admin $admin $snap >/dev/null
 
-assert_grep pile-data < /tank/data/active/pile-readonly/.zfs/snapshot/baseline/in/file.txt
-assert_grep admin-data < /tank/data/active/admin/.zfs/snapshot/baseline/code.txt
-assert_grep static-data < /tank/data/static/.zfs/snapshot/baseline/doc.txt
+assert_grep static-data < /$STATIC/.zfs/snapshot/$snap/$static_file
+assert_grep pile-data < /$PILE/.zfs/snapshot/$snap/in/$pile_file
+assert_grep admin-data < /$admin/.zfs/snapshot/$snap/$admin_file

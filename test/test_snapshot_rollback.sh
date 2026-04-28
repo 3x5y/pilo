@@ -3,14 +3,15 @@ set -e
 
 # tests ZFS instead of system commands for unknown reason?
 
-SRC=tank/data/active/admin
-FILE=/$SRC/recovery_test.txt
+admin=$ACTIVE/admin
+path=/$admin/recovery_test.txt
+echo recover-me > $path
+snap=$admin@recovery_test
+zfs snapshot $snap
+rm $path
+assert_not_exists $path
 
-echo recover me > $FILE
-SNAP=$SRC@recovery_test
-zfs snapshot $SNAP
-rm $FILE
-assert_not_exists $FILE
+zfs rollback $snap
 
-zfs rollback $SNAP
-assert_file_exists $FILE
+assert_file_exists $path
+assert_grep recover-me < $path

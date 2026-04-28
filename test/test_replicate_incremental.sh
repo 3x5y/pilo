@@ -1,16 +1,17 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/admin
-DST=$TEST_REPLICA/admin
+admin=$ACTIVE/admin
+repl=$TEST_REPLICA/admin
+file=repl.txt
 
-echo v1 > /$SRC/file.txt
-zfs snapshot $SRC@t0
-system-replicate $SRC $DST
+echo v1 > /$admin/$file
+zfs snapshot $admin@t0
+system-replicate $admin $repl
 
-echo v2 > /$SRC/file.txt
-zfs snapshot $SRC@t1
-system-replicate $SRC $DST
+echo v2 > /$admin/$file
+zfs snapshot $admin@t1
+system-replicate $admin $repl
 
-zfs list -t snapshot | assert_grep $DST@t1
-assert_grep v2 < /$DST/.zfs/snapshot/t1/file.txt
+zfs list -t snapshot | assert_grep $repl@t1
+assert_grep v2 < /$repl/.zfs/snapshot/t1/$file

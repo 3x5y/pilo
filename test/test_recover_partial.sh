@@ -1,26 +1,23 @@
 #!/bin/sh
 set -e
 
-# --- create full system state ---
-echo pile > /tmp/p.txt
-system-capture /tmp/p.txt
+repl_pile=$TEST_REPLICA/active/pile-readonly
+admin=$ACTIVE/admin
+snap=baseline
+echo admin-data > /$admin/admin.txt
+mkfile pile-data p.txt
+capture_file p.txt
 system-ingest-pile
-
-echo admin > /tank/data/active/admin/code.txt
-
-with_writable tank/data/static \
-    sh -c "echo static > /tank/data/static/doc.txt"
-
-system-snapshot baseline
+with_writable $STATIC \
+    touch /$STATIC/doc.txt
+system-snapshot $snap
 system-replicate
 
 # --- destroy everything ---
 zfs destroy -r $TEST_ROOT
 
 # --- recover ONLY pile ---
-system-recover-baseline \
-    $TEST_REPLICA/active/pile-readonly \
-    $TEST_ROOT/active/pile-readonly baseline >/dev/null
+system-recover-baseline $repl_pile $PILE $snap >/dev/null
 
 # --- system should now be inconsistent ---
 capture_status system-status

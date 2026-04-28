@@ -10,4 +10,4 @@ system-snapshot t1
 capture_status system-replicate
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep ERROR
+echo "$OUTPUT" | assert_grep "ERROR: base snapshot missing"

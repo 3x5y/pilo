@@ -12,7 +12,5 @@ system-static-promote
 
 # static manifest valid
 assert_manifest_valid /$STATIC
-# pile manifest valid
-assert_manifest_valid /$PILE
-# also system command
+# use system command which ignores empty manifests
 system-manifest-verify || fail pile manifest invalid

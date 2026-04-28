@@ -1,14 +1,18 @@
 #!/bin/sh
 set -e
 
-echo admin > /tank/data/active/admin/file.txt
-echo temp > /tank/data/stash/temp.txt
-system-snapshot baseline
+admin=$ACTIVE/admin
+repl=$TEST_REPLICA/active/admin
+file=file.txt
+temp=temp.txt
+snap=baseline
+echo admin > /$admin/$file
+echo temp > /$STASH/$temp
+system-snapshot $snap
 system-replicate
 zfs destroy -r $TEST_ROOT
 
-system-recover-baseline $TEST_REPLICA/active/admin \
-                        $TEST_ROOT/active/admin baseline >/dev/null
+system-recover-baseline $repl $admin $snap >/dev/null
 
-assert_grep admin < /tank/data/active/admin/.zfs/snapshot/baseline/file.txt
-assert_not_exists /tank/data/stash/temp.txt
+assert_grep admin < /$admin/.zfs/snapshot/$snap/$file
+assert_not_exists /$STASH/$temp

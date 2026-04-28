@@ -1,13 +1,13 @@
 #!/bin/sh
 set -e
 
-SRC=$TEST_ROOT/active/admin
-DST=$TEST_REPLICA/admin
+admin=$ACTIVE/admin
+repl=$TEST_REPLICA/admin
 
-echo hello > /$SRC/file.txt
-zfs snapshot $SRC@t0
+echo hello > /$admin/file.txt
+zfs snapshot $admin@t0
 
-system-replicate $SRC $DST
+system-replicate $admin $repl
 
-zfs list -t snapshot | assert_grep $DST@t0
-assert_file_exists /$DST/.zfs/snapshot/t0/file.txt
+zfs list -t snapshot | assert_grep $repl@t0
+assert_file_exists /$repl/.zfs/snapshot/t0/file.txt

@@ -2,9 +2,11 @@
 
 ### test constants
 
-export INTAKE=tank/data/active/pile-intake
-export PILE=tank/data/active/pile-readonly
-export STATIC=tank/data/static
+export ACTIVE=$TEST_ROOT/active
+export INTAKE=$TEST_ROOT/active/pile-intake
+export PILE=$TEST_ROOT/active/pile-readonly
+export STASH=$TEST_ROOT/stash
+export STATIC=$TEST_ROOT/static
 
 
 ### setup helpers

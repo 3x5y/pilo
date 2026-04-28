@@ -14,6 +14,6 @@ system-ingest-pile
 assert_manifest_valid /$PILE
 
 # only one entry
-COUNT=$(grep -c " \./in/$file$" /$PILE/.manifest) \
+count=$(grep -c " \./in/$file$" /$PILE/.manifest) \
     || fail "file not present in manifest"
-[ "$COUNT" -eq 1 ] || fail "duplicate manifest entries"
+[ "$count" -eq 1 ] || fail "duplicate manifest entries"

@@ -13,5 +13,5 @@ cp /$PILE/.manifest $TMP/manifest_before
 mkintake data $file
 system-ingest-pile
 
-diff -u /tmp/manifest_before /$PILE/.manifest \
+diff -u $TMP/manifest_before /$PILE/.manifest \
     || fail "manifest changed on idempotent ingest"

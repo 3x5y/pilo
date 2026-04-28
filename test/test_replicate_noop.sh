@@ -2,6 +2,7 @@
 set -e
 
 system-snapshot t0
+
 system-replicate
 
 capture_status system-replicate

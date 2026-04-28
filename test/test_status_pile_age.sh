@@ -1,11 +1,10 @@
 #!/bin/sh
 set -e
 
-FILE=old_file.txt
-
-echo data > /tmp/$FILE
-touch -d '2 hours ago' /tmp/$FILE
-system-capture /tmp/$FILE
+file=old_file.txt
+mkfile data $file
+capture_file $file
+touch -d '2 hours ago' /$INTAKE/$file
 system-ingest-pile
 
 export CONFIG_PILE_MAX_AGE=60
