@@ -1,16 +1,12 @@
 #!/bin/sh
 set -e
 
-INTAKE=/tank/data/active/pile-intake
-PILE=/tank/data/active/pile-readonly
-
-mkdir -p $INTAKE/a
-mkdir -p $INTAKE/b
-
-echo one > $INTAKE/a/1.txt
-echo two > $INTAKE/b/2.txt
+one=a/1.txt
+two=b/2.txt
+mkintake one $one
+mkintake two $two
 
 system-ingest-pile
 
-assert_file_exists $PILE/in/a/1.txt
-assert_file_exists $PILE/in/b/2.txt
+assert_file_exists /$PILE/in/$one
+assert_file_exists /$PILE/in/$two

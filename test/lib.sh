@@ -1,5 +1,26 @@
 #!/bin/sh
 
+### test constants
+
+export INTAKE=tank/data/active/pile-intake
+export PILE=tank/data/active/pile-readonly
+
+
+### setup helpers
+
+mkfile() {
+    echo "$1" > $TMP/$2
+}
+
+mkintake() {
+    mkdir -p /$INTAKE/$(dirname "$2")
+    echo "$1" > /$INTAKE/$2
+}
+
+capture_file() {
+    system-capture $TMP/$1
+}
+
 with_writable() {
     DATASET="$1"
     shift
@@ -19,23 +40,8 @@ capture_status() {
     fi
 }
 
-assert_command_ok() {
-    if [ $STATUS -eq 0 ]
-    then
-        return
-    fi
-    echo "$OUTPUT"
-    fail "command failed:" "$@"
-}
 
-assert_command_fail() {
-    if [ $STATUS -ne 0 ]
-    then
-        return
-    fi
-    echo "$OUTPUT"
-    fail "command did not fail:" "$@"
-}
+### assert helpers
 
 fail() {
     echo "FAIL:" "$@"
@@ -58,6 +64,37 @@ assert_grep() {
     grep -q "$1" || fail "expected: '$1'"
 }
 
-assert_not_grep() {
+__assert_not_grep__broken() {
     grep -v -q "$1" || fail "unexpected: '$1'"
+}
+
+assert_command_ok() {
+    if [ $STATUS -eq 0 ]
+    then
+        return
+    fi
+    echo "$OUTPUT"
+    fail "command failed:" "$@"
+}
+
+assert_command_fail() {
+    if [ $STATUS -ne 0 ]
+    then
+        return
+    fi
+    echo "$OUTPUT"
+    fail "command did not fail:" "$@"
+}
+
+assert_manifest_entry() {
+    dir="$1"
+    entry="$2"
+    assert_grep "$entry" < "$dir"/.manifest \
+        || fail "missing entry '$entry' in '$dir/.manifest'"
+}
+
+assert_manifest_valid() {
+    dir="$1"
+    (cd "$dir" && sha256sum --quiet --strict -c .manifest) \
+        || fail "manifest '$dir/.manifest is invalid"
 }

@@ -1,14 +1,10 @@
 #!/bin/sh
 set -e
 
-PILE=/tank/data/active/pile-readonly
-
-mkdir -p /tank/data/active/pile-intake/foo/bar
-echo data > /tank/data/active/pile-intake/foo/bar/file.txt
+file=foo/bar/file.txt
+mkintake data $file
 
 system-ingest-pile
 
-grep -q "./in/foo/bar/file.txt$" $PILE/.manifest \
-    || fail "missing nested path in manifest"
-
-(cd $PILE && sha256sum --quiet --strict -c .manifest)
+assert_manifest_entry /$PILE " \./in/$file$"
+assert_manifest_valid /$PILE

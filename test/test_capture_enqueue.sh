@@ -1,16 +1,12 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-TMP=/tmp/$FILE
-INTAKE=/tank/data/active/pile-intake/$FILE
-CANONICAL=/tank/data/active/pile-readonly/$FILE
+file=file.txt
 
-echo data > "$TMP"
+mkfile data $file
+capture_file $file
 
-system-capture "$TMP"
-
-assert_file_exists "$INTAKE"
-assert_not_exists "$CANONICAL"
+assert_file_exists /$INTAKE/$file
+assert_not_exists /$PILE/$file
 # client copy retained
-assert_file_exists "$TMP"
+assert_file_exists $TMP/$file

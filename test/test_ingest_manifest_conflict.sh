@@ -2,14 +2,15 @@
 set -e
 
 PILE=/tank/data/active/pile-readonly
-FILE=file.txt
+file=file.txt
+canonical=/$PILE/in/$file
 
-echo original > /tmp/$FILE
-system-capture /tmp/$FILE
+mkfile original $file
+capture_file $file
 system-ingest-pile
 
 # conflicting intake
-echo different > /tank/data/active/pile-intake/$FILE
+mkintake different $file
 
 capture_status system-ingest-pile
 
@@ -17,7 +18,7 @@ assert_command_fail expected checksum conflict
 echo "$OUTPUT" | assert_grep "collision"
 
 # manifest still valid
-(cd $PILE && sha256sum --quiet --strict -c .manifest)
+assert_manifest_valid /$PILE
 
 # canonical unchanged
-assert_grep original < $PILE/in/$FILE
+assert_grep original < $canonical

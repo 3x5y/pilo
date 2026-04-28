@@ -1,14 +1,12 @@
 #!/bin/sh
 set -e
 
-PILE=tank/data/active/pile-readonly
-
-echo data > /tmp/a.txt
-system-capture /tmp/a.txt
+file=a.txt
+mkfile data $file
+capture_file $file
 system-ingest-pile
-
 # inject conflict
-echo bad > /tank/data/active/pile-intake/a.txt
+mkintake bad $file
 
 capture_status system-ingest-pile
 

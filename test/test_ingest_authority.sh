@@ -1,16 +1,14 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-INTAKE=/tank/data/active/pile-intake/$FILE
-CANONICAL=/tank/data/active/pile-readonly/in/$FILE
+file=file.txt
+canonical=/$PILE/in/$file
 
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
-
+mkfile data $file
+capture_file $file
 system-ingest-pile
 
-assert_file_exists $CANONICAL
-assert_not_exists $INTAKE
-[ $(readlink -f $CANONICAL) = $CANONICAL ] \
+assert_file_exists $canonical
+assert_not_exists /$INTAKE/$file
+[ $(readlink -f $canonical) = $canonical ] \
     || fail canonical path is indirect or ambiguous

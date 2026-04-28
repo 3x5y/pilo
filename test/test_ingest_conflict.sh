@@ -1,16 +1,15 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-INTAKE=/tank/data/active/pile-intake/$FILE
-CANONICAL=/tank/data/active/pile-readonly/in/$FILE
+file=file.txt
+canonical=/$PILE/in/$file
 
-echo original > /tmp/$FILE
-system-capture /tmp/$FILE
+mkfile original $file
+capture_file $file
 system-ingest-pile
 
 # conflicting re-upload
-echo different > $INTAKE
+mkintake different $file
 
 capture_status system-ingest-pile
 
@@ -18,7 +17,7 @@ assert_command_fail expected conflict rejection
 echo "$OUTPUT" | assert_grep "ERROR"
 
 # canonical must remain unchanged
-assert_grep original < $CANONICAL
+assert_grep original < $canonical
 
 # intake should still contain the conflicting file (not silently deleted)
-assert_file_exists $INTAKE
+assert_file_exists /$INTAKE/$file

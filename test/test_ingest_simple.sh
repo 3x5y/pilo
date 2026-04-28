@@ -1,12 +1,11 @@
 #!/bin/sh
 set -e
 
-INTAKE=/tank/data/active/pile-intake
-PILE=/tank/data/active/pile-readonly
+file=file.txt
 
-echo data > $INTAKE/file.txt
+mkintake data $file
 
 system-ingest-pile
 
-assert_file_exists $PILE/in/file.txt
-assert_not_exists $INTAKE/file.txt
+assert_file_exists /$PILE/in/$file
+assert_not_exists $INTAKE/$file

@@ -1,19 +1,15 @@
 #!/bin/sh
 set -e
 
-INTAKE=/tank/data/active/pile-intake
-PILE=/tank/data/active/pile-readonly
+dir=foo
+file=$dir/file.txt
 
-mkdir -p $INTAKE/foo
-echo data > $INTAKE/foo/file.txt
-
+mkintake data $file
 system-ingest-pile
-
 # re-upload identical
-mkdir -p $INTAKE/foo
-echo data > $INTAKE/foo/file.txt
+mkintake data $file
 
 system-ingest-pile
 
-assert_file_exists $PILE/in/foo/file.txt
-assert_not_exists $INTAKE/foo/file.txt
+assert_file_exists /$PILE/in/$file
+assert_not_exists /$INTAKE/$file

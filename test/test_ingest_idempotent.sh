@@ -1,21 +1,20 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-INTAKE=/tank/data/active/pile-intake/$FILE
-CANONICAL=/tank/data/active/pile-readonly/in/$FILE
+file=file.txt
+canonical=/$PILE/in/$file
 
-echo data > /tmp/$FILE
-mtime=$(stat -c%Y /tmp/$FILE)
-system-capture /tmp/$FILE
+mkfile data $file
+mtime=$(stat -c%Y $TMP/$file)
+capture_file $file
 system-ingest-pile
-echo data > $INTAKE
+mkintake data $file
 
 system-ingest-pile
 
 # no duplication, no failure
-assert_file_exists $CANONICAL
-assert_grep data < $CANONICAL
-assert_not_exists $INTAKE
-[ $(stat -c%Y $CANONICAL) -eq $mtime ] \
+assert_file_exists $canonical
+assert_grep data < $canonical
+assert_not_exists /$INTAKE/$file
+[ $(stat -c%Y $canonical) -eq $mtime ] \
     || fail mtime does not match

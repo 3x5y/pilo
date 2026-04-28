@@ -1,13 +1,12 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-PILE=tank/data/active/pile-readonly
+file=file.txt
 
-echo data > /tmp/$FILE
-system-capture /tmp/$FILE
+mkfile data $file
+capture_file $file
 system-ingest-pile
 
 system-snapshot test_snap
 
-assert_file_exists /$PILE/.zfs/snapshot/test_snap/in/$FILE
+assert_file_exists /$PILE/.zfs/snapshot/test_snap/in/$file
