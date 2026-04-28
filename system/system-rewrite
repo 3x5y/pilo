@@ -12,9 +12,10 @@ CMD="$1"
 
 
 exec_op() {
-    op="$1"
-    src="$2"
-    dst="$3"
+    mode="$1"   # validate | apply
+    op="$2"
+    src="$3"
+    dst="$4"
 
     case "$op" in
         mv) ;;
@@ -46,17 +47,21 @@ exec_op() {
         exit 1
     }
 
+    if [ "$mode" = "validate" ]
+    then
+        if [ -f "$DST" ] && ! cmp -s "$SRC" "$DST"
+        then
+            echo "ERROR: destination conflict: $dst"
+            exit 1
+        fi
+        return
+    fi
+
     DIR=$(dirname "$DST")
 
     if [ -f "$DST" ]
     then
-        if cmp -s "$SRC" "$DST"
-        then
-            rm "$SRC"
-        else
-            echo "ERROR: destination conflict: $dst"
-            exit 1
-        fi
+        rm "$SRC"
     else
         mkdir -p "$DIR"
         mv "$SRC" "$DST"
@@ -66,8 +71,8 @@ exec_op() {
 tmp=$(mktemp)
 printf "%s\n" "$CMD" > "$tmp"
 
-zfs set readonly=off $PILE
 TAB='	'
+
 while IFS="$TAB" read -r op src dst extra
 do
     [ -n "$op" ] || continue
@@ -79,9 +84,15 @@ do
         echo "ERROR: invalid command: $op '$src' '$dst'"
         exit 1
     }
-    exec_op "$op" "$src" "$dst"
+    exec_op validate "$op" "$src" "$dst"
 done < $tmp
 
+zfs set readonly=off $PILE
+while IFS="$TAB" read -r op src dst extra
+do
+    [ -n "$op" ] || continue
+    exec_op apply "$op" "$src" "$dst"
+done < $tmp
 zfs set readonly=on $PILE
 rm -f "$tmp"
 system-manifest-update
