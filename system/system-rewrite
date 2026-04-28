@@ -69,7 +69,8 @@ exec_op() {
 }
 
 tmp=$(mktemp)
-SEEN=$(mktemp)
+src_seen=$(mktemp)
+dst_seen=$(mktemp)
 printf "%s\n" "$CMD" > "$tmp"
 
 TAB='	'
@@ -85,16 +86,24 @@ do
         echo "ERROR: invalid command: $op '$src' '$dst'"
         exit 1
     }
-    if grep -Fxq "$src" "$SEEN"
+    if grep -Fxq "$src" "$src_seen"
     then
         echo "ERROR: duplicate source in script: $src"
         exit 1
     fi
-    echo "$src" >> "$SEEN"
+    if grep -Fxq "$dst" "$dst_seen"
+    then
+        echo "ERROR: destination conflict in script: $dst"
+        exit 1
+    fi
+
+    echo "$dst" >> "$dst_seen"
+    echo "$src" >> "$src_seen"
     exec_op validate "$op" "$src" "$dst"
 done < $tmp
 
-rm -f "$SEEN"
+rm -f "$src_seen"
+rm -f "$dst_seen"
 
 zfs set readonly=off $PILE
 while IFS="$TAB" read -r op src dst extra
