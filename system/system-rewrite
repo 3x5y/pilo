@@ -68,9 +68,13 @@ printf "%s\n" "$CMD" > "$tmp"
 
 zfs set readonly=off $PILE
 TAB='	'
-while IFS="$TAB" read -r op src dst
+while IFS="$TAB" read -r op src dst extra
 do
     [ -n "$op" ] || continue
+    [ -z "$extra" ] || {
+        echo "ERROR: invalid command (too many fields)"
+        exit 1
+    }
     [ -n "$src" ] && [ -n "$dst" ] || {
         echo "ERROR: invalid command: $op '$src' '$dst'"
         exit 1
