@@ -1,0 +1,43 @@
+#!/bin/sh
+set -e
+
+PILE="tank/data/active/pile-readonly"
+
+CMD="$1"
+
+[ -n "$CMD" ] || {
+    echo "ERROR: missing command"
+    exit 1
+}
+
+set -- $CMD
+
+op="$1"
+src="$2"
+dst="$3"
+
+case "$op" in
+    mv) ;;
+    *)
+        echo "ERROR: unsupported operation: $op"
+        exit 1
+        ;;
+esac
+
+SRC="/$PILE/$src"
+DST="/$PILE/$dst"
+
+[ -f "$SRC" ] || {
+    echo "ERROR: source missing: $src"
+    exit 1
+}
+
+# ensure destination directory exists
+DIR=$(dirname "$DST")
+
+zfs set readonly=off $PILE
+mkdir -p "$DIR"
+mv "$SRC" "$DST"
+zfs set readonly=on $PILE
+
+system-manifest-update
