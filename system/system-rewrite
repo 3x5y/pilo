@@ -48,8 +48,8 @@ then
     fi
 else
     zfs set readonly=off $PILE
-    mkdir -pv "$DIR"
-    mv -v "$SRC" "$DST"
+    mkdir -p "$DIR"
+    mv "$SRC" "$DST"
     zfs set readonly=on $PILE
 fi
 
