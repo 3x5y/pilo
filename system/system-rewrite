@@ -63,16 +63,16 @@ exec_op() {
     fi
 }
 
+tmp=$(mktemp)
+printf "%s\n" "$CMD" > "$tmp"
+
 zfs set readonly=off $PILE
-echo "$CMD" | while read -r op src dst
+while read -r op src dst
 do
     [ -n "$op" ] || continue
     exec_op "$op" "$src" "$dst" || break
-done
+done < $tmp
+
 zfs set readonly=on $PILE
-
-
-
-
-
+rm -f "$tmp"
 system-manifest-update
