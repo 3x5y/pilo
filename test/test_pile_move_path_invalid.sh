@@ -1,13 +1,12 @@
 #!/bin/sh
 set -e
 
-FILE=file.txt
-
-mkfile data $FILE
-capture_file $FILE
+file=file.txt
+mkfile data $file
+capture_file $file
 system-ingest-pile
 
-capture_status system-rewrite "mv in/$FILE ../evil.txt"
+capture_status system-rewrite "mv in/$file ../evil.txt"
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep invalid
