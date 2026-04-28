@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+SRC=${1:-tank/data}
+DST=${2:-$TEST_REPLICA}
+
+latest_src_guid() {
+    zfs list -t snap -s creation -Ho guid "$SRC" | tail -n1
+}
+
+latest_dst_guid() {
+    zfs list -t snap -s creation -Ho guid "$DST" | tail -n1
+}
+
+SRC_GUID=$(latest_src_guid)
+DST_GUID=$(latest_dst_guid)
+
+[ -n "$DST_GUID" ] || {
+    echo "ERROR: no snapshots on target"
+    exit 1
+}
+
+# check target latest exists on source
+if ! zfs list -t snap -Ho guid "$SRC" | grep -q "^$DST_GUID$"
+then
+    echo "ERROR: replication divergence"
+    exit 1
+fi
