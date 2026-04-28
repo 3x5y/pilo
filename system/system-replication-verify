@@ -20,6 +20,11 @@ DST_GUID=$(latest_dst_guid)
     exit 1
 }
 
+if [ "$SRC_GUID" = "$DST_GUID" ]
+then
+    exit 0
+fi
+
 # check target latest exists on source
 if ! zfs list -t snap -Ho guid "$SRC" | grep -q "^$DST_GUID$"
 then
