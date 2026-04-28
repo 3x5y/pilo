@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -e
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -18,7 +17,7 @@ RESULT=0
 env_setup() {
     TMP_ROOT=$(mktemp -d /tmp/test-XXXXXXXX)
     echo "[SETUP] Creating test environment; TMP_ROOT=$TMP_ROOT"
-    env_cleanup
+    zpool_cleanup
     truncate -s 2G /$TMP_ROOT/vdev1
     truncate -s 2G /$TMP_ROOT/vdev2
     LOOP1=$(losetup --show -f /$TMP_ROOT/vdev1)
@@ -26,7 +25,7 @@ env_setup() {
     zpool create tank "$LOOP1"
 }
 
-env_cleanup() {
+zpool_cleanup() {
     zpool destroy -f tank 2>/dev/null || true
     losetup -D 2>/dev/null || true
 }
@@ -34,7 +33,7 @@ env_cleanup() {
 env_teardown() {
     if [ "$RESULT" -eq 0 ]
     then
-        env_cleanup
+        zpool_cleanup
         #rm -f $TMP_ROOT/vdev* 2>/dev/null || true
         rm -rf "$TMP_ROOT"
     fi
@@ -80,15 +79,46 @@ run_tests() {
     done
 }
 
-env_setup
+cmd_clean() {
+    zpool_cleanup
+    for d in /tmp/test-*
+    do
+        echo clean $d
+        rm -rf $d/
+    done
+}
 
-if [ -n "$1" ]
-then
-    run_tests "$@"
-else
-    run_tests "$HERE/test"/test_*.sh
-fi
+cmd_run() {
+    env_setup
+    if [ "$#" -gt 0 ]
+    then
+        run_tests "$@"
+    else
+        run_tests "$HERE/test"/test_*.sh
+    fi
+    env_teardown
+}
 
-env_teardown
+usage() {
+    echo "Usage: $0 COMMAND"
+    echo "Commands"
+    echo "  clean"
+    echo "  run [tests]"
+    exit 1
+}
 
+cmd=$1
+shift
+
+case "$cmd" in
+    clean)
+        cmd_clean
+        ;;
+    run)
+        cmd_run "$@"
+        ;;
+    *)
+        usage
+        ;;
+esac
 exit $RESULT
