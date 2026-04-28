@@ -35,6 +35,7 @@ with_writable() {
 }
 
 capture_status() {
+    COMMAND=$(echo "$@")
     if OUTPUT=$("$@" 2>&1)
     then
         STATUS=0
@@ -80,7 +81,7 @@ assert_command_ok() {
         return
     fi
     echo "$OUTPUT"
-    fail "command failed:" "$@"
+    fail "command failed: '$COMMAND'"
 }
 
 assert_command_fail() {
@@ -89,7 +90,7 @@ assert_command_fail() {
         return
     fi
     echo "$OUTPUT"
-    fail "command did not fail:" "$@"
+    fail "command did not fail: '$COMMAND'"
 }
 
 assert_manifest_entry() {

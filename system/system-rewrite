@@ -24,6 +24,20 @@ case "$op" in
         ;;
 esac
 
+case "$src" in
+    /*|*..*)
+        echo "ERROR: invalid source path"
+        exit 1
+        ;;
+esac
+
+case "$dst" in
+    /*|*..*)
+        echo "ERROR: invalid destination path"
+        exit 1
+        ;;
+esac
+
 SRC="/$PILE/$src"
 DST="/$PILE/$dst"
 
