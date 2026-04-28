@@ -65,13 +65,13 @@ assert_not_exists() {
 }
 
 assert_grep() {
-    grep -q "$1" || fail "grep expected: '$1'"
+    grep -q "$1" || fail "grep did not match '$1'"
 }
 
 assert_not_grep() {
     if grep -q "$1"
     then
-        fail "grep found '$1'"
+        fail "grep matched unwanted '$1'"
     fi
 }
 
