@@ -11,7 +11,6 @@ mv	in/a.txt	sort/b.txt
 "
 
 assert_command_fail
-echo "$OUTPUT"
 echo "$OUTPUT" | assert_grep 'ERROR: duplicate source'
 
 # unchanged
