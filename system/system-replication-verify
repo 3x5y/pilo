@@ -31,3 +31,14 @@ then
     echo "ERROR: replication divergence"
     exit 1
 fi
+
+# AGENT SUGGESTED IMPROVEMENT (I added depth)
+#zfs list -d 9999 -t snap -Ho guid "$DST" |
+#while read guid
+#do
+#    if ! zfs list -t snap -Ho guid "$SRC" | grep -q "^$guid$"
+#    then
+#        echo "ERROR: replication divergence"
+#        exit 1
+#    fi
+#done
