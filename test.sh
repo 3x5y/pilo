@@ -81,10 +81,10 @@ run_tests() {
 
 cmd_clean() {
     zpool_cleanup
-    for d in /tmp/test-*
+    for d in /tmp/test-* /tmp/tmp.*
     do
         echo clean $d
-        rm -rf $d/
+        rm -rf $d
     done
 }
 
