@@ -4,8 +4,8 @@ set -e
 SRC="${1:-tank/data}"
 DST="${2:-tank/replica/data}"
 
-LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
-LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
+LAST_SRC=$(zfs list -t snapshot -Ho name -s creation "$SRC" | tail -n1)
+LAST_DST=$(zfs list -t snapshot -Ho name -s creation "$DST" | tail -n1)
 
 if [ -z "$LAST_SRC" ]
 then
@@ -13,25 +13,27 @@ then
     exit 1
 fi
 
+get_incr_basis() {
+    local dst_guid=$(zfs list -t snapshot -o guid -s creation "$DST" | tail -n1)
+
+    zfs list -t snapshot -o name,guid "$SRC" \
+        | awk -v g="$dst_guid" '$2 == g { print $1 }'
+}
+
 if [ -z "$LAST_DST" ]
 then
     zfs send -R "$LAST_SRC" \
         | zfs receive -F "$DST"
 else
-    SNAP_NAME=$(echo "$LAST_SRC" | cut -d@ -f2)
-    BASE_NAME=$(echo "$LAST_DST" | cut -d@ -f2)
-
-    if [ "$SNAP_NAME" = "$BASE_NAME" ]
+    BASE=$(get_incr_basis)
+    if [ "$LAST_SRC" = "$BASE" ]
     then
         exit 0
     fi
-
-    if ! zfs list -t snapshot "$SRC@$BASE_NAME" >/dev/null 2>&1
-    then
-        echo "ERROR: base snapshot missing on source: $SRC@$BASE_NAME"
+    [ -n "$BASE" ] || {
+        echo "ERROR: base snapshot missing on source"
         exit 1
-    fi
-
-    zfs send -R -i "$SRC@$BASE_NAME" "$LAST_SRC" \
+    }
+    zfs send -R -i "$BASE" "$LAST_SRC" \
         | zfs receive -F "$DST"
 fi
