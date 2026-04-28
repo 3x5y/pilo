@@ -3,6 +3,6 @@ set -e
 
 ROOT="tank/data"
 
-ts=$(date +%s)
+ts=$(date +%Y%m%d_%H%M%S_%N)
 
 zfs snapshot -r "$ROOT@r-$ts"
