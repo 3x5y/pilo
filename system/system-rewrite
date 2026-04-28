@@ -10,61 +10,69 @@ CMD="$1"
     exit 1
 }
 
-set -- $CMD
 
-op="$1"
-src="$2"
-dst="$3"
+exec_op() {
+    op="$1"
+    src="$2"
+    dst="$3"
 
-case "$op" in
-    mv) ;;
-    *)
-        echo "ERROR: unsupported operation: $op"
+    case "$op" in
+        mv) ;;
+        *)
+            echo "ERROR: unsupported operation: '$op'"
+            exit 1
+            ;;
+    esac
+
+    case "$src" in
+        /*|*..*)
+            echo "ERROR: invalid source path"
+            exit 1
+            ;;
+    esac
+
+    case "$dst" in
+        /*|*..*)
+            echo "ERROR: invalid destination path"
+            exit 1
+            ;;
+    esac
+
+    SRC="/$PILE/$src"
+    DST="/$PILE/$dst"
+
+    [ -f "$SRC" ] || {
+        echo "ERROR: source missing: $src"
         exit 1
-        ;;
-esac
+    }
 
-case "$src" in
-    /*|*..*)
-        echo "ERROR: invalid source path"
-        exit 1
-        ;;
-esac
+    DIR=$(dirname "$DST")
 
-case "$dst" in
-    /*|*..*)
-        echo "ERROR: invalid destination path"
-        exit 1
-        ;;
-esac
-
-SRC="/$PILE/$src"
-DST="/$PILE/$dst"
-
-[ -f "$SRC" ] || {
-    echo "ERROR: source missing: $src"
-    exit 1
+    if [ -f "$DST" ]
+    then
+        if cmp -s "$SRC" "$DST"
+        then
+            rm "$SRC"
+        else
+            echo "ERROR: destination conflict: $dst"
+            exit 1
+        fi
+    else
+        mkdir -p "$DIR"
+        mv "$SRC" "$DST"
+    fi
 }
 
-# ensure destination directory exists
-DIR=$(dirname "$DST")
+zfs set readonly=off $PILE
+echo "$CMD" | while read -r op src dst
+do
+    [ -n "$op" ] || continue
+    exec_op "$op" "$src" "$dst" || break
+done
+zfs set readonly=on $PILE
 
-if [ -f "$DST" ]
-then
-    if cmp -s "$SRC" "$DST"
-    then
-        zfs set readonly=off $PILE
-        rm "$SRC"
-        zfs set readonly=on $PILE
-    else
-        echo "ERROR: destination conflict: $dst"
-        exit 1
-    fi
-else
-    zfs set readonly=off $PILE
-    mkdir -p "$DIR"
-    mv "$SRC" "$DST"
-    zfs set readonly=on $PILE
-fi
+
+
+
 
 system-manifest-update
