@@ -4,15 +4,24 @@ set -e
 SRC=${1:-tank/data}
 DST=${2:-tank/replica/data}
 
-OUT=$(system-replication-verify "$SRC" "$DST" 2>&1) || STATUS=$?
+VERIFY_OUTPUT=$(system-replication-verify "$SRC" "$DST" 2>&1) || VERIFY_STATUS=$?
+STATUS_LINE=$(echo "$VERIFY_OUTPUT" | grep '^STATUS=')
+STATUS=${STATUS_LINE#STATUS=}
 
-if [ "${STATUS:-0}" -ne 0 ]
-then
-    echo "$OUT" | grep -q divergence && {
-        echo "$OUT"
+case "$STATUS" in
+    OK)     ;;
+    BEHIND) ;;
+    EMPTY)  ;;
+    DIVERGED)
+        echo "$VERIFY_OUTPUT"
         exit 1
-    }
-fi
+        ;;
+    *)
+        echo "ERROR: unknown verification state"
+        echo "$VERIFY_OUTPUT"
+        exit 1
+        ;;
+esac
 
 system-replicate "$SRC" "$DST"
 
