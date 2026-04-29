@@ -8,35 +8,6 @@ get_incr_basis() {
         | awk -v g="$dst_guid" '$2 == g { print $1 }'
 }
 
-get_latest_rotation_anchor() {
-    zfs list -t snap -s creation -Ho name "$SRC" \
-        | grep "@rotation-" \
-        | tail -n1
-}
-
-is_anchor_on_target() {
-    anchor="$1"
-    guid=$(zfs list -t snap -Ho guid "$anchor" 2>/dev/null || true)
-
-    [ -n "$guid" ] || return 1
-
-    zfs list -d 9999 -t snap -Ho guid "$DST" \
-        | grep -q "^$guid$"
-}
-
-get_latest_common_anchor() {
-    zfs list -t snap -s creation -Ho name "$SRC" \
-        | grep "@rotation-" \
-        | while read -r snap
-        do
-            if is_anchor_on_target "$snap"
-            then
-                echo "$snap"
-            fi
-        done \
-        | tail -n1
-}
-
 SRC="${1:-tank/data}"
 DST="${2:-tank/replica/data}"
 
@@ -55,14 +26,7 @@ then
         | zfs receive -h -F "$DST"
 else
 
-    ANCHOR=$(get_latest_common_anchor)
-
-    if [ -n "$ANCHOR" ]
-    then
-        BASE="$ANCHOR"
-    else
-        BASE=$(get_incr_basis)
-    fi
+    BASE=$(get_incr_basis)
 
     if [ "$LAST_SRC" = "$BASE" ]
     then

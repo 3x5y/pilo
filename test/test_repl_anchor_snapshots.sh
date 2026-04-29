@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 
-exit 0
 system-anchor-create daily
 system-anchor-create rotation
 system-replicate
