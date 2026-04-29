@@ -34,6 +34,15 @@ do
         echo "ERROR: replication divergence"
         exit 1
     fi
+
+    src_latest=$(latest_guid "$src_ds")
+    dst_latest=$(latest_guid "$dst_ds")
+
+    if [ -n "$dst_latest" ] && [ "$src_latest" != "$dst_latest" ]
+    then
+        echo "ERROR: replication behind in $dst_ds"
+        exit 1
+    fi
 done
 
 if [ "$SRC_GUID" != "$DST_GUID" ]
