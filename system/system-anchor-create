@@ -1,0 +1,34 @@
+#!/bin/sh
+set -e
+
+TYPE="$1"
+SRC=${2:-tank/data}
+
+[ -n "$TYPE" ] || {
+    echo "ERROR: missing anchor type"
+    exit 1
+}
+
+ts=$(date +%Y%m%d_%H%M%S)
+
+case "$TYPE" in
+    daily)
+        name="daily-$ts"
+        hold=0
+        ;;
+    rotation)
+        name="rotation-$ts"
+        hold=1
+        ;;
+    *)
+        echo "ERROR: invalid anchor type"
+        exit 1
+        ;;
+esac
+
+zfs snapshot -r "$SRC@$name"
+
+if [ "$hold" -eq 1 ]
+then
+    zfs hold -r repl-anchor "$SRC@$name"
+fi
