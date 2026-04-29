@@ -87,7 +87,7 @@ run_tests() {
             RESULT=$?
             echo "[${RED}FAIL${RESET}] $TEST_NAME"
             test_teardown
-            break
+            [ -z "${TEST_FAIL_FAST:-}" ] || break
         fi
     done
 }
