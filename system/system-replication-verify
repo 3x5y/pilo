@@ -1,12 +1,23 @@
 #!/bin/sh
 set -e
 
-SRC=${1:-tank/data}
-DST=${2:-tank/replica/data}
+status_ok() {
+    echo "STATUS=OK"
+    exit 0
+}
+
+status_fail() {
+    echo "STATUS=$1"
+    echo "ERROR: $2"
+    exit 1
+}
 
 latest_guid() {
     zfs list -t snap -s creation -Ho guid "$1" | tail -n1
 }
+
+SRC=${1:-tank/data}
+DST=${2:-tank/replica/data}
 
 SRC_GUID=$(latest_guid "$SRC")
 DST_GUID=$(latest_guid "$DST")
@@ -61,3 +72,5 @@ then
     echo "ERROR: replication behind"
     exit 1
 fi
+
+status_ok
