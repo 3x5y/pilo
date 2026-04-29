@@ -41,7 +41,19 @@ env_teardown() {
     : # no-op
 }
 
+clear_holds() {
+    for snap in $(zfs list -t snap -d 99999 -Ho name)
+    do
+        zfs holds -H $snap \
+            | while read ign tag rest
+                do
+                    zfs release $tag $snap
+                done
+    done
+}
+
 test_setup() {
+    clear_holds
     zfs destroy -r "$TEST_ROOT" 2>/dev/null || true
     zfs destroy -r "$TEST_REPLICA" 2>/dev/null || true
     zfs create -p $TEST_ROOT/active/pile-intake
