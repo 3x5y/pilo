@@ -45,6 +45,17 @@ do
     fi
 done
 
+zfs list -r -t filesystem -Ho name "$SRC" | while read -r src_ds
+do
+    dst_ds="tank/replica/${src_ds#tank/}"
+
+    if ! zfs list "$dst_ds" >/dev/null 2>&1
+    then
+        echo "ERROR: replication behind (missing dataset $dst_ds)"
+        exit 1
+    fi
+done
+
 if [ "$SRC_GUID" != "$DST_GUID" ]
 then
     echo "ERROR: replication behind"
