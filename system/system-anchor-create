@@ -9,7 +9,7 @@ SRC=${2:-tank/data}
     exit 1
 }
 
-ts=$(date +%Y%m%d_%H%M%S)
+ts=$(date +%Y%m%d_%H%M%S_%N)
 
 case "$TYPE" in
     daily)
