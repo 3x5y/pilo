@@ -16,7 +16,8 @@ RESULT=0
 
 env_setup() {
     TMP_ROOT=$(mktemp -d /tmp/test-XXXXXXXX)
-    echo "[SETUP] Creating test environment; TMP_ROOT=$TMP_ROOT"
+    USAGE=$(df | grep /tmp | while read a b c d e; do echo $e; done)
+    echo "[SETUP] Creating test environment; TMP_ROOT=$TMP_ROOT $USAGE"
     zpool_cleanup
     truncate -s 2G /$TMP_ROOT/vdev1
     truncate -s 2G /$TMP_ROOT/vdev2
