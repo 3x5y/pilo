@@ -15,3 +15,9 @@ then
 fi
 
 system-replicate "$SRC" "$DST"
+
+if ! system-replication-verify "$SRC" "$DST"
+then
+    echo "ERROR: replication did not converge"
+    exit 1
+fi
