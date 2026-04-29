@@ -44,6 +44,14 @@ capture_status() {
     fi
 }
 
+reset_replica() {
+    if zfs list "$TEST_REPLICA" >/dev/null 2>&1
+    then
+        zfs destroy -r "$TEST_REPLICA"
+    fi
+    zfs create -p "$TEST_REPLICA"
+}
+
 
 ### assert helpers
 
