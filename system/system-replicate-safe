@@ -9,21 +9,22 @@ STATUS_LINE=$(echo "$VERIFY_OUTPUT" | grep '^STATUS=')
 STATUS=${STATUS_LINE#STATUS=}
 
 case "$STATUS" in
-    OK)     ;;
-    BEHIND) ;;
-    EMPTY)  ;;
+    OK)
+        exit 0
+        ;;
+    EMPTY|BEHIND)
+        system-replicate "$SRC" "$DST"
+        ;;
     DIVERGED)
         echo "$VERIFY_OUTPUT"
-        exit 1
+        exit $VERIFY_STATUS
         ;;
     *)
         echo "ERROR: unknown verification state"
         echo "$VERIFY_OUTPUT"
-        exit 1
+        exit $VERIFY_STATUS
         ;;
 esac
-
-system-replicate "$SRC" "$DST"
 
 POST=$(system-replication-verify "$SRC" "$DST" 2>&1) || POST_STATUS=$?
 
@@ -34,5 +35,6 @@ if [ "$POST_STATE" != "OK" ]
 then
     echo "$POST"
     echo "ERROR: replication did not converge"
-    exit 1
+    exit $POST_STATUS
 fi
+exit 0
