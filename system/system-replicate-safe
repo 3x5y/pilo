@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+SRC=${1:-tank/data}
+DST=${2:-tank/replica/data}
+
+OUT=$(system-replication-verify "$SRC" "$DST" 2>&1) || STATUS=$?
+
+if [ "${STATUS:-0}" -ne 0 ]
+then
+    echo "$OUT" | grep -q divergence && {
+        echo "$OUT"
+        exit 1
+    }
+fi
+
+system-replicate "$SRC" "$DST"
