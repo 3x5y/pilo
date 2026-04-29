@@ -23,7 +23,7 @@ fi
 if [ -z "$LAST_DST" ]
 then
     zfs send -R "$LAST_SRC" \
-        | zfs receive -h -F "$DST"
+        | zfs receive -h "$DST"
 else
 
     BASE=$(get_incr_basis)
@@ -38,5 +38,5 @@ else
         exit 1
     }
     zfs send -h -R -I "$BASE" "$LAST_SRC" \
-        | zfs receive -u -o readonly=on -F "$DST"
+        | zfs receive -u -o readonly=on "$DST"
 fi

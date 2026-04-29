@@ -2,7 +2,7 @@
 set -e
 
 admin=$ACTIVE/admin
-repl=$TEST_REPLICA/admin
+repl=$TEST_REPLICA_ROOT/admin
 file=repl.txt
 
 echo v1 > /$admin/$file

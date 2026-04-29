@@ -5,8 +5,9 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 TESTLIB="$HERE/test/lib.sh"
 
 export PATH=$HERE/system:$PATH
-export TEST_ROOT="tank/data"
-export TEST_REPLICA="tank/replica/data"
+export TEST_ROOT=tank/data
+export TEST_REPLICA_ROOT=tank/replica
+export TEST_REPLICA=$TEST_REPLICA_ROOT/data
 
 RED='\e[0;31m'
 GREEN='\e[0;32m'
@@ -54,16 +55,16 @@ clear_holds() {
 
 test_setup() {
     clear_holds
-    zfs destroy -r "$TEST_ROOT" 2>/dev/null || true
-    zfs destroy -r "$TEST_REPLICA" 2>/dev/null || true
+    zfs destroy -r $TEST_ROOT 2>/dev/null || true
+    zfs destroy -r $TEST_REPLICA_ROOT 2>/dev/null || true
+    zfs create -p $TEST_REPLICA_ROOT
     zfs create -p $TEST_ROOT/active/pile-intake
     zfs create -p $TEST_ROOT/active/pile-readonly
     zfs create -p $TEST_ROOT/active/admin
     zfs create -p $TEST_ROOT/stash
     zfs create -p $TEST_ROOT/static/collection
     zfs create -p -o readonly=off $TEST_ROOT/static/filing/2025
-    zfs create -p "$TEST_REPLICA"
-    system-init # FIXME: belongs elsewhere??
+    system-init
 
     export TMP="$TMP_ROOT"/$TEST_NAME
     mkdir "$TMP"
