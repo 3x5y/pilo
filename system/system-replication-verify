@@ -22,15 +22,19 @@ DST_GUIDS=$(mktemp)
 
 trap "rm $SRC_GUIDS $DST_GUIDS" EXIT
 
-zfs list -d 9999 -t snap -Ho guid "$SRC" | sort > "$SRC_GUIDS"
-zfs list -d 9999 -t snap -Ho guid "$DST" | sort > "$DST_GUIDS"
+# iterate datasets on target
+zfs list -r -t filesystem -Ho name "$DST" | while read -r dst_ds
+do
+    src_ds="tank/${dst_ds#tank/replica/}"
+    zfs list -t snap -Ho guid "$src_ds" | sort > "$SRC_GUIDS"
+    zfs list -t snap -Ho guid "$dst_ds" | sort > "$DST_GUIDS"
 
-if comm -23 "$DST_GUIDS" "$SRC_GUIDS" | grep -q .
-then
-    echo "ERROR: replication divergence"
-    rm -f "$SRC_GUIDS" "$DST_GUIDS"
-    exit 1
-fi
+    if comm -23 "$DST_GUIDS" "$SRC_GUIDS" | grep -q .
+    then
+        echo "ERROR: replication divergence"
+        exit 1
+    fi
+done
 
 if [ "$SRC_GUID" != "$DST_GUID" ]
 then
