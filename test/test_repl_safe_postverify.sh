@@ -10,3 +10,4 @@ system-replicate-safe >/dev/null
 
 capture_status system-replication-verify
 assert_command_ok expected system to be consistent after safe replication
+echo "$OUTPUT" | assert_grep "^STATUS=OK"

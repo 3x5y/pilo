@@ -25,8 +25,14 @@ esac
 
 system-replicate "$SRC" "$DST"
 
-if ! system-replication-verify "$SRC" "$DST"
+POST=$(system-replication-verify "$SRC" "$DST" 2>&1) || POST_STATUS=$?
+
+POST_STATUS_LINE=$(echo "$POST" | grep '^STATUS=')
+POST_STATE=${POST_STATUS_LINE#STATUS=}
+
+if [ "$POST_STATE" != "OK" ]
 then
+    echo "$POST"
     echo "ERROR: replication did not converge"
     exit 1
 fi
