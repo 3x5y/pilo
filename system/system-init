@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+ROOT=$SYSTEM_ROOT
+MOUNT=$SYSTEM_PATH
+
 zfs create -p $SYSTEM_ROOT/active/pile-intake
 zfs create -p $SYSTEM_ROOT/active/pile-readonly
 zfs create -p $SYSTEM_ROOT/active/admin
@@ -8,11 +11,11 @@ zfs create -p $SYSTEM_ROOT/stash
 zfs create -p $SYSTEM_ROOT/static/collection
 zfs create -p $SYSTEM_ROOT/static/filing/2025
 
-mkdir /$SYSTEM_ROOT/active/pile-readonly/in
-mkdir /$SYSTEM_ROOT/active/pile-readonly/sort
-mkdir /$SYSTEM_ROOT/active/pile-readonly/out
-mkdir /$SYSTEM_ROOT/active/pile-readonly/out/collection
-mkdir /$SYSTEM_ROOT/active/pile-readonly/out/filing
+mkdir $MOUNT/active/pile-readonly/in
+mkdir $MOUNT/active/pile-readonly/sort
+mkdir $MOUNT/active/pile-readonly/out
+mkdir $MOUNT/active/pile-readonly/out/collection
+mkdir $MOUNT/active/pile-readonly/out/filing
 
 # protected areas
 zfs set readonly=on $SYSTEM_ROOT/active/pile-readonly
