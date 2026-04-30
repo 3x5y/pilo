@@ -1,11 +1,14 @@
 #!/bin/sh
 set -e
 
-ROOT=tank/data
+ROOT=${SYSTEM_ROOT:-tank/data}
 
-zfs set readonly=off $ROOT/active/pile-intake
-zfs set readonly=off $ROOT/active/admin
-zfs set readonly=off $ROOT/stash
+zfs create -p $ROOT/active/pile-intake
+zfs create -p $ROOT/active/pile-readonly
+zfs create -p $ROOT/active/admin
+zfs create -p $ROOT/stash
+zfs create -p $ROOT/static/collection
+zfs create -p $ROOT/static/filing/2025
 
 mkdir /$ROOT/active/pile-readonly/in
 mkdir /$ROOT/active/pile-readonly/sort
@@ -16,3 +19,4 @@ mkdir /$ROOT/active/pile-readonly/out/filing
 # protected areas
 zfs set readonly=on $ROOT/active/pile-readonly
 zfs set readonly=on $ROOT/static/collection
+zfs set readonly=on $ROOT/static/filing/2025

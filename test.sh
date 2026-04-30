@@ -57,13 +57,8 @@ test_setup() {
     clear_holds
     zfs destroy -r $TEST_ROOT 2>/dev/null || true
     zfs destroy -r $TEST_REPLICA_ROOT 2>/dev/null || true
+    zfs create -p $TEST_ROOT
     zfs create -p $TEST_REPLICA_ROOT
-    zfs create -p $TEST_ROOT/active/pile-intake
-    zfs create -p $TEST_ROOT/active/pile-readonly
-    zfs create -p $TEST_ROOT/active/admin
-    zfs create -p $TEST_ROOT/stash
-    zfs create -p $TEST_ROOT/static/collection
-    zfs create -p -o readonly=off $TEST_ROOT/static/filing/2025
     system-init
 
     export TMP="$TMP_ROOT"/$TEST_NAME
