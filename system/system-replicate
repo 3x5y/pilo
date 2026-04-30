@@ -8,8 +8,8 @@ get_incr_basis() {
         | awk -v g="$dst_guid" '$2 == g { print $1 }'
 }
 
-SRC="${1:-tank/data}"
-DST="${2:-tank/replica/data}"
+SRC="${1:-"$SYSTEM_ROOT"}"
+DST="${2:-"$SYSTEM_REPLICA_ROOT"}"
 
 LAST_SRC=$(zfs list -t snapshot -Ho name -s creation "$SRC" | tail -n1)
 LAST_DST=$(zfs list -t snapshot -Ho name -s creation "$DST" | tail -n1) 2>/dev/null

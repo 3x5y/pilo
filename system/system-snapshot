@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 
-ROOT="tank/data"
 NAME="$1"
 
 [ -n "$NAME" ] || {
@@ -9,4 +8,4 @@ NAME="$1"
     exit 1
 }
 
-zfs snapshot -r "$ROOT@$NAME"
+zfs snapshot -r "$SYSTEM_ROOT@$NAME"

@@ -2,7 +2,7 @@
 set -e
 
 TYPE="$1"
-SRC=${2:-tank/data}
+SRC="$SYSTEM_ROOT"
 
 [ -n "$TYPE" ] || {
     echo "ERROR: missing anchor type"

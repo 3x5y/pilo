@@ -1,22 +1,20 @@
 #!/bin/sh
 set -e
 
-ROOT=${SYSTEM_ROOT:-tank/data}
+zfs create -p $SYSTEM_ROOT/active/pile-intake
+zfs create -p $SYSTEM_ROOT/active/pile-readonly
+zfs create -p $SYSTEM_ROOT/active/admin
+zfs create -p $SYSTEM_ROOT/stash
+zfs create -p $SYSTEM_ROOT/static/collection
+zfs create -p $SYSTEM_ROOT/static/filing/2025
 
-zfs create -p $ROOT/active/pile-intake
-zfs create -p $ROOT/active/pile-readonly
-zfs create -p $ROOT/active/admin
-zfs create -p $ROOT/stash
-zfs create -p $ROOT/static/collection
-zfs create -p $ROOT/static/filing/2025
-
-mkdir /$ROOT/active/pile-readonly/in
-mkdir /$ROOT/active/pile-readonly/sort
-mkdir /$ROOT/active/pile-readonly/out
-mkdir /$ROOT/active/pile-readonly/out/collection
-mkdir /$ROOT/active/pile-readonly/out/filing
+mkdir /$SYSTEM_ROOT/active/pile-readonly/in
+mkdir /$SYSTEM_ROOT/active/pile-readonly/sort
+mkdir /$SYSTEM_ROOT/active/pile-readonly/out
+mkdir /$SYSTEM_ROOT/active/pile-readonly/out/collection
+mkdir /$SYSTEM_ROOT/active/pile-readonly/out/filing
 
 # protected areas
-zfs set readonly=on $ROOT/active/pile-readonly
-zfs set readonly=on $ROOT/static/collection
-zfs set readonly=on $ROOT/static/filing/2025
+zfs set readonly=on $SYSTEM_ROOT/active/pile-readonly
+zfs set readonly=on $SYSTEM_ROOT/static/collection
+zfs set readonly=on $SYSTEM_ROOT/static/filing/2025

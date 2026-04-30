@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-PILE="tank/data/active/pile-readonly"
-STATIC="tank/data/static"
+PILE="$SYSTEM_ROOT/active/pile-readonly"
+STATIC="$SYSTEM_ROOT/static"
 OUT="/$PILE/out"
 
 [ -d "$OUT" ] || mkdir -p "$OUT"

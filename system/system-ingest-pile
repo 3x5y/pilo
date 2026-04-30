@@ -1,14 +1,13 @@
 #!/bin/sh
 set -e
 
-ROOT=${SYSTEM_ROOT:-tank/data}
-INTAKE=$ROOT/active/pile-intake
-PILE=$ROOT/active/pile-readonly
+INTAKE=$SYSTEM_ROOT/active/pile-intake
+PILE=$SYSTEM_ROOT/active/pile-readonly
 
-TMP_LIST=$(mktemp)
-trap "rm -f '$TMP_LIST'" EXIT
+tmp_list=$(mktemp)
+trap "rm -f '$tmp_list'" EXIT
 
-find "/$INTAKE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
+find "/$INTAKE" -type f | LC_COLLATE=C sort > "$tmp_list"
 
 while IFS= read -r src
 do
@@ -31,6 +30,6 @@ do
         mv "$src" "$dst"
         zfs set readonly=on $PILE
     fi
-done < "$TMP_LIST"
+done < "$tmp_list"
 
 system-manifest-update

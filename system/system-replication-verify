@@ -16,8 +16,8 @@ latest_guid() {
     zfs list -t snap -s creation -Ho guid "$1" | tail -n1
 }
 
-SRC=${1:-tank/data}
-DST=${2:-tank/replica/data}
+SRC=${1:-"$SYSTEM_ROOT"}
+DST=${2:-"$SYSTEM_REPLICA_ROOT"}
 
 SRC_GUID=$(latest_guid "$SRC")
 DST_GUID=$(latest_guid "$DST")
@@ -36,7 +36,9 @@ trap "rm $SRC_GUIDS $DST_GUIDS" EXIT
 # iterate datasets on target
 zfs list -r -t filesystem -Ho name "$DST" | while read -r dst_ds
 do
-    src_ds="tank/${dst_ds#tank/replica/}"
+    suffix=${dst_ds#"$DST"}
+    suffix=${suffix#/}
+    src_ds="$SRC${suffix:+/$suffix}"
     zfs list -t snap -Ho guid "$src_ds" | sort > "$SRC_GUIDS"
     zfs list -t snap -Ho guid "$dst_ds" | sort > "$DST_GUIDS"
 
@@ -58,8 +60,9 @@ done
 
 zfs list -r -t filesystem -Ho name "$SRC" | while read -r src_ds
 do
-    dst_ds="tank/replica/${src_ds#tank/}"
-
+    suffix=${src_ds#"$SRC"}
+    suffix=${suffix#/}
+    dst_ds="$DST${suffix:+/$suffix}"
     if ! zfs list "$dst_ds" >/dev/null 2>&1
     then
         echo "ERROR: replication behind (missing dataset $dst_ds)"

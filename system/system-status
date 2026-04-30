@@ -3,8 +3,8 @@
 STATUS=0
 
 check_transient() {
-    # naive: scan for git repos under /tank/data/active and working dir
-    for dir in $(find /tank/data/active -type d -name ".git" 2>/dev/null)
+    # naive: scan for git repos under /$SYSTEM_ROOT/active and working dir
+    for dir in $(find /"$SYSTEM_ROOT"/active -type d -name ".git" 2>/dev/null)
     do
         repo=$(dirname "$dir")
         if ! git -C "$repo" diff --quiet 2>/dev/null
@@ -16,7 +16,7 @@ check_transient() {
 }
 
 check_pile() {
-    PILE=/tank/data/active/pile-readonly
+    PILE=/"$SYSTEM_ROOT"/active/pile-readonly
 
     [ -d "$PILE" ] || return
 
@@ -42,7 +42,7 @@ check_pile() {
 }
 
 check_snapshot() {
-    DATASET=tank/data/active/pile-readonly
+    DATASET="$SYSTEM_ROOT"/active/pile-readonly
 
     SNAP_INFO=$(zfs list -t snapshot -o name,creation -s creation \
                 | grep "^$DATASET@" | tail -n 1)
@@ -72,8 +72,8 @@ check_snapshot() {
 }
 
 check_replication() {
-    SRC=tank/data
-    DST=tank/replica/data
+    SRC="$SYSTEM_ROOT"
+    DST="$SYSTEM_REPLICA_ROOT"
 
     LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
     LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
@@ -97,9 +97,9 @@ check_replication() {
 
 check_completeness() {
     REQUIRED="
-    tank/data/active/pile-readonly
-    tank/data/active/admin
-    tank/data/archive
+    $SYSTEM_ROOT/active/pile-readonly
+    $SYSTEM_ROOT/active/admin
+    $SYSTEM_ROOT/archive
     "
 
     MISSING=0

@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-SRC=${1:-tank/data}
-DST=${2:-tank/replica/data}
+SRC=${1:-"$SYSTEM_ROOT"}
+DST=${2:-"$SYSTEM_REPLICA_ROOT"}
 
 VERIFY_OUTPUT=$(system-replication-verify "$SRC" "$DST" 2>&1) || VERIFY_STATUS=$?
 STATUS_LINE=$(echo "$VERIFY_OUTPUT" | grep '^STATUS=')

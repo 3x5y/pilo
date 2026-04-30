@@ -2,7 +2,7 @@
 
 set -e
 
-PILE=/tank/data/active/pile-readonly
+PILE=/$SYSTEM_ROOT/active/pile-readonly
 MANIFEST=$PILE/.manifest
 
 cd $PILE
