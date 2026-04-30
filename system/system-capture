@@ -2,4 +2,6 @@
 
 set -e
 
-cp -a "$1" /tank/data/active/pile-intake/
+ROOT=${SYSTEM_ROOT:-tank/data}
+
+cp -a "$1" /$ROOT/active/pile-intake/
