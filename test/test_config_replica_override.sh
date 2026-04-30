@@ -6,8 +6,8 @@ alt_replica_root=tank/replica-alt
 alt_replica=tank/replica-alt/alt-data
 zfs destroy -r $alt_root 2>/dev/null || true
 zfs destroy -r $alt_replica 2>/dev/null || true
-zfs create -p $alt_root/active
-zfs create -p $alt_replica_root
+zfs create $alt_root
+zfs create $alt_replica_root
 
 export SYSTEM_ROOT=$alt_root
 export SYSTEM_PATH=/$alt_root

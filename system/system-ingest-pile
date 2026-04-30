@@ -1,18 +1,19 @@
 #!/bin/sh
 set -e
 
-INTAKE=$SYSTEM_ROOT/active/pile-intake
-PILE=$SYSTEM_ROOT/active/pile-readonly
+PILE_DATASET=$SYSTEM_ROOT/active/pile-readonly
+PILE_PATH=$SYSTEM_PATH/active/pile-readonly
+INTAKE_PATH=$SYSTEM_PATH/active/pile-intake
 
 tmp_list=$(mktemp)
 trap "rm -f '$tmp_list'" EXIT
 
-find "/$INTAKE" -type f | LC_COLLATE=C sort > "$tmp_list"
+find "$INTAKE_PATH" -type f | LC_COLLATE=C sort > "$tmp_list"
 
 while IFS= read -r src
 do
-    rel=${src#/$INTAKE/}
-    dst="/$PILE/in/$rel"
+    rel=${src#$INTAKE_PATH/}
+    dst="$PILE_PATH/in/$rel"
     dst_dir=$(dirname "$dst")
 
     if [ -f "$dst" ]
@@ -25,10 +26,10 @@ do
             exit 1
         fi
     else
-        zfs set readonly=off $PILE
+        zfs set readonly=off $PILE_DATASET
         mkdir -p "$dst_dir"
         mv "$src" "$dst"
-        zfs set readonly=on $PILE
+        zfs set readonly=on $PILE_DATASET
     fi
 done < "$tmp_list"
 

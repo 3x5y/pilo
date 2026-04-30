@@ -4,12 +4,12 @@ set -e
 ROOT=$SYSTEM_ROOT
 MOUNT=$SYSTEM_PATH
 
-zfs create -p $SYSTEM_ROOT/active/pile-intake
-zfs create -p $SYSTEM_ROOT/active/pile-readonly
-zfs create -p $SYSTEM_ROOT/active/admin
-zfs create -p $SYSTEM_ROOT/stash
-zfs create -p $SYSTEM_ROOT/static/collection
-zfs create -p $SYSTEM_ROOT/static/filing/2025
+zfs create -p $ROOT/active/pile-intake
+zfs create -p $ROOT/active/pile-readonly
+zfs create -p $ROOT/active/admin
+zfs create -p $ROOT/stash
+zfs create -p $ROOT/static/collection
+zfs create -p $ROOT/static/filing/2025
 
 mkdir $MOUNT/active/pile-readonly/in
 mkdir $MOUNT/active/pile-readonly/sort
@@ -18,6 +18,6 @@ mkdir $MOUNT/active/pile-readonly/out/collection
 mkdir $MOUNT/active/pile-readonly/out/filing
 
 # protected areas
-zfs set readonly=on $SYSTEM_ROOT/active/pile-readonly
-zfs set readonly=on $SYSTEM_ROOT/static/collection
-zfs set readonly=on $SYSTEM_ROOT/static/filing/2025
+zfs set readonly=on $ROOT/active/pile-readonly
+zfs set readonly=on $ROOT/static/collection
+zfs set readonly=on $ROOT/static/filing/2025

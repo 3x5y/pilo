@@ -1,19 +1,17 @@
 #!/bin/sh
 set -e
 
-exit 0
-
 alt_root=tank/test-alt
-alt_path=$TMP/root
+alt_path=/alt-mount
 zfs destroy -r $alt_root 2>/dev/null || true
-zfs create -p $alt_root
+zfs create -p -o mountpoint=$alt_path $alt_root
 
 export SYSTEM_ROOT=$alt_root
-export SYSTEM_PATH=$alt_mount
+export SYSTEM_PATH=$alt_path
 system-init
 file=file.txt
 mkfile data $file
-system-capture $TMP/$file
+capture_file $file
 
 assert_file_exists $alt_path/active/pile-intake/$file
 assert_not_exists $alt_path/$file

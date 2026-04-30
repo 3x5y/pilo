@@ -2,7 +2,7 @@
 
 set -e
 
-PILE=/$SYSTEM_ROOT/active/pile-readonly
+PILE=$SYSTEM_PATH/active/pile-readonly
 MANIFEST=$PILE/.manifest
 
 cd $PILE

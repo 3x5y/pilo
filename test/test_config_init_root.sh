@@ -5,7 +5,7 @@ alt_root=$TEST_ROOT/test-alt
 pile=$alt_root/active/pile-readonly
 
 zfs destroy -r $alt_root 2>/dev/null || true
-zfs create -p $alt_root
+zfs create $alt_root
 
 export SYSTEM_ROOT=$alt_root
 export SYSTEM_PATH=/$alt_root

@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 
-PILE="$SYSTEM_ROOT/active/pile-readonly"
+DATASET="$SYSTEM_ROOT/active/pile-readonly"
+MOUNT="$SYSTEM_PATH/active/pile-readonly"
 
 CMD="$1"
 
@@ -39,8 +40,8 @@ exec_op() {
             ;;
     esac
 
-    SRC="/$PILE/$src"
-    DST="/$PILE/$dst"
+    SRC="$MOUNT/$src"
+    DST="$MOUNT/$dst"
 
     [ -f "$SRC" ] || {
         echo "ERROR: source missing: $src"
@@ -105,12 +106,12 @@ done < $tmp
 rm -f "$src_seen"
 rm -f "$dst_seen"
 
-zfs set readonly=off $PILE
+zfs set readonly=off $DATASET
 while IFS="$TAB" read -r op src dst extra
 do
     [ -n "$op" ] || continue
     exec_op apply "$op" "$src" "$dst"
 done < $tmp
-zfs set readonly=on $PILE
+zfs set readonly=on $DATASET
 rm -f "$tmp"
 system-manifest-update

@@ -4,10 +4,11 @@ set -e
 altroot=tank/test-alt
 
 zfs destroy -r $altroot 2>/dev/null || true
-zfs create -p $altroot/active/pile-intake
-zfs create -p $altroot/active/pile-readonly
+zfs create $altroot
 
 export SYSTEM_ROOT=$altroot
+export SYSTEM_PATH=/$altroot
+system-init
 file=root-override.txt
 mkfile data $file
 capture_file $file

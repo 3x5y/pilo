@@ -6,7 +6,7 @@ alt_mount=/alt-mount
 pile=$alt_mount/active/pile-readonly
 
 zfs destroy -r $alt_root 2>/dev/null || true
-zfs create -p -o mountpoint=$alt_mount $alt_root
+zfs create -o mountpoint=$alt_mount $alt_root
 
 export SYSTEM_ROOT=$alt_root
 export SYSTEM_PATH=$alt_mount

@@ -1,16 +1,19 @@
 #!/bin/sh
 
-PILE=$SYSTEM_ROOT/active/pile-readonly
-MANIFEST=/$PILE/.manifest
+set -e
+
+DATASET=$SYSTEM_ROOT/active/pile-readonly
+MOUNT=$SYSTEM_PATH/active/pile-readonly
+MANIFEST=$MOUNT/.manifest
 
 TMP=$(mktemp)
 
-cd /$PILE
+cd $MOUNT
 
 find . -type f ! -name .manifest -print0 \
   | LC_COLLATE=C sort -z \
   | xargs -r0 sha256sum > "$TMP"
 
-zfs set readonly=off $PILE
+zfs set readonly=off $DATASET
 mv "$TMP" $MANIFEST
-zfs set readonly=on $PILE
+zfs set readonly=on $DATASET

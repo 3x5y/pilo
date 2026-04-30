@@ -3,8 +3,8 @@
 STATUS=0
 
 check_transient() {
-    # naive: scan for git repos under /$SYSTEM_ROOT/active and working dir
-    for dir in $(find /"$SYSTEM_ROOT"/active -type d -name ".git" 2>/dev/null)
+    # naive: scan for git repos under $SYSTEM_PATH/active and working dir
+    for dir in $(find "$SYSTEM_PATH"/active -type d -name ".git" 2>/dev/null)
     do
         repo=$(dirname "$dir")
         if ! git -C "$repo" diff --quiet 2>/dev/null
@@ -16,7 +16,7 @@ check_transient() {
 }
 
 check_pile() {
-    PILE=/"$SYSTEM_ROOT"/active/pile-readonly
+    PILE="$SYSTEM_PATH"/active/pile-readonly
 
     [ -d "$PILE" ] || return
 
