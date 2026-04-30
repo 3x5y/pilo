@@ -5,9 +5,12 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 TESTLIB="$HERE/test/lib.sh"
 
 export PATH=$HERE/system:$PATH
-export TEST_ROOT=tank/data
-export TEST_REPLICA_ROOT=tank/replica
-export TEST_REPLICA=$TEST_REPLICA_ROOT/data
+TEST_ROOT=tank/data
+TEST_REPLICA_ROOT=tank/replica
+TEST_REPLICA=$TEST_REPLICA_ROOT/data
+
+export SYSTEM_ROOT=$TEST_ROOT
+export SYSTEM_REPLICA_ROOT=$TEST_REPLICA_ROOT
 
 RED='\e[0;31m'
 GREEN='\e[0;32m'

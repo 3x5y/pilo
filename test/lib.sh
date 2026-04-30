@@ -2,11 +2,13 @@
 
 ### test constants
 
-export ACTIVE=$TEST_ROOT/active
-export INTAKE=$TEST_ROOT/active/pile-intake
-export PILE=$TEST_ROOT/active/pile-readonly
-export STASH=$TEST_ROOT/stash
-export STATIC=$TEST_ROOT/static
+ROOT=${SYSTEM_ROOT:-$TEST_ROOT}
+
+ACTIVE=$ROOT/active
+INTAKE=$ROOT/active/pile-intake
+PILE=$ROOT/active/pile-readonly
+STASH=$ROOT/stash
+STATIC=$ROOT/static
 
 
 ### setup helpers
