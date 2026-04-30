@@ -14,4 +14,4 @@ capture_file $file
 system-ingest-pile
 
 assert_file_exists /$altroot/active/pile-readonly/in/$file
-assert_not_exists /tank/data/active/pile-readonly/in/$file
+assert_not_exists /$TEST_ROOT/active/pile-readonly/in/$file

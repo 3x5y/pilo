@@ -16,5 +16,6 @@ export SYSTEM_ROOT=$alt_root
 system-init
 
 assert_dir_exists /$pile/in
+assert_dir_exists /$pile/out/collection
 [ $(zfs get -H -o value readonly $pile) = on ] \
     || fail $pile not readonly after init
