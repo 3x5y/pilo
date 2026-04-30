@@ -1,17 +1,18 @@
 #!/bin/sh
 set -e
 
-INTAKE=/tank/data/active/pile-intake
-PILE=tank/data/active/pile-readonly
+ROOT=${SYSTEM_ROOT:-tank/data}
+INTAKE=$ROOT/active/pile-intake
+PILE=$ROOT/active/pile-readonly
 
 TMP_LIST=$(mktemp)
 trap "rm -f '$TMP_LIST'" EXIT
 
-find "$INTAKE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
+find "/$INTAKE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
 
 while IFS= read -r src
 do
-    rel=${src#$INTAKE/}
+    rel=${src#/$INTAKE/}
     dst="/$PILE/in/$rel"
     dst_dir=$(dirname "$dst")
 
