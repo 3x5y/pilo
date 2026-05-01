@@ -3,7 +3,18 @@ set -eu
 
 PILE_DATASET=$SYSTEM_ROOT/active/pile-readonly
 PILE_PATH=$SYSTEM_PATH/active/pile-readonly
+INTAKE_DATASET=$SYSTEM_ROOT/active/pile-intake
 INTAKE_PATH=$SYSTEM_PATH/active/pile-intake
+
+require_dataset() {
+    zfs list "$1" >/dev/null 2>&1 || {
+        echo "ERROR: missing required dataset: $1"
+        exit 1
+    }
+}
+
+require_dataset $INTAKE_DATASET
+require_dataset $PILE_DATASET
 
 tmp_list=$(mktemp)
 trap "rm -f '$tmp_list'" EXIT

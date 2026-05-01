@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 zfs destroy -r $TEST_ROOT/active/pile-intake
 
