@@ -15,6 +15,6 @@ with_writable $STATIC \
 system-snapshot t1
 system-replicate
 
-zfs inherit mountpoint $TEST_REPLICA_ROOT
+zfs inherit mountpoint $REPLICA_ROOT
 assert_grep a1 < /$TEST_REPLICA/active/admin/.zfs/snapshot/t1/admin.txt
 assert_grep s1 < /$TEST_REPLICA/static/.zfs/snapshot/t1/doc.txt

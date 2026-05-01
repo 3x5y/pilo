@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl=$TEST_REPLICA_ROOT/admin
+repl=$REPLICA_ROOT/admin
 file=repl.txt
 
 echo v1 > /$ADMIN/$file
@@ -13,5 +13,5 @@ zfs snapshot $ADMIN@t1
 system-replicate $ADMIN $repl
 
 zfs list -t snapshot | assert_grep $repl@t1
-zfs inherit mountpoint $TEST_REPLICA_ROOT
+zfs inherit mountpoint $REPLICA_ROOT
 assert_grep v2 < /$repl/.zfs/snapshot/t1/$file

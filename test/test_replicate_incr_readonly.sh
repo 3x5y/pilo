@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl=$TEST_REPLICA_ROOT/admin
+repl=$REPLICA_ROOT/admin
 
 zfs snapshot $ADMIN@t0
 system-replicate $ADMIN $repl

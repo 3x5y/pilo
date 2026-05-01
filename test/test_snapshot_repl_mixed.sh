@@ -18,5 +18,5 @@ system-replicate
 snap=$(zfs list -t snap -s creation -Ho name "$repl_admin" \
         | tail -n1 | cut -d@ -f2)
 
-zfs inherit mountpoint $TEST_REPLICA_ROOT
+zfs inherit mountpoint $REPLICA_ROOT
 assert_grep v3 < /$repl_admin/.zfs/snapshot/$snap/file.txt

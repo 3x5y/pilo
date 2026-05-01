@@ -2,7 +2,7 @@
 set -eu
 
 # remove one required dataset
-zfs destroy -r $TEST_ROOT/active/admin
+zfs destroy -r $ADMIN
 
 capture_status system-init
 
