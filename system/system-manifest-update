@@ -5,6 +5,11 @@ DATASET=$SYSTEM_ROOT/active/pile-readonly
 MOUNT=$SYSTEM_PATH/active/pile-readonly
 MANIFEST=$MOUNT/.manifest
 
+zfs list "$DATASET" >/dev/null 2>&1 || {
+    echo "ERROR: missing required dataset: $DATASET"
+    exit 1
+}
+
 TMP=$(mktemp)
 
 cd $MOUNT
