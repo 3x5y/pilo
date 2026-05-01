@@ -43,17 +43,6 @@ env_teardown() {
     : # no-op
 }
 
-clear_holds() {
-    for snap in $(zfs list -t snap -d 99999 -Ho name $ROOT_DATASET)
-    do
-        zfs holds -H $snap \
-            | while read ign tag rest
-                do
-                    zfs release $tag $snap
-                done
-    done
-}
-
 test_setup() {
     if zfs list $ROOT_DATASET 2>/dev/null 1>&2
     then
@@ -65,6 +54,17 @@ test_setup() {
     init_replica $REPLICA_ROOT
     export TMP="$TMP_ROOT"/$TEST_NAME
     mkdir "$TMP"
+}
+
+clear_holds() {
+    for snap in $(zfs list -t snap -d 99999 -Ho name $ROOT_DATASET)
+    do
+        zfs holds -H $snap \
+            | while read ign tag rest
+                do
+                    zfs release $tag $snap
+                done
+    done
 }
 
 init_system() {
