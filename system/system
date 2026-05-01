@@ -16,4 +16,10 @@ esac
     exit 1
 }
 
+if ! zfs list "$SYSTEM_ROOT" >/dev/null 2>&1
+then
+    echo "ERROR: dataset does not exist: $SYSTEM_ROOT"
+    exit 1
+fi
+
 exec "system-$cmd" "$@"
