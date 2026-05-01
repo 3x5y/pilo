@@ -61,8 +61,8 @@ test_setup() {
     clear_holds
     zfs destroy -r $TEST_ROOT 2>/dev/null || true
     zfs destroy -r $TEST_REPLICA_ROOT 2>/dev/null || true
-    zfs create -p $TEST_ROOT
-    zfs create -p $TEST_REPLICA_ROOT
+    zfs create $TEST_ROOT
+    zfs create -o mountpoint=none $TEST_REPLICA_ROOT
     system-init
 
     export TMP="$TMP_ROOT"/$TEST_NAME

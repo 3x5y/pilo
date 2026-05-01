@@ -7,10 +7,9 @@ system-replicate
 echo data > /$ACTIVE/admin/file.txt
 
 system-snapshot-rpo
+snap=$(zfs list -t snap -Ho name $TEST_ROOT | grep @r- | cut -d@ -f2)
 system-replicate
 
 zfs list -t snapshot $TEST_REPLICA | assert_grep "$TEST_REPLICA@r-"
-for f in /$TEST_REPLICA/active/admin/.zfs/snapshot/*/file.txt
-do
-    assert_grep data < $f
-done
+zfs inherit mountpoint $TEST_REPLICA_ROOT
+assert_grep data < /$TEST_REPLICA/active/admin/.zfs/snapshot/$snap/file.txt

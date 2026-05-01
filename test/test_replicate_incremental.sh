@@ -14,4 +14,5 @@ zfs snapshot $admin@t1
 system-replicate $admin $repl
 
 zfs list -t snapshot | assert_grep $repl@t1
+zfs inherit mountpoint $TEST_REPLICA_ROOT
 assert_grep v2 < /$repl/.zfs/snapshot/t1/$file

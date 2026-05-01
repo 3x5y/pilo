@@ -10,4 +10,5 @@ zfs snapshot $admin@t0
 system-replicate $admin $repl
 
 zfs list -t snapshot | assert_grep $repl@t0
+zfs inherit mountpoint $TEST_REPLICA_ROOT
 assert_file_exists /$repl/.zfs/snapshot/t0/file.txt
