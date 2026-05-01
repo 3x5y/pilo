@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+cmd=${1:-}
+[ -z "$cmd" ] || shift
+
+case "$cmd" in
+    "")
+        echo "ERROR: missing command"
+        exit 1
+        ;;
+esac
+
+exec "system-$cmd" "$@"
