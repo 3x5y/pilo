@@ -14,9 +14,9 @@ with_writable $STATIC \
     sh -c "echo static-data > /$STATIC/$static_file"
 mkfile pile-data file.txt
 capture_file file.txt
-pilo-ingest-pile
-pilo-snapshot $snap
-pilo-replicate
+pilo ingest-pile
+pilo snapshot $snap
+pilo replicate
 zfs destroy -r $TEST_ROOT
 
 pilo-recover-baseline $repl_static $STATIC $snap >/dev/null

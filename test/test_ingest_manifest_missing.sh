@@ -8,7 +8,7 @@ capture_file $file
 # ensure no manifest exists
 rm -f /$PILE/.manifest 2>/dev/null || true
 
-pilo-ingest-pile
+pilo ingest-pile
 
 assert_file_exists /$PILE/.manifest
 assert_manifest_valid /$PILE

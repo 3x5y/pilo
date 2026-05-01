@@ -2,8 +2,8 @@
 set -e
 
 snap=baseline
-pilo-snapshot $snap
-pilo-replicate
+pilo snapshot $snap
+pilo replicate
 zfs destroy -r $TEST_ROOT
 
 # recover whole root, not per-dataset

@@ -6,9 +6,9 @@ mkfile b b.txt
 
 capture_file a.txt
 capture_file b.txt
-pilo-ingest-pile
+pilo ingest-pile
 
-capture_status pilo-rewrite "
+capture_status pilo rewrite "
 mv	in/a.txt	sort/x.txt
 mv	in/b.txt	sort/x.txt
 "

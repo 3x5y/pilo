@@ -105,7 +105,7 @@ do
 done < "$FIL_TMP"
 
 # update manifests
-pilo-manifest-update
+pilo manifest-update
 (
     cd "$static_path"
     tmp=$(mktemp)

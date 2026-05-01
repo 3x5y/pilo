@@ -6,10 +6,10 @@ mkfile b b.txt
 
 capture_file a.txt
 capture_file b.txt
-pilo-ingest-pile
+pilo ingest-pile
 
 # NB tabs!!
-pilo-rewrite "
+pilo rewrite "
 mv	in/a.txt	sort/a.txt
 mv	in/b.txt	sort/b.txt
 "

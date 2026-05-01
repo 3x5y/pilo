@@ -3,9 +3,9 @@ set -e
 
 mkfile data a.txt
 capture_file a.txt
-pilo-ingest-pile
+pilo ingest-pile
 
-capture_status pilo-rewrite "
+capture_status pilo rewrite "
 mv	in/a.txt	sort/a.txt
 mv	in/a.txt	sort/b.txt
 "

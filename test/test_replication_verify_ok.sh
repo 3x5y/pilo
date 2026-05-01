@@ -2,13 +2,13 @@
 set -e
 
 # initial snapshot + replication
-pilo-snapshot t0
-pilo-replicate
+pilo snapshot t0
+pilo replicate
 
 # new snapshot
-pilo-snapshot t1
-pilo-replicate
+pilo snapshot t1
+pilo replicate
 
-capture_status pilo-replication-verify
+capture_status pilo replication-verify
 
 assert_command_ok replication continuity broken

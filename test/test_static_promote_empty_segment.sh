@@ -4,13 +4,13 @@ set -e
 file=silly.txt
 mkfile data $file
 capture_file $file
-pilo-ingest-pile
+pilo ingest-pile
 with_writable $PILE \
     mkdir -p /$PILE/out/filing/
 # simulate weird path
 with_writable $PILE \
     sh -c "mv /$PILE/in/$file /$PILE/out/filing//$file"
 # FIXME this test is pointless
-capture_status pilo-static-promote
+capture_status pilo static-promote
 
 assert_command_fail

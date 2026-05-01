@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-pilo-snapshot-anchor
-pilo-replicate
-pilo-replicate
+pilo snapshot-anchor
+pilo replicate
+pilo replicate
 
 count=$(zfs list -t snapshot | grep "$TEST_REPLICA@" | wc -l)
 

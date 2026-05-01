@@ -5,13 +5,13 @@ repl=$TEST_REPLICA/active/pile-readonly
 snap=baseline
 mkfile critical file.txt
 capture_file file.txt
-pilo-ingest-pile
-pilo-manifest-update
-pilo-snapshot $snap
-pilo-replicate
+pilo ingest-pile
+pilo manifest-update
+pilo snapshot $snap
+pilo replicate
 zfs destroy -r $TEST_ROOT
 
 pilo-recover-baseline $repl $PILE $snap >/dev/null
 
-capture_status pilo-manifest-verify
+capture_status pilo manifest-verify
 assert_command_ok manifest verification failed after recovery

@@ -4,7 +4,7 @@ set -e
 file=file.txt
 mkfile data $file
 capture_file $file
-pilo-ingest-pile
+pilo ingest-pile
 
 assert_manifest_entry /$PILE " \./in/$file$"
 assert_manifest_valid /$PILE

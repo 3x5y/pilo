@@ -9,7 +9,7 @@ echo admin > /$ADMIN/$file
 zfs create -p $STASH
 echo temp > /$STASH/$temp
 pilo snapshot $snap
-pilo-replicate
+pilo replicate
 zfs destroy -r $TEST_ROOT
 
 pilo-recover-baseline $repl $ADMIN $snap >/dev/null

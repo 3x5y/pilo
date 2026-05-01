@@ -3,7 +3,7 @@ set -e
 
 repl=$TEST_REPLICA/active/admin
 echo data > /$ADMIN/file.txt
-pilo-snapshot baseline
+pilo snapshot baseline
 # deliberately skip replication
 zfs destroy -r $TEST_ROOT
 

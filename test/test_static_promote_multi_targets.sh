@@ -9,7 +9,7 @@ mkfile a $a
 mkfile b $b
 capture_file $a
 capture_file $b
-pilo-ingest-pile
+pilo ingest-pile
 with_writable $PILE \
     mkdir -p /$PILE/out/$archive_a
 with_writable $PILE \
@@ -21,7 +21,7 @@ with_writable $PILE \
 zfs create -p -o readonly=on $STATIC/$archive_a
 zfs create -p -o readonly=on $STATIC/$archive_b
 
-pilo-static-promote
+pilo static-promote
 
 assert_file_exists /$STATIC/$archive_a/$a
 assert_file_exists /$STATIC/$archive_b/$b

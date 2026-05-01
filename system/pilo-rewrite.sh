@@ -114,4 +114,4 @@ do
 done < $tmp
 zfs set readonly=on $dataset
 rm -f "$tmp"
-pilo-manifest-update
+pilo manifest-update
