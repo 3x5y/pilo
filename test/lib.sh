@@ -1,19 +1,10 @@
 #!/bin/sh
 
-### test constants
-
-ROOT=${SYSTEM_ROOT:-$TEST_ROOT}
-
-ACTIVE=$ROOT/active
-INTAKE=$ROOT/active/pile-intake
-PILE=$ROOT/active/pile-readonly
-STASH=$ROOT/stash
-STATIC=$ROOT/static
-
-
 # command status
+
 STATUS=0
 OUTPUT=''
+
 
 ### setup helpers
 
@@ -71,7 +62,7 @@ assert_file_exists() {
 }
 
 assert_dir_exists() {
-    [ -d "$1" ] || fail "expected file missing: $1" 
+    [ -d "$1" ] || fail "expected dir missing: $1" 
 }
 
 assert_not_exists() {

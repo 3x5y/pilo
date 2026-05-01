@@ -1,18 +1,17 @@
 #!/bin/sh
 set -e
 
-admin=/$ACTIVE/admin
 repl_admin=$TEST_REPLICA/active/admin
 
-echo v1 > /$admin/file.txt
+echo v1 > /$ADMIN/file.txt
 system-snapshot-anchor
 system-replicate
 
-echo v2 > /$admin/file.txt
+echo v2 > /$ADMIN/file.txt
 system-snapshot-rpo
 system-replicate
 
-echo v3 > /$admin/file.txt
+echo v3 > /$ADMIN/file.txt
 system-snapshot-anchor
 system-replicate
 

@@ -4,7 +4,7 @@ set -e
 system-snapshot-anchor
 system-replicate
 
-echo data > /$ACTIVE/admin/file.txt
+echo data > /$ADMIN/file.txt
 
 system-snapshot-rpo
 snap=$(zfs list -t snap -Ho name $TEST_ROOT | grep @r- | cut -d@ -f2)

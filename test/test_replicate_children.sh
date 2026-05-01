@@ -3,13 +3,13 @@ set -e
 
 repl_static=$TEST_REPLICA/static
 
-echo a0 > /$ACTIVE/admin/admin.txt
+echo a0 > /$ADMIN/admin.txt
 with_writable $STATIC \
     sh -c "echo s0 > /$STATIC/doc.txt"
 system-snapshot t0
 system-replicate
 
-echo a1 > /$ACTIVE/admin/admin.txt
+echo a1 > /$ADMIN/admin.txt
 with_writable $STATIC \
     sh -c "echo s1 > /$STATIC/doc.txt"
 system-snapshot t1

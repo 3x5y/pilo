@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-WORKDIR=/$ACTIVE/admin/work
-mkdir $WORKDIR
-cd $WORKDIR
+workdir=/$ADMIN/work
+mkdir $workdir
+cd $workdir
 git init -q
 echo data > file.txt
 git add file.txt

@@ -2,9 +2,8 @@
 set -e
 
 repl_pile=$TEST_REPLICA/active/pile-readonly
-admin=$ACTIVE/admin
 snap=baseline
-echo admin-data > /$admin/admin.txt
+echo admin-data > /$ADMIN/admin.txt
 mkfile pile-data p.txt
 capture_file p.txt
 system-ingest-pile

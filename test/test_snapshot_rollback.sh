@@ -3,10 +3,9 @@ set -e
 
 # tests ZFS instead of system commands for unknown reason?
 
-admin=$ACTIVE/admin
-path=/$admin/recovery_test.txt
+path=/$ADMIN/recovery_test.txt
 echo recover-me > $path
-snap=$admin@recovery_test
+snap=$ADMIN@recovery_test
 zfs snapshot $snap
 rm $path
 assert_not_exists $path

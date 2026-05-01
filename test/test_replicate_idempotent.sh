@@ -1,12 +1,11 @@
 #!/bin/sh
-set -e
+set -eu
 
-echo data > /$ACTIVE/admin/file.txt
 system-snapshot t0
-
-system-replicate
 system-replicate
 
-zfs list -t snapshot | assert_grep $ACTIVE@t0
-count=$(zfs list -t snapshot | grep $ACTIVE@ | wc -l)
+system-replicate
+
+zfs list -t snapshot | assert_grep $TEST_REPLICA@t0
+count=$(zfs list -t snapshot | grep $TEST_REPLICA@ | wc -l)
 [ $count -eq 1 ] || fail replication not idempotent

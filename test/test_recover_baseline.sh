@@ -1,15 +1,14 @@
 #!/bin/sh
 set -e
 
-admin=$ACTIVE/admin
 repl=$TEST_REPLICA/active/admin
 file=important.txt
 snap=baseline
-echo important > /$admin/$file
+echo important > /$ADMIN/$file
 system-snapshot $snap
 system-replicate
 zfs destroy -r $TEST_ROOT
 
-system-recover-baseline $repl $admin $snap >/dev/null
+system-recover-baseline $repl $ADMIN $snap >/dev/null
 
-assert_grep important < /$admin/.zfs/snapshot/$snap/$file
+assert_grep important < /$ADMIN/.zfs/snapshot/$snap/$file

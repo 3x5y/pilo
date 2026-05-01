@@ -72,9 +72,15 @@ test_setup() {
 
 init_datasets() {
     local root=$1
+    ADMIN=$root/active/admin
+    INTAKE=$root/active/pile-intake
+    PILE=$root/active/pile-readonly
+    STASH=$root/stash
+    STATIC=$root/static
+    COLLECTION=$root/static/collection
+    zfs create -p $root/active/admin
     zfs create -p $root/active/pile-intake
     zfs create -p $root/active/pile-readonly
-    zfs create -p $root/active/admin
     zfs create -p $root/static/collection
     #zfs create -p $root/stash
     #zfs create -p $root/static/filing/2025
