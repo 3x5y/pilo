@@ -11,4 +11,9 @@ case "$cmd" in
         ;;
 esac
 
+[ -n "$SYSTEM_ROOT" ] || {
+    echo "ERROR: SYSTEM_ROOT not set"
+    exit 1
+}
+
 exec "system-$cmd" "$@"
