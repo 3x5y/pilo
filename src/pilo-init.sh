@@ -1,9 +1,6 @@
 #!/bin/sh
 set -eu
 
-root=$PILO_ROOT
-pile=$PILO_PILE_PATH
-
 require_dataset() {
     if ! zfs list "$1" >/dev/null 2>&1
     then
@@ -15,6 +12,18 @@ require_dataset() {
 ensure_dir() {
     [ -d "$1" ] || mkdir -p "$1"
 }
+
+set_readonly() {
+    zfs set readonly=on "$1"
+}
+
+: "${PILO_ADMIN_PATH:=$PILO_PATH/active/admin}"
+: "${PILO_INTAKE_PATH:=$PILO_PATH/active/pile-intake}"
+: "${PILO_PILE_PATH:=$PILO_PATH/active/pile-readonly}"
+: "${PILO_STATIC_PATH:=$PILO_PATH/static}"
+
+root=$PILO_ROOT
+pile=$PILO_PILE_PATH
 
 require_dataset $root/active/pile-intake
 require_dataset $root/active/pile-readonly
@@ -30,6 +39,6 @@ ensure_dir "$pile/out/collection"
 ensure_dir "$pile/out/filing"
 
 # protected areas
-zfs set readonly=on $root/active/pile-readonly
-zfs set readonly=on $root/static/collection
+set_readonly $root/active/pile-readonly
+set_readonly $root/static/collection
 #zfs set readonly=on $root/static/filing/2025
