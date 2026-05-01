@@ -3,4 +3,4 @@ set -eu
 
 ts=$(date +%Y%m%d_%H%M%S_%N)
 
-zfs snapshot -r "$SYSTEM_ROOT@r-$ts"
+zfs snapshot -r "$PILO_ROOT@r-$ts"

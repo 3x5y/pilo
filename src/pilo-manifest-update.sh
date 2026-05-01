@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-dataset=$SYSTEM_ROOT/active/pile-readonly
-pile=$SYSTEM_PILE_PATH
+dataset=$PILO_ROOT/active/pile-readonly
+pile=$PILO_PILE_PATH
 manifest=$pile/.manifest
 
 zfs list $dataset >/dev/null 2>&1 || {

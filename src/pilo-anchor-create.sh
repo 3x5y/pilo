@@ -2,7 +2,7 @@
 set -eu
 
 TYPE="$1"
-SRC="$SYSTEM_ROOT"
+SRC="$PILO_ROOT"
 
 [ -n "$TYPE" ] || {
     echo "ERROR: missing anchor type"

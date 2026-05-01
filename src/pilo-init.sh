@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-root=$SYSTEM_ROOT
-pile=$SYSTEM_PILE_PATH
+root=$PILO_ROOT
+pile=$PILO_PILE_PATH
 
 require_dataset() {
     if ! zfs list "$1" >/dev/null 2>&1

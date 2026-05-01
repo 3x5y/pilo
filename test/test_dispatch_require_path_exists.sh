@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-export SYSTEM_PATH=/does/not/exist
+export PILO_PATH=/does/not/exist
 
 capture_status pilo status
 

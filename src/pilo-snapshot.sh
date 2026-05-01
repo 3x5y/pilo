@@ -8,4 +8,4 @@ NAME="$1"
     exit 1
 }
 
-zfs snapshot -r "$SYSTEM_ROOT@$NAME"
+zfs snapshot -r "$PILO_ROOT@$NAME"

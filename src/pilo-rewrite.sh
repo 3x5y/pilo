@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-dataset=$SYSTEM_ROOT/active/pile-readonly
-path=$SYSTEM_PILE_PATH
+dataset=$PILO_ROOT/active/pile-readonly
+path=$PILO_PILE_PATH
 
 CMD="$1"
 

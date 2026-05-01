@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-SRC=${1:-"$SYSTEM_ROOT"}
-DST=${2:-"$SYSTEM_REPLICA_ROOT"}
+SRC=${1:-"$PILO_ROOT"}
+DST=${2:-"$PILO_REPLICA_ROOT"}
 
 VERIFY_OUTPUT=$(pilo replication-verify "$SRC" "$DST" 2>&1) || VERIFY_STATUS=$?
 STATUS_LINE=$(echo "$VERIFY_OUTPUT" | grep '^STATUS=')

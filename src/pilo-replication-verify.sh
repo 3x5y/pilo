@@ -16,8 +16,8 @@ latest_guid() {
     zfs list -t snap -s creation -Ho guid "$1" | tail -n1
 }
 
-SRC=${1:-"$SYSTEM_ROOT"}
-DST=${2:-"$SYSTEM_REPLICA_ROOT"}
+SRC=${1:-"$PILO_ROOT"}
+DST=${2:-"$PILO_REPLICA_ROOT"}
 
 SRC_GUID=$(latest_guid "$SRC")
 DST_GUID=$(latest_guid "$DST")

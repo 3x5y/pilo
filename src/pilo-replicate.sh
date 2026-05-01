@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-src="${1:-"$SYSTEM_ROOT"}"
-dst="${2:-"$SYSTEM_REPLICA_ROOT"}"
+src="${1:-"$PILO_ROOT"}"
+dst="${2:-"$PILO_REPLICA_ROOT"}"
 
 last_src=$(zfs list -t snapshot -Ho name -s creation "$src" | tail -n1)
 last_dst=$(zfs list -t snapshot -Ho name -s creation "$dst" | tail -n1) 2>/dev/null

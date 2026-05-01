@@ -4,9 +4,9 @@ set -eu
 STATUS=0
 
 check_transient() {
-    # naive: scan for git repos under $SYSTEM_PATH/active and working dir
+    # naive: scan for git repos under $PILO_PATH/active and working dir
     dirs="
-    $SYSTEM_ADMIN_PATH
+    $PILO_ADMIN_PATH
     "
     for dir in $(find $dirs -type d -name ".git" 2>/dev/null)
     do
@@ -20,7 +20,7 @@ check_transient() {
 }
 
 check_pile() {
-    pile=$SYSTEM_PILE_PATH
+    pile=$PILO_PILE_PATH
 
     [ -d "$pile" ] || return
 
@@ -45,7 +45,7 @@ check_pile() {
 }
 
 check_snapshot() {
-    dataset="$SYSTEM_ROOT"/active/pile-readonly
+    dataset="$PILO_ROOT"/active/pile-readonly
 
     snap_info=$(zfs list -t snapshot -o name,creation -s creation \
                 | grep "^$dataset@" | tail -n 1)
@@ -75,8 +75,8 @@ check_snapshot() {
 }
 
 check_replication() {
-    src="$SYSTEM_ROOT"
-    dst="$SYSTEM_REPLICA_ROOT"
+    src="$PILO_ROOT"
+    dst="$PILO_REPLICA_ROOT"
 
     last_src=$(zfs list -t snapshot -o name -s creation | grep "^$src@" | tail -n1)
     last_dst=$(zfs list -t snapshot -o name -s creation | grep "^$dst@" | tail -n1)
@@ -100,10 +100,10 @@ check_replication() {
 
 check_datasets() {
     required="
-    $SYSTEM_ROOT/active/pile-intake
-    $SYSTEM_ROOT/active/pile-readonly
-    $SYSTEM_ROOT/active/admin
-    $SYSTEM_ROOT/static/collection
+    $PILO_ROOT/active/pile-intake
+    $PILO_ROOT/active/pile-readonly
+    $PILO_ROOT/active/admin
+    $PILO_ROOT/static/collection
     "
 
     for ds in $required

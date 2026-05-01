@@ -13,24 +13,24 @@ case "$cmd" in
         ;;
 esac
 
-[ -n "$SYSTEM_ROOT" ] || {
-    echo "ERROR: SYSTEM_ROOT not set"
+[ -n "$PILO_ROOT" ] || {
+    echo "ERROR: PILO_ROOT not set"
     exit 1
 }
 
-[ -n "$SYSTEM_PATH" ] || {
-    echo "ERROR: SYSTEM_PATH not set"
+[ -n "$PILO_PATH" ] || {
+    echo "ERROR: PILO_PATH not set"
     exit 1
 }
 
-[ -d "$SYSTEM_PATH" ] || {
-    echo "ERROR: path does not exist: $SYSTEM_PATH"
+[ -d "$PILO_PATH" ] || {
+    echo "ERROR: path does not exist: $PILO_PATH"
     exit 1
 }
 
-if ! zfs list "$SYSTEM_ROOT" >/dev/null 2>&1
+if ! zfs list "$PILO_ROOT" >/dev/null 2>&1
 then
-    echo "ERROR: dataset does not exist: $SYSTEM_ROOT"
+    echo "ERROR: dataset does not exist: $PILO_ROOT"
     exit 1
 fi
 

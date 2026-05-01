@@ -1,10 +1,10 @@
 #!/bin/sh
 set -eu
 
-pile_dataset=$SYSTEM_ROOT/active/pile-readonly
-static_dataset=$SYSTEM_ROOT/static
-static_path=$SYSTEM_STATIC_PATH
-out_path="$SYSTEM_PILE_PATH/out"
+pile_dataset=$PILO_ROOT/active/pile-readonly
+static_dataset=$PILO_ROOT/static
+static_path=$PILO_STATIC_PATH
+out_path="$PILO_PILE_PATH/out"
 
 [ -d "$out_path" ] || mkdir -p "$out_path"
 

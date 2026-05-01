@@ -78,6 +78,8 @@ init_system() {
     fi
     export SYSTEM_ROOT=$root
     export SYSTEM_PATH=$mount
+    export PILO_ROOT=$root
+    export PILO_PATH=$mount
     ADMIN=$root/active/admin
     INTAKE=$root/active/pile-intake
     PILE=$root/active/pile-readonly
@@ -92,6 +94,10 @@ init_system() {
     export SYSTEM_INTAKE_PATH=$INTAKE_PATH
     export SYSTEM_PILE_PATH=$PILE_PATH
     export SYSTEM_STATIC_PATH=$STATIC_PATH
+    export PILO_ADMIN_PATH=$ADMIN_PATH
+    export PILO_INTAKE_PATH=$INTAKE_PATH
+    export PILO_PILE_PATH=$PILE_PATH
+    export PILO_STATIC_PATH=$STATIC_PATH
     zfs create -p $ADMIN
     zfs create -p $INTAKE
     zfs create -p $PILE
@@ -103,6 +109,7 @@ init_system() {
 
 init_replica() {
     export SYSTEM_REPLICA_ROOT=$1/$(basename $SYSTEM_ROOT)
+    export PILO_REPLICA_ROOT=$1/$(basename $SYSTEM_ROOT)
     zfs create -p -o mountpoint=none $1
 }
 

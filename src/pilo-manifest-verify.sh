@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-pile=$SYSTEM_PILE_PATH
+pile=$PILO_PILE_PATH
 manifest=$pile/.manifest
 
 cd "$pile"

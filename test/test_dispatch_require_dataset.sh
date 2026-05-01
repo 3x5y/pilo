@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-export SYSTEM_ROOT=nonexistent/dataset
+export PILO_ROOT=nonexistent/dataset
 
 capture_status pilo status
 
