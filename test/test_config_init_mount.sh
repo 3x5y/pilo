@@ -7,6 +7,7 @@ pile=$alt_mount/active/pile-readonly
 
 zfs destroy -r $alt_root 2>/dev/null || true
 zfs create -o mountpoint=$alt_mount $alt_root
+init_datasets $alt_root
 
 export SYSTEM_ROOT=$alt_root
 export SYSTEM_PATH=$alt_mount

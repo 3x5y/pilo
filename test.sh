@@ -63,10 +63,21 @@ test_setup() {
     zfs destroy -r $TEST_REPLICA_ROOT 2>/dev/null || true
     zfs create $TEST_ROOT
     zfs create -o mountpoint=none $TEST_REPLICA_ROOT
+    init_datasets $TEST_ROOT
     system-init
 
     export TMP="$TMP_ROOT"/$TEST_NAME
     mkdir "$TMP"
+}
+
+init_datasets() {
+    local root=$1
+    zfs create -p $root/active/pile-intake
+    zfs create -p $root/active/pile-readonly
+    zfs create -p $root/active/admin
+    zfs create -p $root/static/collection
+    #zfs create -p $root/stash
+    #zfs create -p $root/static/filing/2025
 }
 
 test_teardown() {

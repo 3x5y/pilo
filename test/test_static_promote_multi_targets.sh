@@ -19,6 +19,7 @@ with_writable $PILE \
 with_writable $PILE \
     mv /$PILE/in/$b /$PILE/out/$archive_b/$b
 zfs create -p -o readonly=on $STATIC/$archive_a
+zfs create -p -o readonly=on $STATIC/$archive_b
 
 system-static-promote
 

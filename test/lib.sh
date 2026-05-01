@@ -11,6 +11,10 @@ STASH=$ROOT/stash
 STATIC=$ROOT/static
 
 
+# command status
+STATUS=0
+OUTPUT=''
+
 ### setup helpers
 
 mkfile() {

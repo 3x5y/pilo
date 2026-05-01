@@ -4,20 +4,32 @@ set -eu
 ROOT=$SYSTEM_ROOT
 MOUNT=$SYSTEM_PATH
 
-zfs create -p $ROOT/active/pile-intake
-zfs create -p $ROOT/active/pile-readonly
-zfs create -p $ROOT/active/admin
-zfs create -p $ROOT/stash
-zfs create -p $ROOT/static/collection
-zfs create -p $ROOT/static/filing/2025
+require_dataset() {
+    if ! zfs list "$1" >/dev/null 2>&1
+    then
+        echo "ERROR: missing required dataset: $1"
+        exit 1
+    fi
+}
 
-mkdir $MOUNT/active/pile-readonly/in
-mkdir $MOUNT/active/pile-readonly/sort
-mkdir $MOUNT/active/pile-readonly/out
-mkdir $MOUNT/active/pile-readonly/out/collection
-mkdir $MOUNT/active/pile-readonly/out/filing
+ensure_dir() {
+    [ -d "$1" ] || mkdir -p "$1"
+}
+
+require_dataset $ROOT/active/pile-intake
+require_dataset $ROOT/active/pile-readonly
+require_dataset $ROOT/active/admin
+#require_dataset $ROOT/stash
+require_dataset $ROOT/static/collection
+#require_dataset $ROOT/static/filing/2025
+
+ensure_dir $MOUNT/active/pile-readonly/in
+ensure_dir $MOUNT/active/pile-readonly/sort
+ensure_dir $MOUNT/active/pile-readonly/out
+ensure_dir $MOUNT/active/pile-readonly/out/collection
+ensure_dir $MOUNT/active/pile-readonly/out/filing
 
 # protected areas
 zfs set readonly=on $ROOT/active/pile-readonly
 zfs set readonly=on $ROOT/static/collection
-zfs set readonly=on $ROOT/static/filing/2025
+#zfs set readonly=on $ROOT/static/filing/2025

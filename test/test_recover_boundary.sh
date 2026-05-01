@@ -7,6 +7,7 @@ file=file.txt
 temp=temp.txt
 snap=baseline
 echo admin > /$admin/$file
+zfs create -p $STASH
 echo temp > /$STASH/$temp
 system-snapshot $snap
 system-replicate

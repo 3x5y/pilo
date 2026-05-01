@@ -10,6 +10,7 @@ with_writable $PILE \
     mkdir -p /$PILE/out/$archive
 with_writable $PILE \
     mv /$PILE/in/$file /$PILE/out/$archive/$file
+zfs create -p $STATIC/$archive
 
 system-static-promote
 

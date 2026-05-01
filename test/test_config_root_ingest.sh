@@ -5,6 +5,7 @@ altroot=tank/test-alt
 
 zfs destroy -r $altroot 2>/dev/null || true
 zfs create $altroot
+init_datasets $altroot
 
 export SYSTEM_ROOT=$altroot
 export SYSTEM_PATH=/$altroot

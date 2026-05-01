@@ -4,6 +4,7 @@ set -e
 alt_root=tank/test-alt
 zfs destroy -r $alt_root 2>/dev/null || true
 zfs create -p $alt_root
+init_datasets $alt_root
 
 export SYSTEM_ROOT=$alt_root
 export SYSTEM_PATH=/$alt_root
