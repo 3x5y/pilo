@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
 cmd=${1:-}
 [ -z "$cmd" ] || shift
 
@@ -33,11 +35,12 @@ then
 fi
 
 target="pilo-$cmd"
+target="$HERE/pilo-$cmd"
 
-if ! command -v "$target" >/dev/null 2>&1
+if [ ! -f "$target" ]
 then
     echo "ERROR: unknown command: $cmd"
     exit 1
 fi
 
-exec "$target" "$@"
+. "$target"

@@ -98,7 +98,7 @@ init_system() {
     zfs create -p $COLLECTION
     #zfs create -p $root/stash
     #zfs create -p $root/static/filing/2025
-    system-init
+    pilo init
 }
 
 init_replica() {
