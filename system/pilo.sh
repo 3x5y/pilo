@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+HERE=$(readlink -f "$(dirname -- "$0")")
 
 cmd=${1:-}
 [ -z "$cmd" ] || shift
