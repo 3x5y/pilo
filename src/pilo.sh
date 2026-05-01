@@ -24,6 +24,9 @@ then
     . "$HERE"/.pilo.conf
 fi
 
+: ${PILO_ROOT:=}
+: ${PILO_PATH:=}
+
 [ -n "$PILO_ROOT" ] || {
     echo "ERROR: PILO_ROOT not set"
     exit 1
