@@ -16,6 +16,16 @@ esac
     exit 1
 }
 
+[ -n "$SYSTEM_PATH" ] || {
+    echo "ERROR: SYSTEM_PATH not set"
+    exit 1
+}
+
+[ -d "$SYSTEM_PATH" ] || {
+    echo "ERROR: path does not exist: $SYSTEM_PATH"
+    exit 1
+}
+
 if ! zfs list "$SYSTEM_ROOT" >/dev/null 2>&1
 then
     echo "ERROR: dataset does not exist: $SYSTEM_ROOT"
