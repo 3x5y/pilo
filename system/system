@@ -32,4 +32,12 @@ then
     exit 1
 fi
 
-exec "system-$cmd" "$@"
+target="system-$cmd"
+
+if ! command -v "$target" >/dev/null 2>&1
+then
+    echo "ERROR: unknown command: $cmd"
+    exit 1
+fi
+
+exec "$target" "$@"
