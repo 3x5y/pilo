@@ -96,31 +96,22 @@ check_replication() {
     fi
 }
 
-check_completeness() {
+check_datasets() {
     REQUIRED="
+    $SYSTEM_ROOT/active/pile-intake
     $SYSTEM_ROOT/active/pile-readonly
     $SYSTEM_ROOT/active/admin
-    $SYSTEM_ROOT/archive
+    $SYSTEM_ROOT/static/collection
     "
-
-    MISSING=0
-    PRESENT=0
 
     for ds in $REQUIRED
     do
-        if zfs list "$ds" >/dev/null 2>&1
+        if ! zfs list "$ds" >/dev/null 2>&1
         then
-            PRESENT=$((PRESENT + 1))
-        else
-            MISSING=$((MISSING + 1))
+            echo "[WARN] incomplete: missing dataset $ds"
+            STATUS=1
         fi
     done
-
-    if [ "$PRESENT" -gt 0 ] && [ "$MISSING" -gt 0 ]
-    then
-        echo "[WARN] incomplete: partial dataset recovery detected"
-        STATUS=1
-    fi
 }
 
 CHECK="${1:-}"
@@ -138,7 +129,7 @@ case "$CHECK" in
     ""|replication) check_replication ;;
 esac
 case "$CHECK" in
-    ""|completeness) check_completeness ;;
+    ""|datasets) check_datasets ;;
 esac
 
 exit $STATUS
