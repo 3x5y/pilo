@@ -1,42 +1,42 @@
 #!/bin/sh
 set -eu
 
-get_incr_basis() {
-    local dst_guid=$(zfs list -t snapshot -Ho guid -s creation "$DST" | tail -n1)
+src="${1:-"$SYSTEM_ROOT"}"
+dst="${2:-"$SYSTEM_REPLICA_ROOT"}"
 
-    zfs list -t snapshot -o name,guid "$SRC" \
+last_src=$(zfs list -t snapshot -Ho name -s creation "$src" | tail -n1)
+last_dst=$(zfs list -t snapshot -Ho name -s creation "$dst" | tail -n1) 2>/dev/null
+
+get_incr_basis() {
+    local dst_guid=$(zfs list -t snapshot -Ho guid -s creation "$dst" | tail -n1)
+
+    zfs list -t snapshot -o name,guid "$src" \
         | awk -v g="$dst_guid" '$2 == g { print $1 }'
 }
 
-SRC="${1:-"$SYSTEM_ROOT"}"
-DST="${2:-"$SYSTEM_REPLICA_ROOT"}"
-
-LAST_SRC=$(zfs list -t snapshot -Ho name -s creation "$SRC" | tail -n1)
-LAST_DST=$(zfs list -t snapshot -Ho name -s creation "$DST" | tail -n1) 2>/dev/null
-
-if [ -z "$LAST_SRC" ]
+if [ -z "$last_src" ]
 then
     echo "ERROR: no source snapshot"
     exit 1
 fi
 
-if [ -z "$LAST_DST" ]
+if [ -z "$last_dst" ]
 then
-    zfs send -R "$LAST_SRC" \
-        | zfs receive -h -u -o readonly=on "$DST"
+    zfs send -R "$last_src" \
+        | zfs receive -h -u -o readonly=on "$dst"
 else
 
-    BASE=$(get_incr_basis)
+    base=$(get_incr_basis)
 
-    if [ "$LAST_SRC" = "$BASE" ]
+    if [ "$last_src" = "$base" ]
     then
         exit 0
     fi
 
-    [ -n "$BASE" ] || {
-        echo "ERROR: base snapshot missing on source: $BASE"
+    [ -n "$base" ] || {
+        echo "ERROR: base snapshot missing on source: $base"
         exit 1
     }
-    zfs send -h -R -I "$BASE" "$LAST_SRC" \
-        | zfs receive -u -o readonly=on "$DST"
+    zfs send -h -R -I "$base" "$last_src" \
+        | zfs receive -u -o readonly=on "$dst"
 fi

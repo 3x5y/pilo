@@ -1,9 +1,9 @@
 #!/bin/sh
-set -e
+set -eu
 
 # tests ZFS instead of system commands for unknown reason?
 
-path=/$ADMIN/recovery_test.txt
+path=$ADMIN_PATH/recovery_test.txt
 echo recover-me > $path
 snap=$ADMIN@recovery_test
 zfs snapshot $snap

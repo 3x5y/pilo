@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-zfs destroy -r $TEST_ROOT/active/pile-intake
+zfs destroy -r $INTAKE
 
 mkfile data file.txt
 

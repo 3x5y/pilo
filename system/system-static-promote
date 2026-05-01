@@ -1,16 +1,15 @@
 #!/bin/sh
 set -eu
 
-PILE_DATASET="$SYSTEM_ROOT/active/pile-readonly"
-PILE_PATH="$SYSTEM_PATH/active/pile-readonly"
-STATIC_DATASET="$SYSTEM_ROOT/static"
-STATIC_PATH="$SYSTEM_PATH/static"
-OUT_PATH="$PILE_PATH/out"
+pile_dataset=$SYSTEM_ROOT/active/pile-readonly
+static_dataset=$SYSTEM_ROOT/static
+static_path=$SYSTEM_STATIC_PATH
+out_path="$SYSTEM_PILE_PATH/out"
 
-[ -d "$OUT_PATH" ] || mkdir -p "$OUT_PATH"
+[ -d "$out_path" ] || mkdir -p "$out_path"
 
 # validate allowed top-level dirs
-for d in "$OUT_PATH"/*
+for d in "$out_path"/*
 do
     [ -e "$d" ] || continue
     name=$(basename "$d")
@@ -24,7 +23,7 @@ do
     esac
 done
 
-if [ -z "$(find "$OUT_PATH" -type f -print -quit)" ]
+if [ -z "$(find "$out_path" -type f -print -quit)" ]
 then
     echo "ERROR: /out/ directory empty"
     exit 1
@@ -48,8 +47,8 @@ process_file() {
     local src="$1"
     local target="$2"
     local relpath="$3"
-    local dataset="$STATIC_DATASET/$target"
-    local dst="$STATIC_PATH/$target/$relpath"
+    local dataset="$static_dataset/$target"
+    local dst="$static_path/$target/$relpath"
     local dst_dir=$(dirname "$dst")
 
     if ! zfs list "$dataset" >/dev/null 2>&1; then
@@ -71,7 +70,7 @@ process_file() {
             cp "$src" "$dst"
     fi
 
-    with_writable $PILE_DATASET \
+    with_writable $pile_dataset \
         rm "$src"
 }
 
@@ -80,18 +79,18 @@ FIL_TMP=$(mktemp)
 trap "rm -f '$COL_TMP' '$FIL_TMP'" EXIT
 
 # collection
-find "$OUT_PATH/collection" -type f > "$COL_TMP"
+find "$out_path/collection" -type f > "$COL_TMP"
 while IFS= read -r f
 do
-    rel=${f#$OUT_PATH/collection/}
+    rel=${f#$out_path/collection/}
     process_file "$f" collection "$rel"
 done < "$COL_TMP"
 
 # filing
-find "$OUT_PATH/filing" -type f > "$FIL_TMP"
+find "$out_path/filing" -type f > "$FIL_TMP"
 while IFS= read -r f
 do
-    rel=${f#$OUT_PATH/filing/}
+    rel=${f#$out_path/filing/}
     case "$rel" in
         */*)
             dataset=${rel%%/*}
@@ -108,13 +107,13 @@ done < "$FIL_TMP"
 # update manifests
 system-manifest-update
 (
-    cd "$STATIC_PATH"
+    cd "$static_path"
     tmp=$(mktemp)
     find . -type f ! -name .manifest -print0 \
       | LC_COLLATE=C sort -z \
       | xargs -r0 sha256sum > "$tmp"
-    zfs set readonly=off $STATIC_DATASET
+    zfs set readonly=off $static_dataset
     mv "$tmp" .manifest
-    zfs set readonly=on $STATIC_DATASET
+    zfs set readonly=on $static_dataset
 )
 

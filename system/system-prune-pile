@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-DATASET=$SYSTEM_ROOT/active/pile-readonly
-MOUNT=$SYSTEM_PATH/active/pile-readonly
+dataset=$SYSTEM_ROOT/active/pile-readonly
+path=$SYSTEM_PILE_PATH
 
 with_writable() {
     dataset=$1
@@ -16,5 +16,5 @@ with_writable() {
     [ $result -eq 0 ] || exit $result
 }
 
-with_writable $DATASET \
-    find "$MOUNT" -mindepth 2 -type d -empty -delete
+with_writable $dataset \
+    find "$path" -mindepth 2 -type d -empty -delete

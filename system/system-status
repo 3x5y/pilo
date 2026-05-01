@@ -5,7 +5,10 @@ STATUS=0
 
 check_transient() {
     # naive: scan for git repos under $SYSTEM_PATH/active and working dir
-    for dir in $(find "$SYSTEM_PATH"/active -type d -name ".git" 2>/dev/null)
+    dirs="
+    $SYSTEM_ADMIN_PATH
+    "
+    for dir in $(find $dirs -type d -name ".git" 2>/dev/null)
     do
         repo=$(dirname "$dir")
         if ! git -C "$repo" diff --quiet 2>/dev/null
@@ -17,94 +20,93 @@ check_transient() {
 }
 
 check_pile() {
-    PILE="$SYSTEM_PATH"/active/pile-readonly
+    pile=$SYSTEM_PILE_PATH
 
-    [ -d "$PILE" ] || return
+    [ -d "$pile" ] || return
 
-    NOW=$(date +%s)
-    MAX_AGE=${CONFIG_PILE_MAX_AGE:-86400}
+    now=$(date +%s)
+    max_age=${CONFIG_PILE_MAX_AGE:-86400}
+    tmp_list=$(mktemp)
+    trap "rm -f '$tmp_list'" EXIT
 
-    TMP_LIST=$(mktemp)
-    trap "rm -f '$TMP_LIST'" EXIT
-
-    find "$PILE" -type f | LC_COLLATE=C sort > "$TMP_LIST"
+    find "$pile" -type f | LC_COLLATE=C sort > "$tmp_list"
     while IFS= read f
     do
-        MTIME=$(stat -c %Y "$f")
-        AGE=$((NOW - MTIME))
+        mtime=$(stat -c %Y "$f")
+        age=$((now - mtime))
 
         # 1 day threshold for now (test-friendly)
-        if [ "$AGE" -gt "$MAX_AGE" ]
+        if [ "$age" -gt "$max_age" ]
         then
             echo "[WARN] pile: $f is older than threshold"
             STATUS=1
         fi
-    done < "$TMP_LIST"
+    done < "$tmp_list"
 }
 
 check_snapshot() {
-    DATASET="$SYSTEM_ROOT"/active/pile-readonly
+    dataset="$SYSTEM_ROOT"/active/pile-readonly
 
-    SNAP_INFO=$(zfs list -t snapshot -o name,creation -s creation \
-                | grep "^$DATASET@" | tail -n 1)
+    snap_info=$(zfs list -t snapshot -o name,creation -s creation \
+                | grep "^$dataset@" | tail -n 1)
 
-    SNAP_NAME=$(echo "$SNAP_INFO" | awk '{print $1}')
-    SNAP_TIME=$(echo "$SNAP_INFO" | cut -d' ' -f2-)
+    snap_name=$(echo "$snap_info" | awk '{print $1}')
+    snap_time=$(echo "$snap_info" | cut -d' ' -f2-)
 
-    if [ -z "$SNAP_NAME" ]
+    if [ -z "$snap_name" ]
     then
-        echo "[WARN] snapshot: none for $DATASET"
+        echo "[WARN] snapshot: none for $dataset"
         STATUS=1
         return
     fi
 
-    SNAP_EPOCH=$(date -d "$SNAP_TIME" +%s)
-    NOW=$(date +%s)
-    MAX_AGE=${CONFIG_SNAPSHOT_MAX_AGE:-3600}
-    AGE=$((NOW - SNAP_EPOCH))
+    snap_epoch=$(date -d "$snap_time" +%s)
+    now=$(date +%s)
+    max_age=${CONFIG_SNAPSHOT_MAX_AGE:-3600}
+    age=$((now - snap_epoch))
 
-    if [ "$AGE" -gt "$MAX_AGE" ]
+    if [ "$age" -gt "$max_age" ]
     then
-        echo "[WARN] snapshot: stale ($AGE s)"
+        echo "[WARN] snapshot: stale ($age s)"
         STATUS=1
     else
-        echo "[OK] snapshot: fresh ($AGE s)"
+        echo "[OK] snapshot: fresh ($age s)"
     fi
 }
 
 check_replication() {
-    SRC="$SYSTEM_ROOT"
-    DST="$SYSTEM_REPLICA_ROOT"
+    src="$SYSTEM_ROOT"
+    dst="$SYSTEM_REPLICA_ROOT"
 
-    LAST_SRC=$(zfs list -t snapshot -o name -s creation | grep "^$SRC@" | tail -n1)
-    LAST_DST=$(zfs list -t snapshot -o name -s creation | grep "^$DST@" | tail -n1)
+    last_src=$(zfs list -t snapshot -o name -s creation | grep "^$src@" | tail -n1)
+    last_dst=$(zfs list -t snapshot -o name -s creation | grep "^$dst@" | tail -n1)
 
-    if [ -z "$LAST_SRC" ]
+    if [ -z "$last_src" ]
     then
-        LAST_SRC='**MISSING**'
+        last_src='**MISSING**'
     fi
 
-    SRC_NAME=$(echo "$LAST_SRC" | cut -d@ -f2)
-    DST_NAME=$(echo "$LAST_DST" | cut -d@ -f2)
+    src_name=$(echo "$last_src" | cut -d@ -f2)
+    dst_name=$(echo "$last_dst" | cut -d@ -f2)
 
-    if [ "$SRC_NAME" != "$DST_NAME" ]
+    if [ "$src_name" != "$dst_name" ]
     then
-        echo "[WARN] replication: latest=$SRC_NAME replicated=$DST_NAME"
+        echo "[WARN] replication: latest=$src_name replicated=$dst_name"
         STATUS=1
     else
-        echo "[OK] replication: $SRC_NAME"
+        echo "[OK] replication: $src_name"
     fi
 }
 
 check_datasets() {
-    REQUIRED="
+    required="
     $SYSTEM_ROOT/active/pile-intake
     $SYSTEM_ROOT/active/pile-readonly
     $SYSTEM_ROOT/active/admin
     $SYSTEM_ROOT/static/collection
     "
 
-    for ds in $REQUIRED
+    for ds in $required
     do
         if ! zfs list "$ds" >/dev/null 2>&1
         then
@@ -114,21 +116,21 @@ check_datasets() {
     done
 }
 
-CHECK="${1:-}"
+check="${1:-}"
 
-case "$CHECK" in
+case "$check" in
     ""|transient) check_transient ;;
 esac
-case "$CHECK" in
+case "$check" in
     ""|pile) check_pile ;;
 esac
-case "$CHECK" in
+case "$check" in
     ""|snapshot) check_snapshot ;;
 esac
-case "$CHECK" in
+case "$check" in
     ""|replication) check_replication ;;
 esac
-case "$CHECK" in
+case "$check" in
     ""|datasets) check_datasets ;;
 esac
 

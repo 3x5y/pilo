@@ -87,9 +87,11 @@ init_system() {
     ADMIN_PATH=$mount/active/admin
     INTAKE_PATH=$mount/active/pile-intake
     PILE_PATH=$mount/active/pile-readonly
-    STASH_PATH=$mount/stash
     STATIC_PATH=$mount/static
-    COLLECTION_PATH=$mount/static/collection
+    export SYSTEM_ADMIN_PATH=$ADMIN_PATH
+    export SYSTEM_INTAKE_PATH=$INTAKE_PATH
+    export SYSTEM_PILE_PATH=$PILE_PATH
+    export SYSTEM_STATIC_PATH=$STATIC_PATH
     zfs create -p $ADMIN
     zfs create -p $INTAKE
     zfs create -p $PILE

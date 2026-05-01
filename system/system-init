@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-ROOT=$SYSTEM_ROOT
-MOUNT=$SYSTEM_PATH
+root=$SYSTEM_ROOT
+pile=$SYSTEM_PILE_PATH
 
 require_dataset() {
     if ! zfs list "$1" >/dev/null 2>&1
@@ -16,20 +16,20 @@ ensure_dir() {
     [ -d "$1" ] || mkdir -p "$1"
 }
 
-require_dataset $ROOT/active/pile-intake
-require_dataset $ROOT/active/pile-readonly
-require_dataset $ROOT/active/admin
-#require_dataset $ROOT/stash
-require_dataset $ROOT/static/collection
-#require_dataset $ROOT/static/filing/2025
+require_dataset $root/active/pile-intake
+require_dataset $root/active/pile-readonly
+require_dataset $root/active/admin
+#require_dataset $root/stash
+require_dataset $root/static/collection
+#require_dataset $root/static/filing/2025
 
-ensure_dir $MOUNT/active/pile-readonly/in
-ensure_dir $MOUNT/active/pile-readonly/sort
-ensure_dir $MOUNT/active/pile-readonly/out
-ensure_dir $MOUNT/active/pile-readonly/out/collection
-ensure_dir $MOUNT/active/pile-readonly/out/filing
+ensure_dir "$pile/in"
+ensure_dir "$pile/sort"
+ensure_dir "$pile/out"
+ensure_dir "$pile/out/collection"
+ensure_dir "$pile/out/filing"
 
 # protected areas
-zfs set readonly=on $ROOT/active/pile-readonly
-zfs set readonly=on $ROOT/static/collection
-#zfs set readonly=on $ROOT/static/filing/2025
+zfs set readonly=on $root/active/pile-readonly
+zfs set readonly=on $root/static/collection
+#zfs set readonly=on $root/static/filing/2025

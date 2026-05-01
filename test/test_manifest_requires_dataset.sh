@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-zfs destroy -r $TEST_ROOT/active/pile-readonly
+zfs destroy -r $PILE
 
 capture_status system-manifest-update
 

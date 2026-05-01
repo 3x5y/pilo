@@ -1,10 +1,10 @@
 #!/bin/sh
 set -eu
 
-PILE_DATASET=$SYSTEM_ROOT/active/pile-readonly
-PILE_PATH=$SYSTEM_PATH/active/pile-readonly
-INTAKE_DATASET=$SYSTEM_ROOT/active/pile-intake
-INTAKE_PATH=$SYSTEM_PATH/active/pile-intake
+pile_dataset=$SYSTEM_ROOT/active/pile-readonly
+intake_dataset=$SYSTEM_ROOT/active/pile-intake
+pile_path=$SYSTEM_PILE_PATH
+intake_path=$SYSTEM_INTAKE_PATH
 
 require_dataset() {
     zfs list "$1" >/dev/null 2>&1 || {
@@ -13,18 +13,18 @@ require_dataset() {
     }
 }
 
-require_dataset $INTAKE_DATASET
-require_dataset $PILE_DATASET
+require_dataset $intake_dataset
+require_dataset $pile_dataset
 
 tmp_list=$(mktemp)
 trap "rm -f '$tmp_list'" EXIT
 
-find "$INTAKE_PATH" -type f | LC_COLLATE=C sort > "$tmp_list"
+find "$intake_path" -type f | LC_COLLATE=C sort > "$tmp_list"
 
 while IFS= read -r src
 do
-    rel=${src#$INTAKE_PATH/}
-    dst="$PILE_PATH/in/$rel"
+    rel=${src#$intake_path/}
+    dst="$pile_path/in/$rel"
     dst_dir=$(dirname "$dst")
 
     if [ -f "$dst" ]
@@ -37,10 +37,10 @@ do
             exit 1
         fi
     else
-        zfs set readonly=off $PILE_DATASET
+        zfs set readonly=off $pile_dataset
         mkdir -p "$dst_dir"
         mv "$src" "$dst"
-        zfs set readonly=on $PILE_DATASET
+        zfs set readonly=on $pile_dataset
     fi
 done < "$tmp_list"
 

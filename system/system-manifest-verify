@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 
-PILE=$SYSTEM_PATH/active/pile-readonly
-MANIFEST=$PILE/.manifest
+pile=$SYSTEM_PILE_PATH
+manifest=$pile/.manifest
 
-cd $PILE
-[ -s "$MANIFEST" ] || exit 0
-sha256sum --quiet --strict -c $MANIFEST
+cd "$pile"
+[ -s "$manifest" ] || exit 0
+sha256sum --quiet --strict -c $manifest
