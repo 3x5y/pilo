@@ -5,9 +5,9 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 TESTLIB="$HERE/test/lib.sh"
 
 export PATH=$HERE/system:$PATH
-ROOT_DATA=tank/test
-TEST_ROOT=$ROOT_DATA/data
-REPLICA_ROOT=$ROOT_DATA/replica
+ROOT_DATASET=tank/test
+TEST_ROOT=$ROOT_DATASET/data
+REPLICA_ROOT=$ROOT_DATASET/replica
 TEST_REPLICA=$REPLICA_ROOT/data
 
 RED='\e[0;31m'
@@ -44,7 +44,7 @@ env_teardown() {
 }
 
 clear_holds() {
-    for snap in $(zfs list -t snap -d 99999 -Ho name $ROOT_DATA)
+    for snap in $(zfs list -t snap -d 99999 -Ho name $ROOT_DATASET)
     do
         zfs holds -H $snap \
             | while read ign tag rest
@@ -55,18 +55,29 @@ clear_holds() {
 }
 
 test_setup() {
-    if zfs list $ROOT_DATA 2>/dev/null 1>&2
+    if zfs list $ROOT_DATASET 2>/dev/null 1>&2
     then
         clear_holds
-        zfs destroy -r $ROOT_DATA 2>/dev/null || true
+        zfs destroy -r $ROOT_DATASET 2>/dev/null || true
     fi
-    init_system $TEST_ROOT /$TEST_ROOT $REPLICA_ROOT
+    zfs create $ROOT_DATASET
+    init_system $TEST_ROOT
+    init_replica $REPLICA_ROOT
     export TMP="$TMP_ROOT"/$TEST_NAME
     mkdir "$TMP"
 }
 
 init_system() {
-    local root=$1 mount=$2 replica=${3:-}
+    local root=$1 mount=${2:-}
+    if [ "$mount" ]
+    then
+        zfs create -o mountpoint=$mount $root
+    else
+        zfs create $root
+        mount=/$root
+    fi
+    export SYSTEM_ROOT=$root
+    export SYSTEM_PATH=$mount
     ADMIN=$root/active/admin
     INTAKE=$root/active/pile-intake
     PILE=$root/active/pile-readonly
@@ -79,21 +90,18 @@ init_system() {
     STASH_PATH=$mount/stash
     STATIC_PATH=$mount/static
     COLLECTION_PATH=$mount/static/collection
-    zfs create -p $root
     zfs create -p $ADMIN
     zfs create -p $INTAKE
     zfs create -p $PILE
     zfs create -p $COLLECTION
     #zfs create -p $root/stash
     #zfs create -p $root/static/filing/2025
-    export SYSTEM_ROOT=$root
-    export SYSTEM_PATH=$mount
-    if [ "$replica" ]
-    then
-        zfs create -p -o mountpoint=none $replica
-        export SYSTEM_REPLICA_ROOT=$replica/$(basename $root)
-    fi
     system-init
+}
+
+init_replica() {
+    export SYSTEM_REPLICA_ROOT=$1/$(basename $SYSTEM_ROOT)
+    zfs create -p -o mountpoint=none $1
 }
 
 test_teardown() {

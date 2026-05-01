@@ -1,14 +1,10 @@
 #!/bin/sh
-set -e
+set -eu
 
-alt_root=$TEST_ROOT/test-alt
-pile=$alt_root/active/pile-readonly
+alt=tank/test/test-alt
+init_system $alt
 
-zfs destroy -r $alt_root 2>/dev/null || true
-zfs create $alt_root
-init_system $alt_root /$alt_root
-
-assert_dir_exists /$pile/in
-assert_dir_exists /$pile/out/collection
-[ $(zfs get -H -o value readonly $pile) = on ] \
-    || fail $pile not readonly after init
+assert_dir_exists $PILE_PATH/in
+assert_dir_exists $PILE_PATH/out/collection
+[ $(zfs get -H -o value readonly $PILE) = on ] \
+    || fail $PILE not readonly after init

@@ -1,16 +1,11 @@
 #!/bin/sh
-set -e
+set -eu
 
-altroot=tank/test-alt
-
-zfs destroy -r $altroot 2>/dev/null || true
-zfs create $altroot
-OLDPILE=$PILE
-init_system $altroot /$altroot
-file=root-override.txt
-mkfile data $file
-capture_file $file
+oldpile=$PILE_PATH
+init_system tank/test/alternate
+mkfile data override.txt
+capture_file override.txt
 system-ingest-pile
 
-assert_file_exists /$PILE/in/$file
-assert_not_exists /$OLDPILE/in/$file
+assert_file_exists $PILE_PATH/in/override.txt
+assert_not_exists $oldpile/in/override.txt

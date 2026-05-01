@@ -1,10 +1,10 @@
 #!/bin/sh
-set -e
+set -eu
 
-alt_root=tank/alt-data
-alt_replica_root=tank/replica-alt
-alt_replica=tank/replica-alt/alt-data
-init_system $alt_root /$alt_root $alt_replica_root
+replica_root=tank/test/replica-alt
+alt_replica=$replica_root/alt-data
+init_system tank/test/alt-data
+init_replica $replica_root
 
 snap=baseline
 system-snapshot $snap

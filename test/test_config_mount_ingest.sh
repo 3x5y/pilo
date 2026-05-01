@@ -1,18 +1,14 @@
 #!/bin/sh
-set -e
+set -eu
 
-alt_root=tank/test-alt
-alt_mount=/alt-mount
-
-zfs destroy -r $alt_root 2>/dev/null || true
-zfs create -o mountpoint=$alt_mount $alt_root
-init_system $alt_root $alt_mount
-
-file=root-override.txt
-mkfile data $file
-capture_file $file
+mount=/alt-mount
+oldpile=$PILE_PATH
+init_system tank/test/alt $mount
+mkfile data override.txt
+capture_file override.txt
 system-ingest-pile
 
-assert_file_exists $alt_mount/active/pile-readonly/in/$file
-assert_not_exists /$TEST_ROOT/active/pile-readonly/in/$file
+assert_file_exists $mount/active/pile-readonly/in/override.txt
+assert_file_exists $PILE_PATH/in/override.txt
+assert_not_exists $oldpile/in/override.txt
 

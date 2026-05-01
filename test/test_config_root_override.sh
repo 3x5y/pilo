@@ -1,13 +1,10 @@
 #!/bin/sh
-set -e
+set -eu
 
-alt_root=tank/test-alt
-zfs destroy -r $alt_root 2>/dev/null || true
-zfs create -p $alt_root
-init_system $alt_root /$alt_root
-file=file.txt
-mkfile data $file
-system-capture $TMP/$file
+oldpath=$INTAKE_PATH
+init_system tank/test/alt
+mkfile data file.txt
+system-capture $TMP/file.txt
 
-assert_file_exists /$alt_root/active/pile-intake/$file
-assert_not_exists /$PILE/$file
+assert_file_exists $INTAKE_PATH/file.txt
+assert_not_exists $oldpath/file.txt
