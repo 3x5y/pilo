@@ -4,7 +4,7 @@ set -e
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 TESTLIB="$HERE/test/lib.sh"
 
-export PATH=$HERE/system:$PATH
+export PATH=$HERE/src:$PATH
 ROOT_DATASET=tank/test
 TEST_ROOT=$ROOT_DATASET/data
 REPLICA_ROOT=$ROOT_DATASET/replica
