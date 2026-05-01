@@ -1,4 +1,12 @@
 #!/bin/sh
 set -eu
 
+INTAKE_DS=$SYSTEM_ROOT/active/pile-intake
+INTAKE_MOUNT=$SYSTEM_PATH/active/pile-intake
+
+zfs list "$INTAKE_DS" >/dev/null 2>&1 || {
+    echo "ERROR: missing required dataset: $INTAKE_DS"
+    exit 1
+}
+
 cp -a "$1" $SYSTEM_PATH/active/pile-intake/
