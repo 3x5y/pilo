@@ -13,10 +13,15 @@ case "$cmd" in
         ;;
 esac
 
-if [ -n "${PILO_CONFIG:-}" ] && [ -f "$PILO_CONFIG" ]
+if [ -n "${PILO_CONFIG:-}" ] && [ -r "$PILO_CONFIG" ]
 then
     . "$PILO_CONFIG"
-    return
+elif [ -r /etc/pilo.conf ]
+then
+    . /etc/pilo.conf
+elif [ -r "$HERE"/pilo.conf ]
+then
+    . "$HERE"/.pilo.conf
 fi
 
 [ -n "$PILO_ROOT" ] || {
