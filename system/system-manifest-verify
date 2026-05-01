@@ -1,6 +1,5 @@
 #!/bin/sh
-
-set -e
+set -eu
 
 PILE=$SYSTEM_PATH/active/pile-readonly
 MANIFEST=$PILE/.manifest

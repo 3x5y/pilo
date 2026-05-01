@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 get_incr_basis() {
     local dst_guid=$(zfs list -t snapshot -Ho guid -s creation "$DST" | tail -n1)

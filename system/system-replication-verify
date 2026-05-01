@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 status_ok() {
     echo "STATUS=OK"

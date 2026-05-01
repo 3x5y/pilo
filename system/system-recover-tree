@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 SRC="$1"
 DST="$2"

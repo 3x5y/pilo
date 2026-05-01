@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 SRC="$1"     # replica dataset (e.g. tank/replica/pile)
 DST="$2"     # canonical dataset (e.g. tank/data/active/pile)

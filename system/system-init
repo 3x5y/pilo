@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 ROOT=$SYSTEM_ROOT
 MOUNT=$SYSTEM_PATH
