@@ -13,6 +13,12 @@ case "$cmd" in
         ;;
 esac
 
+if [ -n "${PILO_CONFIG:-}" ] && [ -f "$PILO_CONFIG" ]
+then
+    . "$PILO_CONFIG"
+    return
+fi
+
 [ -n "$PILO_ROOT" ] || {
     echo "ERROR: PILO_ROOT not set"
     exit 1
