@@ -2,8 +2,8 @@
 set -e
 
 mkfile valid foo.txt
-system-ingest-pile
+pilo-ingest-pile
 
-system-manifest-update
+pilo-manifest-update
 
-system-manifest-verify
+pilo-manifest-verify

@@ -3,8 +3,8 @@ set -e
 
 mkfile data file.txt
 capture_file file.txt
-system-ingest-pile
+pilo-ingest-pile
 
-capture_status system-status pile
+capture_status pilo-status pile
 
 assert_command_ok expected no pile age warning

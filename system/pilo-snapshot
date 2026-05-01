@@ -4,7 +4,7 @@ set -eu
 NAME="$1"
 
 [ -n "$NAME" ] || {
-    echo "usage: system-snapshot <name>"
+    echo "usage: pilo-snapshot <name>"
     exit 1
 }
 

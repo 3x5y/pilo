@@ -3,7 +3,7 @@ set -e
 
 unset SYSTEM_ROOT
 
-capture_status system system-status
+capture_status pilo status
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep "SYSTEM_ROOT"

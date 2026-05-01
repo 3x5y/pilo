@@ -1,13 +1,13 @@
 #!/bin/sh
 set -e
 
-system-snapshot t0
-system-replicate
+pilo-snapshot t0
+pilo-replicate
 
-system-snapshot t1
+pilo-snapshot t1
 # DO NOT replicate t1
 
-capture_status system-replication-verify
+capture_status pilo-replication-verify
 
 assert_command_fail expected replication lag
 echo "$OUTPUT" | assert_grep "behind"

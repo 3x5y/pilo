@@ -3,10 +3,10 @@ set -e
 
 snap=t0
 
-system-snapshot $snap
-system-replicate
+pilo-snapshot $snap
+pilo-replicate
 
-capture_status system-status replication
+capture_status pilo-status replication
 
 assert_command_ok replication should be up to date
 echo "$OUTPUT" | assert_grep OK.*replication:.$snap

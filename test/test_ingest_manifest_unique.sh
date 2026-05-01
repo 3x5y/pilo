@@ -5,10 +5,10 @@ file=file.txt
 
 mkfile data $file
 capture_file $file
-system-ingest-pile
+pilo-ingest-pile
 # simulate re-upload
 mkintake data $file
-system-ingest-pile
+pilo-ingest-pile
 
 # manifest still valid
 assert_manifest_valid /$PILE

@@ -7,7 +7,7 @@ SNAP="$3"    # snapshot name (e.g. baseline)
 
 if [ -z "$SRC" ] || [ -z "$DST" ] || [ -z "$SNAP" ]
 then
-    echo "Usage: system-recover-baseline <src_dataset> <dst_dataset> <snapshot>"
+    echo "Usage: pilo-recover-baseline <src_dataset> <dst_dataset> <snapshot>"
     exit 1
 fi
 

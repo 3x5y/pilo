@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-system-snapshot-anchor
-system-snapshot-anchor
+pilo-snapshot-anchor
+pilo-snapshot-anchor
 
 count=$(zfs list -t snapshot $TEST_ROOT | grep "@a-" | wc -l)
 

@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-system-anchor-create rotation
-system-replicate
+pilo-anchor-create rotation
+pilo-replicate
 
-system-snapshot t1
-system-replicate
+pilo-snapshot t1
+pilo-replicate
 
-capture_status system-replication-verify
+capture_status pilo-replication-verify
 
 assert_command_ok chain should remain valid

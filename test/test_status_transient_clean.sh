@@ -9,6 +9,6 @@ echo data > file.txt
 git add file.txt
 git commit -m init -q
 
-capture_status system-status transient
+capture_status pilo-status transient
 
 assert_command_ok expected clean transient state

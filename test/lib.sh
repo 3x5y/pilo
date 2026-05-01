@@ -18,7 +18,7 @@ mkintake() {
 }
 
 capture_file() {
-    system-capture $TMP/"$1"
+    pilo capture $TMP/"$1"
 }
 
 with_writable() {

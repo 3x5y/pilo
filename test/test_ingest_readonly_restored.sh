@@ -4,11 +4,11 @@ set -e
 file=a.txt
 mkfile data $file
 capture_file $file
-system-ingest-pile
+pilo-ingest-pile
 # inject conflict
 mkintake bad $file
 
-capture_status system-ingest-pile
+capture_status pilo-ingest-pile
 
 # regardless of failure, dataset must be readonly
 [ "$(zfs get -H -o value readonly $PILE)" = "on" ] \

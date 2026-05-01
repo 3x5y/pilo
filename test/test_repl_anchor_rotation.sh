@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-capture_status system-anchor-create rotation
+capture_status pilo-anchor-create rotation
 
 assert_command_ok failed to create rotation anchor
 

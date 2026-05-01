@@ -5,5 +5,5 @@ set -e
 rm -f /$PILE/* 2>/dev/null || true
 rm -f /$PILE/.manifest 2>/dev/null || true
 
-system-manifest-update
-system-manifest-verify
+pilo-manifest-update
+pilo-manifest-verify

@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-system-snapshot t0
-system-replicate
+pilo-snapshot t0
+pilo-replicate
 
-capture_status system-replicate-safe
+capture_status pilo-replicate-safe
 
 assert_command_ok expected no-op

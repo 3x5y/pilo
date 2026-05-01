@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-system-snapshot t0
-system-replicate
+pilo-snapshot t0
+pilo-replicate
 
-OUTPUT=$(system-replication-verify)
+OUTPUT=$(pilo-replication-verify)
 
 echo "$OUTPUT" | assert_grep "^STATUS=OK"

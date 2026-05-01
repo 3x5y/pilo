@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-system-snapshot t0
-system-replicate
-system-replicate
+pilo-snapshot t0
+pilo-replicate
+pilo-replicate
 
-capture_status system-replication-verify
+capture_status pilo-replication-verify
 
 assert_command_ok replication should remain valid

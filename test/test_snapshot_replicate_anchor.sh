@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-system-snapshot-anchor
-system-replicate
+pilo-snapshot-anchor
+pilo-replicate
 
 zfs list -t snapshot | assert_grep "$TEST_REPLICA@a-"

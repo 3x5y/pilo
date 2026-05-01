@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-system-snapshot-anchor
-system-replicate
+pilo-snapshot-anchor
+pilo-replicate
 
 # create multiple snapshots
-system-snapshot-rpo
-system-snapshot-anchor
+pilo-snapshot-rpo
+pilo-snapshot-anchor
 
-system-replicate
+pilo-replicate
 
 # verify latest exists
 zfs list -t snapshot | assert_grep "$TEST_REPLICA@a-"

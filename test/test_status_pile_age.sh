@@ -5,10 +5,10 @@ file=old_file.txt
 mkfile data $file
 capture_file $file
 touch -d '2 hours ago' /$INTAKE/$file
-system-ingest-pile
+pilo-ingest-pile
 
 export CONFIG_PILE_MAX_AGE=60
-capture_status system-status pile
+capture_status pilo-status pile
 
 assert_command_fail status returned zero
 echo "$OUTPUT" | assert_grep pile:

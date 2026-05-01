@@ -4,7 +4,7 @@ set -eu
 SRC=${1:-"$SYSTEM_ROOT"}
 DST=${2:-"$SYSTEM_REPLICA_ROOT"}
 
-VERIFY_OUTPUT=$(system-replication-verify "$SRC" "$DST" 2>&1) || VERIFY_STATUS=$?
+VERIFY_OUTPUT=$(pilo-replication-verify "$SRC" "$DST" 2>&1) || VERIFY_STATUS=$?
 STATUS_LINE=$(echo "$VERIFY_OUTPUT" | grep '^STATUS=')
 STATUS=${STATUS_LINE#STATUS=}
 
@@ -13,7 +13,7 @@ case "$STATUS" in
         exit 0
         ;;
     EMPTY|BEHIND)
-        system-replicate "$SRC" "$DST"
+        pilo-replicate "$SRC" "$DST"
         ;;
     DIVERGED)
         echo "$VERIFY_OUTPUT"
@@ -26,7 +26,7 @@ case "$STATUS" in
         ;;
 esac
 
-POST=$(system-replication-verify "$SRC" "$DST" 2>&1) || POST_STATUS=$?
+POST=$(pilo-replication-verify "$SRC" "$DST" 2>&1) || POST_STATUS=$?
 
 POST_STATUS_LINE=$(echo "$POST" | grep '^STATUS=')
 POST_STATE=${POST_STATUS_LINE#STATUS=}

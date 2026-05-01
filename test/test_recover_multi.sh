@@ -14,14 +14,14 @@ with_writable $STATIC \
     sh -c "echo static-data > /$STATIC/$static_file"
 mkfile pile-data file.txt
 capture_file file.txt
-system-ingest-pile
-system-snapshot $snap
-system-replicate
+pilo-ingest-pile
+pilo-snapshot $snap
+pilo-replicate
 zfs destroy -r $TEST_ROOT
 
-system-recover-baseline $repl_static $STATIC $snap >/dev/null
-system-recover-baseline $repl_pile $PILE $snap >/dev/null
-system-recover-baseline $repl_admin $ADMIN $snap >/dev/null
+pilo-recover-baseline $repl_static $STATIC $snap >/dev/null
+pilo-recover-baseline $repl_pile $PILE $snap >/dev/null
+pilo-recover-baseline $repl_admin $ADMIN $snap >/dev/null
 
 assert_grep static-data < /$STATIC/.zfs/snapshot/$snap/$static_file
 assert_grep pile-data < /$PILE/.zfs/snapshot/$snap/in/$pile_file

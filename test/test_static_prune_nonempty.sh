@@ -6,6 +6,6 @@ with_writable $PILE \
 with_writable $PILE \
     touch /$PILE/out/collection/a/file.txt
 
-system-prune-pile
+pilo-prune-pile
 
 assert_dir_exists /$PILE/out/collection/a

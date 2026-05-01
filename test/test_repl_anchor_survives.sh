@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-system-anchor-create rotation
+pilo-anchor-create rotation
 
 snap=$(zfs list -t snap -s creation -Ho name | tail -n1)
 

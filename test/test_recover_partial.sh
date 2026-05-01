@@ -6,19 +6,19 @@ snap=baseline
 echo admin-data > /$ADMIN/admin.txt
 mkfile pile-data p.txt
 capture_file p.txt
-system-ingest-pile
+pilo-ingest-pile
 with_writable $STATIC \
     touch /$STATIC/doc.txt
-system-snapshot $snap
-system-replicate
+pilo-snapshot $snap
+pilo-replicate
 
 # --- destroy everything ---
 zfs destroy -r $TEST_ROOT
 
 # --- recover ONLY pile ---
-system-recover-baseline $repl_pile $PILE $snap >/dev/null
+pilo-recover-baseline $repl_pile $PILE $snap >/dev/null
 
 # --- system should now be inconsistent ---
-capture_status system-status
+capture_status pilo-status
 assert_command_fail "partial recovery not detected"
 echo "$OUTPUT" | assert_grep "incomplete"

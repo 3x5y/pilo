@@ -2,12 +2,12 @@
 set -e
 
 # initial snapshot + replication
-system-snapshot t0
-system-replicate
+pilo-snapshot t0
+pilo-replicate
 # new snapshot, NOT replicated
-system-snapshot t1
+pilo-snapshot t1
 
-capture_status system-status replication
+capture_status pilo-status replication
 
 assert_command_fail expected replication drift
 echo "$OUTPUT" | assert_grep replication

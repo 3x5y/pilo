@@ -6,7 +6,7 @@ oldpile=$PILE_PATH
 init_system tank/test/alt $mount
 mkfile data override.txt
 capture_file override.txt
-system-ingest-pile
+pilo ingest-pile
 
 assert_file_exists $mount/active/pile-readonly/in/override.txt
 assert_file_exists $PILE_PATH/in/override.txt

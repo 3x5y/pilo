@@ -6,7 +6,7 @@ DST="$2"
 SNAP="$3"
 
 [ -n "$SRC" ] && [ -n "$DST" ] && [ -n "$SNAP" ] || {
-    echo "usage: system-recover-tree <src_root> <dst_root> <snapshot>"
+    echo "usage: pilo-recover-tree <src_root> <dst_root> <snapshot>"
     exit 1
 }
 

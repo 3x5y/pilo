@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-system-anchor-create rotation
-system-replicate
+pilo-anchor-create rotation
+pilo-replicate
 
-system-snapshot t1
+pilo-snapshot t1
 
-capture_status system-replicate
+capture_status pilo-replicate
 
 assert_command_ok replication failed
 
