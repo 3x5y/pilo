@@ -8,9 +8,9 @@ last_src=$(zfs list -t snapshot -Ho name -s creation "$src" | tail -n1)
 last_dst=$(zfs list -t snapshot -Ho name -s creation "$dst" | tail -n1) 2>/dev/null
 
 get_incr_basis() {
-    local dst_guid=$(zfs list -t snapshot -Ho guid -s creation "$dst" | tail -n1)
+    local guid=$(get_latest_guid "$dst")
     zfs list -t snapshot -o name,guid "$src" \
-        | awk -v g="$dst_guid" '$2 == g { print $1 }'
+        | awk -v g="$guid" '$2 == g { print $1 }'
 }
 
 [ "$last_src" ] || fatal "no source snapshot"

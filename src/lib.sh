@@ -54,3 +54,7 @@ snapshot() {
     [ "$dataset" ] || dataset="$PILO_ROOT"
     zfs snapshot -r "$dataset@$name"
 }
+
+get_latest_guid() {
+    zfs list -t snapshot -Ho guid -s creation "$1" | tail -n1
+}

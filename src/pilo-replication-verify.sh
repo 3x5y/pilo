@@ -12,15 +12,11 @@ status_fail() {
     fatal "$@"
 }
 
-latest_guid() {
-    zfs list -t snap -s creation -Ho guid "$1" | tail -n1
-}
-
 SRC=${1:-"$PILO_ROOT"}
 DST=${2:-"$PILO_REPLICA_ROOT"}
 
-SRC_GUID=$(latest_guid "$SRC")
-DST_GUID=$(latest_guid "$DST")
+SRC_GUID=$(get_latest_guid "$SRC")
+DST_GUID=$(get_latest_guid "$DST")
 
 if [ -z "$DST_GUID" ]
 then
@@ -46,8 +42,8 @@ do
         status_fail DIVERGED "replication divergence in $dst_ds"
     fi
 
-    src_latest=$(latest_guid "$src_ds")
-    dst_latest=$(latest_guid "$dst_ds")
+    src_latest=$(get_latest_guid "$src_ds")
+    dst_latest=$(get_latest_guid "$dst_ds")
 
     if [ -n "$dst_latest" ] && [ "$src_latest" != "$dst_latest" ]
     then
