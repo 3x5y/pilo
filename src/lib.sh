@@ -1,4 +1,8 @@
 
+require_arg() {
+    [ -n "${1:-}" ] || die "missing argument: $2"
+}
+
 fatal() {
     echo "ERROR: $*" >&2
     exit 1

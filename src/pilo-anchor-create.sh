@@ -1,10 +1,10 @@
 #!/bin/sh
 set -eu
 
+require_arg "${1:-}" "missing anchor type"
+
 TYPE="$1"
 SRC="$PILO_ROOT"
-
-[ "$TYPE" ] || fatal "missing anchor type"
 
 ts=$(snapshot_timestamp)
 

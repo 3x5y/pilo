@@ -4,10 +4,10 @@ set -eu
 dataset=$PILO_PILE_DATASET
 path=$PILO_PILE_PATH
 
+require_arg "${1:-}" "missing command"
+
 CMD="$1"
 TAB='	'
-
-[ "$CMD" ] || fatal "missing command"
 
 
 exec_op() {

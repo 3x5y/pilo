@@ -4,15 +4,13 @@ set -eu
 HERE=$(dirname $(readlink -f "$0"))
 . "$HERE"/lib.sh
 
+require_arg "${1:-}" "replica dataset"
+require_arg "${2:-}" "original dataset"
+require_arg "${3:-}" "snapshot dataset"
+
 SRC="$1"     # replica dataset (e.g. tank/replica/pile)
 DST="$2"     # canonical dataset (e.g. tank/data/active/pile)
 SNAP="$3"    # snapshot name (e.g. baseline)
-
-if [ -z "$SRC" ] || [ -z "$DST" ] || [ -z "$SNAP" ]
-then
-    echo "Usage: pilo-recover-baseline <src_dataset> <dst_dataset> <snapshot>"
-    exit 1
-fi
 
 SRC_SNAP="${SRC}@${SNAP}"
 
