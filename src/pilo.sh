@@ -34,11 +34,7 @@ fi
     exit 1
 }
 
-if ! zfs list "$PILO_ROOT" >/dev/null 2>&1
-then
-    echo "ERROR: dataset does not exist: $PILO_ROOT"
-    exit 1
-fi
+require_dataset "$PILO_ROOT"
 
 target="$HERE/pilo-$cmd.sh"
 

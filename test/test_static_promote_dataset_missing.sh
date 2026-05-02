@@ -15,4 +15,4 @@ with_writable $PILE \
 capture_status pilo static-promote
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep "dataset does not exist"
+echo "$OUTPUT" | assert_grep "missing required dataset"

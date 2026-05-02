@@ -108,7 +108,7 @@ check_datasets() {
 
     for ds in $required
     do
-        if ! zfs list "$ds" >/dev/null 2>&1
+        if ! dataset_exists "$ds"
         then
             echo "[WARN] incomplete: missing dataset $ds"
             STATUS=1

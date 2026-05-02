@@ -5,10 +5,7 @@ dataset=$PILO_PILE_DATASET
 pile=$PILO_PILE_PATH
 manifest=$pile/.manifest
 
-zfs list $dataset >/dev/null 2>&1 || {
-    echo "ERROR: missing required dataset: $dataset"
-    exit 1
-}
+require_dataset "$dataset"
 
 tmp=$(mktemp)
 

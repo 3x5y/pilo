@@ -63,7 +63,7 @@ do
     suffix=${src_ds#"$SRC"}
     suffix=${suffix#/}
     dst_ds="$DST${suffix:+/$suffix}"
-    if ! zfs list "$dst_ds" >/dev/null 2>&1
+    if ! dataset_exists "$dst_ds"
     then
         echo "ERROR: replication behind (missing dataset $dst_ds)"
         status_fail BEHIND "replication behind, missing $dst_ds"

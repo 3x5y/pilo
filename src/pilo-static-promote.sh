@@ -51,10 +51,7 @@ process_file() {
     local dst="$static_path/$target/$relpath"
     local dst_dir=$(dirname "$dst")
 
-    if ! zfs list "$dataset" >/dev/null 2>&1; then
-        echo "ERROR: dataset does not exist: $dataset"
-        exit 1
-    fi
+    require_dataset "$dataset"
 
     if [ -f "$dst" ]
     then

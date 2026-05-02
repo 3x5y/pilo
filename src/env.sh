@@ -15,3 +15,15 @@ PILO_FILING_DATASET="$PILO_ROOT/static/filing"
 : "${PILO_INTAKE_PATH:=$PILO_PATH/active/pile-intake}"
 : "${PILO_PILE_PATH:=$PILO_PATH/active/pile-readonly}"
 : "${PILO_STATIC_PATH:=$PILO_PATH/static}"
+
+dataset_exists() {
+    zfs list "$1" >/dev/null 2>&1
+}
+
+require_dataset() {
+    if ! dataset_exists "$1"
+    then
+        echo "ERROR: missing required dataset: $1"
+        return 1
+    fi
+}

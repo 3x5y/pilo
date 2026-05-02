@@ -6,13 +6,6 @@ pile_dataset=$PILO_PILE_DATASET
 intake_path=$PILO_INTAKE_PATH
 pile_path=$PILO_PILE_PATH
 
-require_dataset() {
-    zfs list "$1" >/dev/null 2>&1 || {
-        echo "ERROR: missing required dataset: $1"
-        exit 1
-    }
-}
-
 require_dataset $intake_dataset
 require_dataset $pile_dataset
 

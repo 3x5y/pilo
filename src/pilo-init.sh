@@ -1,14 +1,6 @@
 #!/bin/sh
 set -eu
 
-require_dataset() {
-    if ! zfs list "$1" >/dev/null 2>&1
-    then
-        echo "ERROR: missing required dataset: $1"
-        exit 1
-    fi
-}
-
 ensure_dir() {
     [ -d "$1" ] || mkdir -p "$1"
 }
