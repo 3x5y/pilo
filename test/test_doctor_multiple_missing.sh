@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 zfs destroy "$PILO_ROOT/active/admin"
 zfs destroy "$PILO_ROOT/active/pile-intake"
