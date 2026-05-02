@@ -58,9 +58,10 @@ init_primary() {
     #chown $user:$user $mount/transient
     #chown $user:$user $mount/working
 
-    zfs set readonly=on $ds/active/pile-readonly
-    zfs set readonly=on $ds/static/$col
-    zfs set readonly=on $ds/static/$fil/2025
+    # defer to `pilo init`
+    #zfs set readonly=on $ds/active/pile-readonly
+    #zfs set readonly=on $ds/static/$col
+    #zfs set readonly=on $ds/static/$fil/2025
 }
 
 init_replica() {
