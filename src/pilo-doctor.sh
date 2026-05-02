@@ -23,6 +23,13 @@ check_readonly() {
     fi
 }
 
+check_dir() {
+    if [ ! -d "$1" ]
+    then
+        error "missing directory: $1"
+    fi
+}
+
 check_dataset "$PILO_ADMIN_DATASET"
 check_dataset "$PILO_INTAKE_DATASET"
 check_dataset "$PILO_PILE_DATASET"
@@ -30,5 +37,8 @@ check_dataset "$PILO_COLLECTION_DATASET"
 
 check_readonly "$PILO_PILE_DATASET"
 check_readonly "$PILO_COLLECTION_DATASET"
+
+check_dir "$PILO_PILE_PATH/in"
+check_dir "$PILO_PILE_PATH/out"
 
 exit $STATUS
