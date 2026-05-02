@@ -2,7 +2,7 @@
 set -e
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-TESTLIB="$HERE/test/lib.sh"
+TESTLIB="$HERE/test/helpers.sh"
 
 export PATH=$HERE/src:$PATH
 ROOT_DATASET=tank/test
