@@ -2,16 +2,11 @@
 set -eu
 
 HERE=$(dirname $(readlink -f "$0"))
+. "$HERE"/lib.sh
 
 cmd=${1:-}
-[ -z "$cmd" ] || shift
-
-case "$cmd" in
-    "")
-        echo "ERROR: missing command"
-        exit 1
-        ;;
-esac
+[ "$cmd" ] || fatal "ERROR: missing command"
+shift
 
 if [ -n "${PILO_CONFIG:-}" ] && [ -r "$PILO_CONFIG" ]
 then
@@ -33,11 +28,5 @@ require_dir "$PILO_PATH"
 require_dataset "$PILO_ROOT"
 
 target="$HERE/pilo-$cmd.sh"
-
-if [ ! -f "$target" ]
-then
-    echo "ERROR: unknown command: $cmd"
-    exit 1
-fi
-
+[ -f "$target" ] || fatal "ERROR: unknown command: $cmd"
 . "$target"
