@@ -16,15 +16,14 @@ check_dataset() {
 }
 
 check_readonly() {
-    val=$(zfs get -H -o value readonly "$1")
-    if [ "$val" != "on" ]
+    if [ "$(get_readonly "$1")" != on ]
     then
         error "dataset not readonly: $1"
     fi
 }
 
 check_dir() {
-    if [ ! -d "$1" ]
+    if ! dir_exists "$1"
     then
         error "missing directory: $1"
     fi

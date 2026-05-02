@@ -59,6 +59,10 @@ with_writable() {
     return $result
 }
 
+get_readonly() {
+    zfs get -H -o value readonly "$1"
+}
+
 snapshot_timestamp() {
     date +%Y%m%d_%H%M%S_%N
 }
