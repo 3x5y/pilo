@@ -30,7 +30,7 @@ lxc start pilodev0
 
 ### 3. Setup the VM
 ```bash
-lxc exec pilodev0 --cwd /src -- sh ./init.sh
+lxc exec pilodev0 --cwd /src -- sh ./init-devel.sh
 ```
 
 ### 4. Run the tests
@@ -52,4 +52,4 @@ What I did:
 * Corrected tests now pass
 * Added tests, improved test harness
 * POSIX shell compat
-
+* ...

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-HERE=$(readlink -f "$(dirname -- "$0")")
+HERE=$(dirname $(readlink -f "$0"))
 
 cmd=${1:-}
 [ -z "$cmd" ] || shift
@@ -21,7 +21,7 @@ then
     . /etc/pilo.conf.sh
 elif [ -r "$HERE"/pilo.conf.sh ]
 then
-    . "$HERE"/.pilo.conf.sh
+    . "$HERE"/pilo.conf.sh
 fi
 
 : ${PILO_ROOT:=}

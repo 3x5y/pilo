@@ -1,0 +1,6 @@
+PILO_ROOT=z0-att/pri
+PILO_REPLICA_ROOT=z1-rem/bak
+PILO_PATH=/z
+PILO_ADMIN_PATH=/z/admin
+PILO_INTAKE_PATH=/z/pile-intake
+PILO_PILE_PATH=/z/pile-readonly
