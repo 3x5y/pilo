@@ -18,6 +18,7 @@ RESULT=0
 
 env_setup() {
     TMP_ROOT=$(mktemp -d /tmp/test-XXXXXXXX)
+    chmod a+rx $TMP_ROOT
     USAGE=$(df /tmp | grep -E -o '[0-9]+% /tmp')
     echo "[SETUP] $USAGE TMP_ROOT=$TMP_ROOT"
     zpool_cleanup
@@ -54,6 +55,7 @@ test_setup() {
     init_replica $REPLICA_ROOT
     export TMP="$TMP_ROOT"/$TEST_NAME
     mkdir "$TMP"
+    chown $PILO_USER:$PILO_USER "$TMP"
 }
 
 clear_holds() {
@@ -76,6 +78,7 @@ init_system() {
         zfs create $root
         mount=/$root
     fi
+    export PILO_USER=ubuntu
     export PILO_ROOT=$root
     export PILO_PATH=$mount
     ADMIN=$root/active/admin
@@ -100,6 +103,10 @@ init_system() {
     zfs create -p $INTAKE
     zfs create -p $PILE
     zfs create -p $COLLECTION
+    chown $PILO_USER:$PILO_USER $PILO_ADMIN_PATH
+    chown $PILO_USER:$PILO_USER $PILO_INTAKE_PATH
+    chown $PILO_USER:$PILO_USER $PILO_PILE_PATH
+    chown $PILO_USER:$PILO_USER $PILO_STATIC_PATH
     #zfs create -p $root/stash
     #zfs create -p $root/static/filing/2025
     pilo init

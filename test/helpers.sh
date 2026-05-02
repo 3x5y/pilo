@@ -13,6 +13,18 @@ reset_system() {
     init_system "$@"
 }
 
+runuser() {
+    sudo -u $PILO_USER env \
+        PATH=$PATH \
+        PILO_ROOT=$PILO_ROOT \
+        PILO_PATH=$PILO_PATH \
+        PILO_ADMIN_PATH=$PILO_ADMIN_PATH \
+        PILO_INTAKE_PATH=$PILO_INTAKE_PATH \
+        PILO_PILE_PATH=$PILO_PILE_PATH \
+        PILO_STATIC_PATH=$PILO_STATIC_PATH \
+        "$@"
+}
+
 mkfile() {
     echo "$1" > $TMP/"$2"
 }
