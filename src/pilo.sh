@@ -5,7 +5,7 @@ HERE=$(dirname $(readlink -f "$0"))
 . "$HERE"/lib.sh
 
 cmd=${1:-}
-[ "$cmd" ] || fatal "ERROR: missing command"
+[ "$cmd" ] || fatal "missing command"
 shift
 
 if [ -n "${PILO_CONFIG:-}" ] && [ -r "$PILO_CONFIG" ]
@@ -28,5 +28,5 @@ require_dir "$PILO_PATH"
 require_dataset "$PILO_ROOT"
 
 target="$HERE/pilo-$cmd.sh"
-[ -f "$target" ] || fatal "ERROR: unknown command: $cmd"
+[ -f "$target" ] || fatal "unknown command: $cmd"
 . "$target"

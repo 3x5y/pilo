@@ -4,10 +4,7 @@ set -eu
 TYPE="$1"
 SRC="$PILO_ROOT"
 
-[ -n "$TYPE" ] || {
-    echo "ERROR: missing anchor type"
-    exit 1
-}
+[ "$TYPE" ] || fatal "missing anchor type"
 
 ts=$(date +%Y%m%d_%H%M%S_%N)
 
@@ -21,8 +18,7 @@ case "$TYPE" in
         hold=1
         ;;
     *)
-        echo "ERROR: invalid anchor type"
-        exit 1
+        fatal "invalid anchor type"
         ;;
 esac
 

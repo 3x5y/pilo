@@ -26,8 +26,7 @@ do
         then
             rm "$src" # idempotent
         else
-            echo "ERROR: name collision with different content: '$rel'"
-            exit 1
+            fatal "name collision with different content: '$rel'"
         fi
     else
         with_writable $pile_dataset \

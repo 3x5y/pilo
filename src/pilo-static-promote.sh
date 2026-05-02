@@ -16,17 +16,13 @@ do
 
     case "$name" in
         collection|filing) ;;
-        *)
-            echo "ERROR: invalid /out/ structure: $name"
-            exit 1
-            ;;
+        *) fatal "invalid /out/ structure: $name" ;;
     esac
 done
 
 if [ -z "$(find "$out_path" -type f -print -quit)" ]
 then
-    echo "ERROR: /out/ directory empty"
-    exit 1
+    fatal "/out/ directory empty"
 fi
 
 
@@ -44,9 +40,9 @@ process_file() {
     then
         if ! cmp -s "$src" "$dst"
         then
-            echo "ERROR: destination conflict for $relpath"
-            exit 1
+            fatal "destination conflict for $relpath"
         fi
+        # else idempotent; remove file below
     else
         with_writable $dataset \
             mkdir -p "$dst_dir"
@@ -81,8 +77,7 @@ do
             subpath=${rel#*/}
             ;;
         *)
-            echo "ERROR: invalid filing structure"
-            exit 1
+            fatal "invalid filing structure"
             ;;
     esac
     process_file "$f" "filing/$dataset" "$subpath"

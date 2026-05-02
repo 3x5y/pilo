@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+HERE=$(dirname $(readlink -f "$0"))
+. "$HERE"/lib.sh
+
 SRC="$1"
 DST="$2"
 SNAP="$3"

@@ -7,11 +7,7 @@ path=$PILO_PILE_PATH
 CMD="$1"
 TAB='	'
 
-
-[ -n "$CMD" ] || {
-    echo "ERROR: missing command"
-    exit 1
-}
+[ "$CMD" ] || fatal "missing command"
 
 
 exec_op() {
@@ -21,41 +17,34 @@ exec_op() {
     dst="$4"
 
     case "$op" in
-        mv) ;;
+        mv) ;; # valid
         *)
-            echo "ERROR: unsupported operation: '$op'"
-            exit 1
+            fatal "unsupported operation: '$op'"
             ;;
     esac
 
     case "$src" in
         /*|*..*)
-            echo "ERROR: invalid source path"
-            exit 1
+            fatal "invalid source path"
             ;;
     esac
 
     case "$dst" in
         /*|*..*)
-            echo "ERROR: invalid destination path"
-            exit 1
+            fatal "invalid destination path"
             ;;
     esac
 
     SRC="$path/$src"
     DST="$path/$dst"
 
-    [ -f "$SRC" ] || {
-        echo "ERROR: source missing: $src"
-        exit 1
-    }
+    [ -f "$SRC" ] || fatal "source missing: $src"
 
     if [ "$mode" = "validate" ]
     then
         if [ -f "$DST" ] && ! cmp -s "$SRC" "$DST"
         then
-            echo "ERROR: destination conflict: $dst"
-            exit 1
+            fatal "destination conflict: $dst"
         fi
         return
     fi
@@ -83,23 +72,18 @@ validate_ops() {
     while IFS="$TAB" read -r op src dst extra
     do
         [ -n "$op" ] || continue
-        [ -z "$extra" ] || {
-            echo "ERROR: invalid command (too many fields)"
-            exit 1
-        }
-        [ -n "$src" ] && [ -n "$dst" ] || {
-            echo "ERROR: invalid command: $op '$src' '$dst'"
-            exit 1
-        }
+        [ -z "$extra" ] || fatal "invalid command (too many fields)"
+        if [ -z "$src" ] || [ -z "$dst" ]
+        then
+            fatal "invalid command: $op '$src' '$dst'"
+        fi
         if grep -Fxq "$src" "$src_seen"
         then
-            echo "ERROR: duplicate source in script: $src"
-            exit 1
+            fatal "duplicate source in script: $src"
         fi
         if grep -Fxq "$dst" "$dst_seen"
         then
-            echo "ERROR: destination conflict in script: $dst"
-            exit 1
+            fatal "destination conflict in script: $dst"
         fi
 
         echo "$dst" >> "$dst_seen"

@@ -8,8 +8,8 @@ status_ok() {
 
 status_fail() {
     echo "STATUS=$1"
-    echo "ERROR: $2"
-    exit 1
+    shift
+    fatal "$@"
 }
 
 latest_guid() {
@@ -24,7 +24,6 @@ DST_GUID=$(latest_guid "$DST")
 
 if [ -z "$DST_GUID" ]
 then
-    echo "ERROR: no snapshots on target"
     status_fail EMPTY "no snapshots on target"
 fi
 
@@ -44,7 +43,6 @@ do
 
     if comm -23 "$DST_GUIDS" "$SRC_GUIDS" | grep -q .
     then
-        echo "ERROR: replication divergence"
         status_fail DIVERGED "replication divergence in $dst_ds"
     fi
 
@@ -53,7 +51,6 @@ do
 
     if [ -n "$dst_latest" ] && [ "$src_latest" != "$dst_latest" ]
     then
-        echo "ERROR: replication behind in $dst_ds"
         status_fail BEHIND "replication behind in $dst_ds"
     fi
 done
@@ -63,9 +60,8 @@ do
     suffix=${src_ds#"$SRC"}
     suffix=${suffix#/}
     dst_ds="$DST${suffix:+/$suffix}"
-    if ! dataset_exists "$dst_ds"
+    if ! zfs list "$dst_ds" >/dev/null 2>&1
     then
-        echo "ERROR: replication behind (missing dataset $dst_ds)"
         status_fail BEHIND "replication behind, missing $dst_ds"
         exit 1
     fi
@@ -73,7 +69,6 @@ done
 
 if [ "$SRC_GUID" != "$DST_GUID" ]
 then
-    echo "ERROR: replication behind"
     status_fail UNKNOWN GUID mismatch "$SRC != $DST"
     exit 1
 fi
