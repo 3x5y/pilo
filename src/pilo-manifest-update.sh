@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-dataset=$PILO_ROOT/active/pile-readonly
+dataset=$PILO_PILE_DATASET
 pile=$PILO_PILE_PATH
 manifest=$pile/.manifest
 

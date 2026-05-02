@@ -1,10 +1,10 @@
 #!/bin/sh
 set -eu
 
-pile_dataset=$PILO_ROOT/active/pile-readonly
-intake_dataset=$PILO_ROOT/active/pile-intake
-pile_path=$PILO_PILE_PATH
+intake_dataset=$PILO_INTAKE_DATASET
+pile_dataset=$PILO_PILE_DATASET
 intake_path=$PILO_INTAKE_PATH
+pile_path=$PILO_PILE_PATH
 
 require_dataset() {
     zfs list "$1" >/dev/null 2>&1 || {

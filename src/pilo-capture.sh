@@ -1,10 +1,10 @@
 #!/bin/sh
 set -eu
 
-intake_ds=$PILO_ROOT/active/pile-intake
+dataset=$PILO_INTAKE_DATASET
 
-zfs list "$intake_ds" >/dev/null 2>&1 || {
-    echo "ERROR: missing required dataset: $intake_ds"
+zfs list "$dataset" >/dev/null 2>&1 || {
+    echo "ERROR: missing required dataset: $dataset"
     exit 1
 }
 

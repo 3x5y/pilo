@@ -17,21 +17,14 @@ set_readonly() {
     zfs set readonly=on "$1"
 }
 
-: "${PILO_ADMIN_PATH:=$PILO_PATH/active/admin}"
-: "${PILO_INTAKE_PATH:=$PILO_PATH/active/pile-intake}"
-: "${PILO_PILE_PATH:=$PILO_PATH/active/pile-readonly}"
-: "${PILO_STATIC_PATH:=$PILO_PATH/static}"
-
-root=$PILO_ROOT
-pile=$PILO_PILE_PATH
-
-require_dataset $root/active/pile-intake
-require_dataset $root/active/pile-readonly
-require_dataset $root/active/admin
+require_dataset $PILO_INTAKE_DATASET
+require_dataset $PILO_PILE_DATASET
+require_dataset $PILO_ADMIN_DATASET
 #require_dataset $root/stash
-require_dataset $root/static/collection
+require_dataset $PILO_COLLECTION_DATASET
 #require_dataset $root/static/filing/2025
 
+pile=$PILO_PILE_PATH
 ensure_dir "$pile/in"
 ensure_dir "$pile/sort"
 ensure_dir "$pile/out"
@@ -39,6 +32,6 @@ ensure_dir "$pile/out/collection"
 ensure_dir "$pile/out/filing"
 
 # protected areas
-set_readonly $root/active/pile-readonly
-set_readonly $root/static/collection
+set_readonly $PILO_PILE_DATASET
+set_readonly $PILO_COLLECTION_DATASET
 #zfs set readonly=on $root/static/filing/2025

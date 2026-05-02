@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-pile_dataset=$PILO_ROOT/active/pile-readonly
-static_dataset=$PILO_ROOT/static
+pile_dataset=$PILO_PILE_DATASET
+static_dataset=$PILO_STATIC_DATASET
 static_path=$PILO_STATIC_PATH
 out_path="$PILO_PILE_PATH/out"
 

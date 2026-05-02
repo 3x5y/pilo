@@ -4,7 +4,7 @@ set -eu
 STATUS=0
 
 check_transient() {
-    # naive: scan for git repos under $PILO_PATH/active and working dir
+    # naive: scan dirs for git repos active and working dir
     dirs="
     $PILO_ADMIN_PATH
     "
@@ -45,7 +45,7 @@ check_pile() {
 }
 
 check_snapshot() {
-    dataset="$PILO_ROOT"/active/pile-readonly
+    dataset=$PILO_PILE_DATASET
 
     snap_info=$(zfs list -t snapshot -o name,creation -s creation \
                 | grep "^$dataset@" | tail -n 1)
@@ -100,10 +100,10 @@ check_replication() {
 
 check_datasets() {
     required="
-    $PILO_ROOT/active/pile-intake
-    $PILO_ROOT/active/pile-readonly
-    $PILO_ROOT/active/admin
-    $PILO_ROOT/static/collection
+    $PILO_ADMIN_DATASET
+    $PILO_INTAKE_DATASET
+    $PILO_PILE_DATASET
+    $PILO_COLLECTION_DATASET
     "
 
     for ds in $required
