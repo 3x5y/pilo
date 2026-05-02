@@ -26,12 +26,19 @@ fi
 SRC_GUIDS=$(tmpfile)
 DST_GUIDS=$(tmpfile)
 
+map() {
+    local name=$1
+    local from=$2
+    local onto=$3
+    local suffix=${name#"$from"}
+    suffix=${suffix#/}
+    echo "$onto${suffix:+/$suffix}"
+}
+
 # iterate datasets on target
 zfs list -r -t filesystem -Ho name "$DST" | while read -r dst_ds
 do
-    suffix=${dst_ds#"$DST"}
-    suffix=${suffix#/}
-    src_ds="$SRC${suffix:+/$suffix}"
+    src_ds=$(map "$dst_ds" "$DST" "$SRC")
     zfs list -t snap -Ho guid "$src_ds" | sort > "$SRC_GUIDS"
     zfs list -t snap -Ho guid "$dst_ds" | sort > "$DST_GUIDS"
 
@@ -51,9 +58,7 @@ done
 
 zfs list -r -t filesystem -Ho name "$SRC" | while read -r src_ds
 do
-    suffix=${src_ds#"$SRC"}
-    suffix=${suffix#/}
-    dst_ds="$DST${suffix:+/$suffix}"
+    dst_ds=$(map "$src_ds" "$SRC" "$DST")
     if ! zfs list "$dst_ds" >/dev/null 2>&1
     then
         status_fail BEHIND "replication behind, missing $dst_ds"
