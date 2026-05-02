@@ -47,3 +47,10 @@ with_writable() {
 snapshot_timestamp() {
     date +%Y%m%d_%H%M%S_%N
 }
+
+snapshot() {
+    local name=$1
+    local dataset=${2:-}
+    [ "$dataset" ] || dataset="$PILO_ROOT"
+    zfs snapshot -r "$dataset@$name"
+}

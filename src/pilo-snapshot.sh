@@ -1,11 +1,6 @@
 #!/bin/sh
 set -eu
 
-NAME="$1"
-
-[ -n "$NAME" ] || {
-    echo "usage: pilo-snapshot <name>"
-    exit 1
-}
-
-zfs snapshot -r "$PILO_ROOT@$NAME"
+name="$1"
+[ "$name" ] || fatal "require snapshot name"
+snapshot "$name"

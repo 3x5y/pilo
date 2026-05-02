@@ -2,5 +2,4 @@
 set -eu
 
 ts=$(snapshot_timestamp)
-
-zfs snapshot -r "$PILO_ROOT@r-$ts"
+snapshot r-$ts

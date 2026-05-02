@@ -22,7 +22,7 @@ case "$TYPE" in
         ;;
 esac
 
-zfs snapshot -r "$SRC@$name"
+snapshot "$name" "$SRC"
 
 if [ "$hold" -eq 1 ]
 then
