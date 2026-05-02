@@ -1,10 +1,6 @@
 #!/bin/sh
 set -eu
 
-ensure_dir() {
-    [ -d "$1" ] || mkdir -p "$1"
-}
-
 set_readonly() {
     zfs set readonly=on "$1"
 }

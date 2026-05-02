@@ -29,11 +29,7 @@ fi
 
 . "$HERE"/env.sh
 
-[ -d "$PILO_PATH" ] || {
-    echo "ERROR: path does not exist: $PILO_PATH"
-    exit 1
-}
-
+require_dir "$PILO_PATH"
 require_dataset "$PILO_ROOT"
 
 target="$HERE/pilo-$cmd.sh"

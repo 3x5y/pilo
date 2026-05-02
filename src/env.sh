@@ -29,6 +29,22 @@ require_dataset() {
     fi
 }
 
+dir_exists() {
+    [ -d "$1" ]
+}
+
+require_dir() {
+    if ! dir_exists "$1"
+    then
+        echo "ERROR: path does not exist: $1"
+        return 1
+    fi
+}
+
+ensure_dir() {
+    dir_exists "$1" || mkdir -p "$1"
+}
+
 with_writable() {
     local dataset=$1
     shift

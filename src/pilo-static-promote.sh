@@ -6,7 +6,7 @@ static_dataset=$PILO_STATIC_DATASET
 static_path=$PILO_STATIC_PATH
 out_path="$PILO_PILE_PATH/out"
 
-[ -d "$out_path" ] || mkdir -p "$out_path"
+dir_exists "$out_path" || exit 0
 
 # validate allowed top-level dirs
 for d in "$out_path"/*

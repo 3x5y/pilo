@@ -22,7 +22,7 @@ check_transient() {
 check_pile() {
     pile=$PILO_PILE_PATH
 
-    [ -d "$pile" ] || return
+    dir_exists "$pile" || return
 
     now=$(date +%s)
     max_age=${CONFIG_PILE_MAX_AGE:-86400}
