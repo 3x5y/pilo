@@ -8,6 +8,17 @@ fatal() {
     exit 1
 }
 
+tmpfile() {
+    local f=$(mktemp /tmp/pilo-tmp-XXXXXXXX)
+    echo "$f"
+}
+
+cleanup() {
+    rm -f /tmp/pilo-tmp-*
+}
+
+trap cleanup EXIT
+
 dataset_exists() {
     zfs list "$1" >/dev/null 2>&1
 }

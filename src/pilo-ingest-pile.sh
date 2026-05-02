@@ -9,8 +9,7 @@ pile_path=$PILO_PILE_PATH
 require_dataset $intake_dataset
 require_dataset $pile_dataset
 
-tmp_list=$(mktemp)
-trap "rm -f '$tmp_list'" EXIT
+tmp_list=$(tmpfile)
 
 find "$intake_path" -type f | LC_COLLATE=C sort > "$tmp_list"
 

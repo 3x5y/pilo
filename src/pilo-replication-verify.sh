@@ -23,10 +23,8 @@ then
     status_fail EMPTY "no snapshots on target"
 fi
 
-SRC_GUIDS=$(mktemp)
-DST_GUIDS=$(mktemp)
-
-trap "rm $SRC_GUIDS $DST_GUIDS" EXIT
+SRC_GUIDS=$(tmpfile)
+DST_GUIDS=$(tmpfile)
 
 # iterate datasets on target
 zfs list -r -t filesystem -Ho name "$DST" | while read -r dst_ds

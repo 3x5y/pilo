@@ -92,17 +92,11 @@ validate_ops() {
     done < $op_list
 }
 
-op_list=$(mktemp)
+op_list=$(tmpfile)
+src_seen=$(tmpfile)
+dst_seen=$(tmpfile)
 printf "%s\n" "$CMD" > "$op_list"
-
-src_seen=$(mktemp)
-dst_seen=$(mktemp)
 validate_ops
-rm -f "$src_seen" "$dst_seen"
-
 with_writable $dataset \
     apply_ops
-
-rm -f "$op_list"
-
 pilo manifest-update

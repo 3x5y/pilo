@@ -54,20 +54,18 @@ process_file() {
         rm "$src"
 }
 
-COL_TMP=$(mktemp)
-FIL_TMP=$(mktemp)
-trap "rm -f '$COL_TMP' '$FIL_TMP'" EXIT
-
 # collection
-find "$out_path/collection" -type f > "$COL_TMP"
+col_tmp=$(tmpfile)
+find "$out_path/collection" -type f > "$col_tmp"
 while IFS= read -r f
 do
     rel=${f#$out_path/collection/}
     process_file "$f" collection "$rel"
-done < "$COL_TMP"
+done < "$col_tmp"
 
 # filing
-find "$out_path/filing" -type f > "$FIL_TMP"
+fil_tmp=$(tmpfile)
+find "$out_path/filing" -type f > "$fil_tmp"
 while IFS= read -r f
 do
     rel=${f#$out_path/filing/}
@@ -81,7 +79,7 @@ do
             ;;
     esac
     process_file "$f" "filing/$dataset" "$subpath"
-done < "$FIL_TMP"
+done < "$fil_tmp"
 
 # update manifests
 pilo manifest-update
