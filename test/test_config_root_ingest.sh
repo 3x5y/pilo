@@ -2,7 +2,7 @@
 set -eu
 
 oldpile=$PILE_PATH
-init_system tank/test/alternate
+reset_system tank/test/alternate
 mkfile data override.txt
 capture_file override.txt
 pilo ingest-pile

@@ -3,7 +3,7 @@ set -eu
 
 replica_root=tank/test/replica-alt
 alt_replica=$replica_root/alt-data
-init_system tank/test/alt-data
+reset_system tank/test/alt-data
 init_replica $replica_root
 
 snap=baseline

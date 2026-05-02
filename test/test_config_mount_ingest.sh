@@ -3,7 +3,7 @@ set -eu
 
 mount=/alt-mount
 oldpile=$PILE_PATH
-init_system tank/test/alt $mount
+reset_system tank/test/alt $mount
 mkfile data override.txt
 capture_file override.txt
 pilo ingest-pile

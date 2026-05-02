@@ -2,7 +2,7 @@
 set -eu
 
 oldpath=$INTAKE_PATH
-init_system tank/test/alt /alt
+reset_system tank/test/alt /alt
 mkfile data file.txt
 capture_file file.txt
 

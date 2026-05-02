@@ -8,6 +8,11 @@ OUTPUT=''
 
 ### setup helpers
 
+reset_system() {
+    unset PILO_ADMIN_PATH PILO_INTAKE_PATH PILO_PILE_PATH PILO_STATIC_PATH
+    init_system "$@"
+}
+
 mkfile() {
     echo "$1" > $TMP/"$2"
 }

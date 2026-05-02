@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-init_system tank/test/test-alt /alter
+reset_system tank/test/test-alt /alter
 
 assert_dir_exists $PILE_PATH/in
 assert_dir_exists $PILE_PATH/out/collection
