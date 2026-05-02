@@ -8,12 +8,7 @@ manifest=$pile/.manifest
 require_dataset "$dataset"
 
 tmp=$(mktemp)
-
 cd $pile
-
-find . -type f ! -name .manifest -print0 \
-  | LC_COLLATE=C sort -z \
-  | xargs -r0 sha256sum > "$tmp"
-
+generate_manifest > "$tmp"
 with_writable $dataset \
     mv "$tmp" $manifest

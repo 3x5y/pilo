@@ -58,3 +58,9 @@ snapshot() {
 get_latest_guid() {
     zfs list -t snapshot -Ho guid -s creation "$1" | tail -n1
 }
+
+generate_manifest() {
+    find . -type f ! -name .manifest -print0 \
+        | LC_COLLATE=C sort -z \
+        | xargs -r0 sha256sum
+}

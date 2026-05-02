@@ -85,13 +85,8 @@ done < "$FIL_TMP"
 
 # update manifests
 pilo manifest-update
-(
-    cd "$static_path"
-    tmp=$(mktemp)
-    find . -type f ! -name .manifest -print0 \
-      | LC_COLLATE=C sort -z \
-      | xargs -r0 sha256sum > "$tmp"
-    with_writable $static_dataset \
-        mv "$tmp" .manifest
-)
-
+tmp=$(mktemp)
+cd "$static_path"
+generate_manifest > "$tmp"
+with_writable $static_dataset \
+    mv "$tmp" .manifest
