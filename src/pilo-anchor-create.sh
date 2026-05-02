@@ -6,7 +6,7 @@ SRC="$PILO_ROOT"
 
 [ "$TYPE" ] || fatal "missing anchor type"
 
-ts=$(date +%Y%m%d_%H%M%S_%N)
+ts=$(snapshot_timestamp)
 
 case "$TYPE" in
     daily)

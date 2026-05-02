@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
 
-ts=$(date +%Y%m%d_%H%M%S_%N)
+ts=$(snapshot_timestamp)
 
 zfs snapshot -r "$PILO_ROOT@a-$ts"

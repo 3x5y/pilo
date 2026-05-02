@@ -43,3 +43,7 @@ with_writable() {
     zfs set readonly=on $dataset
     return $result
 }
+
+snapshot_timestamp() {
+    date +%Y%m%d_%H%M%S_%N
+}
