@@ -26,50 +26,56 @@ then
 fi
 
 
-process_file() {
-    local src="$1"
-    local target="$2"
-    local relpath="$3"
-    local dataset="$static_dataset/$target"
-    local dst="$static_path/$target/$relpath"
-    local dst_dir=$(dirname "$dst")
+validate_file() {
+    src="$1"
+    target="$2"
+    rel="$3"
+
+    dataset="$static_dataset/$target"
+    dst="$static_path/$target/$rel"
 
     require_dataset "$dataset"
-
-    if [ -f "$dst" ]
+    if [ -f "$dst" ] && ! cmp -s "$src" "$dst"
     then
-        if ! cmp -s "$src" "$dst"
-        then
-            fatal "destination conflict for $relpath"
-        fi
-        # else idempotent; remove file below
-    else
-        with_writable $dataset \
-            mkdir -p "$dst_dir"
-        with_writable $dataset \
-            cp "$src" "$dst"
+        echo "ERROR: destination conflict for $rel"
+        exit 1
+    fi
+}
+
+apply_file() {
+    src="$1"
+    target="$2"
+    rel="$3"
+
+    dataset="$static_dataset/$target"
+    dst="$static_path/$target/$rel"
+    dst_dir=$(dirname "$dst")
+
+    if [ ! -f "$dst" ]
+    then
+        with_writable "$dataset" mkdir -p "$dst_dir"
+        with_writable "$dataset" cp "$src" "$dst"
     fi
 
-    with_writable $pile_dataset \
-        rm "$src"
+    with_writable "$pile_dataset" rm "$src"
 }
 
 # collection
 col_tmp=$(tmpfile)
-add_tmpfile_cleanup $col_tmp
-
+fil_tmp=$(tmpfile)
+add_tmpfile_cleanup $col_tmp $fil_tmp
 find "$out_path/collection" -type f > "$col_tmp"
+find "$out_path/filing" -type f > "$fil_tmp"
+
+
+# validate paths first
+
 while IFS= read -r f
 do
     rel=${f#$out_path/collection/}
-    process_file "$f" collection "$rel"
+    validate_file "$f" collection "$rel"
 done < "$col_tmp"
 
-# filing
-fil_tmp=$(tmpfile)
-add_tmpfile_cleanup $fil_tmp
-
-find "$out_path/filing" -type f > "$fil_tmp"
 while IFS= read -r f
 do
     rel=${f#$out_path/filing/}
@@ -79,10 +85,28 @@ do
             subpath=${rel#*/}
             ;;
         *)
-            fatal "invalid filing structure"
+            echo "ERROR: invalid filing structure"
+            exit 1
             ;;
     esac
-    process_file "$f" "filing/$dataset" "$subpath"
+    validate_file "$f" "filing/$dataset" "$subpath"
+done < "$fil_tmp"
+
+
+# then apply changes
+
+while IFS= read -r f
+do
+    rel=${f#$out_path/collection/}
+    apply_file "$f" collection "$rel"
+done < "$col_tmp"
+
+while IFS= read -r f
+do
+    rel=${f#$out_path/filing/}
+    dataset=${rel%%/*}
+    subpath=${rel#*/}
+    apply_file "$f" "filing/$dataset" "$subpath"
 done < "$fil_tmp"
 
 # update manifests
