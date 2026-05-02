@@ -25,6 +25,7 @@ fi
 
 SRC_GUIDS=$(tmpfile)
 DST_GUIDS=$(tmpfile)
+add_tmpfile_cleanup $SRC_GUIDS $DST_GUIDS
 
 map() {
     local name=$1

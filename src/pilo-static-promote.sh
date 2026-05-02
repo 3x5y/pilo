@@ -56,6 +56,8 @@ process_file() {
 
 # collection
 col_tmp=$(tmpfile)
+add_tmpfile_cleanup $col_tmp
+
 find "$out_path/collection" -type f > "$col_tmp"
 while IFS= read -r f
 do
@@ -65,6 +67,8 @@ done < "$col_tmp"
 
 # filing
 fil_tmp=$(tmpfile)
+add_tmpfile_cleanup $fil_tmp
+
 find "$out_path/filing" -type f > "$fil_tmp"
 while IFS= read -r f
 do

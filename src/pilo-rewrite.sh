@@ -95,6 +95,8 @@ validate_ops() {
 op_list=$(tmpfile)
 src_seen=$(tmpfile)
 dst_seen=$(tmpfile)
+add_tmpfile_cleanup $op_list $src_seen $dst_seen
+
 printf "%s\n" "$CMD" > "$op_list"
 validate_ops
 with_writable $dataset \

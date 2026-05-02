@@ -135,7 +135,7 @@ run_tests() {
 
 cmd_clean() {
     zpool_cleanup
-    for d in /tmp/test-* /tmp/tmp.*
+    for d in /tmp/test-* /tmp/pilo-tmp-*
     do
         echo clean $d
         rm -rf $d

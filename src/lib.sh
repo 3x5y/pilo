@@ -8,16 +8,34 @@ fatal() {
     exit 1
 }
 
+CLEANUP_TMPFILES=""
+CLEANUP_DATASETS=""
+
+general_cleanup() {
+    for f in $CLEANUP_TMPFILES
+    do
+        rm -f $f
+    done
+    for ds in $CLEANUP_DATASETS
+    do
+        zfs set readonly=on $ds
+    done
+}
+
+trap general_cleanup EXIT
+
+add_tmpfile_cleanup() {
+    CLEANUP_TMPFILES="$CLEANUP_TMPFILES $*"
+}
+
+add_dataset_cleanup() {
+    CLEANUP_DATASETS="$CLEANUP_DATASETS $*"
+}
+
 tmpfile() {
     local f=$(mktemp /tmp/pilo-tmp-XXXXXXXX)
     echo "$f"
 }
-
-cleanup() {
-    rm -f /tmp/pilo-tmp-*
-}
-
-trap cleanup EXIT
 
 dataset_exists() {
     zfs list "$1" >/dev/null 2>&1
@@ -51,6 +69,7 @@ with_writable() {
     local dataset=$1
     shift
     zfs set readonly=off $dataset
+    add_dataset_cleanup "$dataset"
     set +e
     "$@"
     local result=$?

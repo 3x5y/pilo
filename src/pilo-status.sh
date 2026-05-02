@@ -27,6 +27,7 @@ check_pile() {
     now=$(date +%s)
     max_age=${CONFIG_PILE_MAX_AGE:-86400}
     tmp_list=$(tmpfile)
+    add_tmpfile_cleanup $tmp_list
 
     find "$pile" -type f | LC_COLLATE=C sort > "$tmp_list"
     while IFS= read f
