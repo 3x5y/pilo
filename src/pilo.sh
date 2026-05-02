@@ -16,26 +16,18 @@ esac
 if [ -n "${PILO_CONFIG:-}" ] && [ -r "$PILO_CONFIG" ]
 then
     . "$PILO_CONFIG"
-elif [ -r /etc/pilo.conf ]
+elif [ -r /etc/pilo.conf.sh ]
 then
-    . /etc/pilo.conf
-elif [ -r "$HERE"/pilo.conf ]
+    . /etc/pilo.conf.sh
+elif [ -r "$HERE"/pilo.conf.sh ]
 then
-    . "$HERE"/.pilo.conf
+    . "$HERE"/.pilo.conf.sh
 fi
 
 : ${PILO_ROOT:=}
 : ${PILO_PATH:=}
 
-[ -n "$PILO_ROOT" ] || {
-    echo "ERROR: PILO_ROOT not set"
-    exit 1
-}
-
-[ -n "$PILO_PATH" ] || {
-    echo "ERROR: PILO_PATH not set"
-    exit 1
-}
+. "$HERE"/env.sh
 
 [ -d "$PILO_PATH" ] || {
     echo "ERROR: path does not exist: $PILO_PATH"
