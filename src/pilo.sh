@@ -22,24 +22,10 @@ fi
 : ${PILO_ROOT:=}
 : ${PILO_PATH:=}
 
-run_doctor() {
-    if ! doctor_output=$(. "$HERE/pilo-doctor.sh" 2>&1)
-    then
-        echo "$doctor_output" >&2
-        exit 1
-    fi
-}
-
 . "$HERE"/env.sh
 
 require_dir "$PILO_PATH"
 require_dataset "$PILO_ROOT"
-
-case "$cmd" in
-    doctor|init) ;;
-    capture) run_doctor ;;
-    *) ;;
-esac
 
 target="$HERE/pilo-$cmd.sh"
 [ -f "$target" ] || fatal "unknown command: $cmd"
