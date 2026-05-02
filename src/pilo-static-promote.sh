@@ -30,19 +30,6 @@ then
 fi
 
 
-with_writable() {
-    local dataset=$1
-    shift
-    zfs set readonly=off $dataset
-    set +e
-    "$@"
-    local result=$?
-    set -e
-    zfs set readonly=on $dataset
-    [ $result -eq 0 ] || exit $result
-}
-
-
 process_file() {
     local src="$1"
     local target="$2"
@@ -109,8 +96,7 @@ pilo manifest-update
     find . -type f ! -name .manifest -print0 \
       | LC_COLLATE=C sort -z \
       | xargs -r0 sha256sum > "$tmp"
-    zfs set readonly=off $static_dataset
-    mv "$tmp" .manifest
-    zfs set readonly=on $static_dataset
+    with_writable $static_dataset \
+        mv "$tmp" .manifest
 )
 

@@ -30,10 +30,10 @@ do
             exit 1
         fi
     else
-        zfs set readonly=off $pile_dataset
-        mkdir -p "$dst_dir"
-        mv "$src" "$dst"
-        zfs set readonly=on $pile_dataset
+        with_writable $pile_dataset \
+            mkdir -p "$dst_dir"
+        with_writable $pile_dataset \
+            mv "$src" "$dst"
     fi
 done < "$tmp_list"
 

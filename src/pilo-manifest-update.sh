@@ -15,6 +15,5 @@ find . -type f ! -name .manifest -print0 \
   | LC_COLLATE=C sort -z \
   | xargs -r0 sha256sum > "$tmp"
 
-zfs set readonly=off $dataset
-mv "$tmp" $manifest
-zfs set readonly=on $dataset
+with_writable $dataset \
+    mv "$tmp" $manifest

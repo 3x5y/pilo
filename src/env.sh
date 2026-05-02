@@ -16,6 +16,7 @@ PILO_FILING_DATASET="$PILO_ROOT/static/filing"
 : "${PILO_PILE_PATH:=$PILO_PATH/active/pile-readonly}"
 : "${PILO_STATIC_PATH:=$PILO_PATH/static}"
 
+
 dataset_exists() {
     zfs list "$1" >/dev/null 2>&1
 }
@@ -26,4 +27,16 @@ require_dataset() {
         echo "ERROR: missing required dataset: $1"
         return 1
     fi
+}
+
+with_writable() {
+    local dataset=$1
+    shift
+    zfs set readonly=off $dataset
+    set +e
+    "$@"
+    local result=$?
+    set -e
+    zfs set readonly=on $dataset
+    return $result
 }
