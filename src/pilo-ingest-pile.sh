@@ -44,6 +44,7 @@ apply_changes() {
         else
             ensure_dir "$dst_dir"
             mv "$src" "$dst"
+            chown $PILO_USER:$PILO_USER "$dst"
         fi
     done < "$tmp_list"
 }
