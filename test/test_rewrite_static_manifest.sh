@@ -16,4 +16,4 @@ pilo static-promote
 script=$(printf "mv\tcollection/file.txt\tcollection/x.txt\n")
 pilo rewrite "$script"
 
-assert_manifest_valid static "$PILO_STATIC_PATH"
+assert_manifest_valid collection "$PILO_STATIC_PATH"/collection

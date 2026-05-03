@@ -9,7 +9,4 @@ with_writable $STATIC \
 
 pilo manifest-update
 
-manifest="$PILO_ADMIN_PATH/manifest/filing.manifest"
-
-assert_file_exists "$manifest"
-assert_grep " \\./2025/doc.txt" < "$manifest"
+assert_manifest_entry filing " \\./2025/doc.txt"

@@ -11,6 +11,6 @@ with_writable $PILE \
 pilo static-promote
 
 # static manifest valid
-assert_manifest_valid static /$STATIC
+assert_manifest_valid collection /$COLLECTION
 # use system command which ignores empty manifests
 pilo manifest-verify || fail pile manifest invalid

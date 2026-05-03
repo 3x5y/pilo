@@ -10,5 +10,5 @@ with_writable $PILE \
 
 pilo static-promote
 
-assert_manifest_entry static " \./collection/$file$"
-assert_manifest_valid static /$STATIC
+assert_manifest_entry collection " \./$file$"
+assert_manifest_valid collection /$COLLECTION

@@ -110,10 +110,7 @@ assert_command_fail() {
 assert_manifest_entry() {
     subset="$1"
     entry="$2"
-    case $subset in
-        pile) manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest ;;
-        static) manifest=$PILO_STATIC_PATH/.manifest ;;
-    esac
+    manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest
     assert_grep "$entry" < "$manifest" \
         || fail "missing entry '$entry' in '$manifest'"
 }
@@ -121,10 +118,7 @@ assert_manifest_entry() {
 assert_manifest_valid() {
     subset="$1"
     dir="$2"
-    case $subset in
-        pile) manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest ;;
-        static) manifest=$PILO_STATIC_PATH/.manifest ;;
-    esac
+    manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest
     (cd "$dir" && sha256sum --quiet --strict -c "$manifest") \
         || fail "manifest $manifest is invalid"
 }
