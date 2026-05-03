@@ -22,6 +22,12 @@ then
 
     cat > "$tmp_after"
 
+    if sort "$tmp_after" | uniq -d | grep -q .
+    then
+        echo "ERROR: duplicate entries in edited list"
+        exit 1
+    fi
+
     paste "$tmp_before" "$tmp_after" | while read old new
     do
         if [ "$old" != "$new" ]
