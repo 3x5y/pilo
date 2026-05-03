@@ -5,6 +5,7 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 TESTLIB="$HERE/test/helpers.sh"
 
 export PATH=$HERE/src:$PATH
+export PYTHONDONTWRITEBYTECODE=1
 ROOT_DATASET=tank/test
 TEST_ROOT=$ROOT_DATASET/data
 REPLICA_ROOT=$ROOT_DATASET/replica
@@ -17,7 +18,7 @@ RESET='\e[0m'
 RESULT=0
 
 env_setup() {
-    TMP_ROOT=$(mktemp -d /tmp/test-XXXXXXXX)
+    TMP_ROOT=$(mktemp -d /tmp/test.XXXXXXXX)
     chmod a+rx $TMP_ROOT
     USAGE=$(df /tmp | grep -E -o '[0-9]+% /tmp')
     echo "[SETUP] $USAGE TMP_ROOT=$TMP_ROOT"
@@ -38,7 +39,6 @@ env_teardown() {
     if [ "$RESULT" -eq 0 ]
     then
         zpool_cleanup
-        #rm -f $TMP_ROOT/vdev* 2>/dev/null || true
         rm -rf "$TMP_ROOT"
     fi
     : # no-op
@@ -144,7 +144,7 @@ run_tests() {
 
 cmd_clean() {
     zpool_cleanup
-    for d in /tmp/test-* /tmp/pilo-tmp-*
+    for d in /tmp/test.* /tmp/pilo.*
     do
         echo clean $d
         rm -rf $d

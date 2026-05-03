@@ -29,7 +29,6 @@ require_dataset "$PILO_ROOT"
 target="$HERE/pilo-$cmd"
 if [ -f "$target".py ]
 then
-    export PYTHONDONTWRITEBYTECODE=1
     exec python3 "$target".py "$@"
 elif [ -f "$target".sh ]
 then

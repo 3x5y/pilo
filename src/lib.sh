@@ -37,7 +37,7 @@ add_dataset_cleanup() {
 }
 
 tmpfile() {
-    local f=$(mktemp /tmp/pilo-tmp-XXXXXXXX)
+    local f=$(mktemp /tmp/pilo.XXXXXXXX)
     echo "$f"
 }
 

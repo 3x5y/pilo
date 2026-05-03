@@ -16,6 +16,7 @@ reset_system() {
 runuser() {
     sudo -u $PILO_USER env \
         PATH=$PATH \
+        PYTHONDONTWRITEBYTECODE=$PYTHONDONTWRITEBYTECODE \
         PILO_ROOT=$PILO_ROOT \
         PILO_PATH=$PILO_PATH \
         PILO_USER=$PILO_USER \
