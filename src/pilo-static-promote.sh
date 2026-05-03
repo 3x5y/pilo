@@ -53,11 +53,14 @@ apply_file() {
 
     if [ ! -f "$dst" ]
     then
-        with_writable "$dataset" mkdir -p "$dst_dir"
-        with_writable "$dataset" cp "$src" "$dst"
+        with_writable "$dataset" \
+            as_user mkdir -p "$dst_dir"
+        with_writable "$dataset" \
+            cp -a "$src" "$dst"
     fi
 
-    with_writable "$pile_dataset" rm "$src"
+    with_writable "$pile_dataset" \
+        rm "$src"
 }
 
 # collection
