@@ -35,13 +35,10 @@ def main():
 
         if not os.path.isfile(dst):
             with pilo.dataset_writable(dataset):
-                pilo.as_user(["mkdir", "-p", dst_dir])
-                shutil.copy2(src, dst) # doesn't preserve owner
-                shutil.chown(dst, cx.user, cx.user)
+                cx.copy(src, dst)
 
         with pilo.dataset_writable(cx.pile_dataset):
             os.remove(src)
-
 
     # validate top-level dirs
     for name in os.listdir(out_path):

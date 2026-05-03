@@ -1,5 +1,6 @@
 import filecmp
 import os
+import shutil
 import subprocess
 import sys
 
@@ -108,3 +109,27 @@ class Context:
         self.static_path = environ["PILO_STATIC_PATH"]
         self.user = environ["PILO_USER"]
         self.args = args and args[1:] or []
+
+    def as_user(self, cmd):
+        if os.geteuid() == 0:
+            return subprocess.run(["sudo", "-u", self.user] + cmd, check=True)
+        else:
+            return subprocess.run(cmd, check=True)
+
+    def ensure_owned(self, path):
+        shutil.chown(path, self.user, self.user)
+
+    def ensure_dir(self, path):
+        self.as_user(["mkdir", "-p", path])
+
+    def move(self, src, dst):
+        dst_dir = os.path.dirname(dst)
+        self.ensure_dir(dst_dir)
+        shutil.move(src, dst)
+        self.ensure_owned(dst)
+
+    def copy(self, src, dst):
+        dst_dir = os.path.dirname(dst)
+        self.ensure_dir(dst_dir)
+        shutil.copy2(src, dst)
+        self.ensure_owned(dst)

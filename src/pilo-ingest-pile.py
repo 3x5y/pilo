@@ -25,7 +25,6 @@ def main():
         for src in files:
             rel = os.path.relpath(src, cx.intake_path)
             dst = os.path.join(cx.pile_path, "in", rel)
-            dst_dir = os.path.dirname(dst)
 
             if os.path.isfile(dst):
                 if pilo.files_equal(src, dst):
@@ -34,9 +33,7 @@ def main():
                     # redundant with validate check above?
                     pilo.fatal(f"name collision with different content: '{rel}'")
             else:
-                pilo.ensure_dir(dst_dir, cx.user)
-                shutil.move(src, dst)
-                pilo.run(["chown", f"{cx.user}:{cx.user}", dst])
+                cx.move(src, dst)
 
     validate_files()
 
