@@ -106,7 +106,7 @@ init_system() {
     chown $PILO_USER:$PILO_USER $PILO_ADMIN_PATH
     chown $PILO_USER:$PILO_USER $PILO_INTAKE_PATH
     chown $PILO_USER:$PILO_USER $PILO_PILE_PATH
-    chown $PILO_USER:$PILO_USER $PILO_STATIC_PATH
+    chown $PILO_USER:$PILO_USER $PILO_STATIC_PATH/collection
     #zfs create -p $root/stash
     #zfs create -p $root/static/filing/2025
     pilo init
