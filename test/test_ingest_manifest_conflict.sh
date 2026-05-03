@@ -14,6 +14,6 @@ capture_status pilo ingest-pile
 assert_command_fail expected checksum conflict
 echo "$OUTPUT" | assert_grep "collision"
 # manifest still valid
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE
 # canonical unchanged
 assert_grep original < $canonical

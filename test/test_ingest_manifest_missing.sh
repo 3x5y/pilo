@@ -6,9 +6,10 @@ file=file.txt
 mkfile data $file
 capture_file $file
 # ensure no manifest exists
-rm -f /$PILE/.manifest 2>/dev/null || true
+manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+rm -f $manifest 2>/dev/null || true
 
 pilo ingest-pile
 
-assert_file_exists /$PILE/.manifest
-assert_manifest_valid /$PILE
+assert_file_exists $manifest
+assert_manifest_valid pile /$PILE

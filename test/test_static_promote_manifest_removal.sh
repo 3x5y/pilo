@@ -10,5 +10,6 @@ with_writable $PILE \
     mv /$PILE/in/$file /$PILE/out/collection
 pilo static-promote
 
-cat /$PILE/.manifest
-assert_not_grep "./in/$file$" < /$PILE/.manifest
+manifest=$PILO_ADMIN_PATH/manifest/pile.manifest
+cat $manifest
+assert_not_grep "./in/$file$" < $manifest

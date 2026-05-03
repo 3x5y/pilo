@@ -17,4 +17,4 @@ mv	in/b.txt	sort/b.txt
 assert_file_exists /$PILE/sort/a.txt
 assert_file_exists /$PILE/sort/b.txt
 
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE

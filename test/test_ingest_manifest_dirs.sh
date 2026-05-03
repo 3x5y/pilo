@@ -6,5 +6,5 @@ mkintake data $file
 
 pilo ingest-pile
 
-assert_manifest_entry /$PILE " \./in/$file$"
-assert_manifest_valid /$PILE
+assert_manifest_entry pile " \./in/$file$"
+assert_manifest_valid pile /$PILE

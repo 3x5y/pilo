@@ -11,4 +11,4 @@ pilo rewrite "mv	in/$file	sort/$file"
 
 assert_not_exists /$PILE/in/$file
 assert_file_exists /$PILE/sort/$file
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE

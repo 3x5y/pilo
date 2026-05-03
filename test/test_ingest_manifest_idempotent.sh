@@ -7,11 +7,13 @@ mkfile data $file
 capture_file $file
 pilo ingest-pile
 
-cp /$PILE/.manifest $TMP/manifest_before
+manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+
+cp $manifest $TMP/manifest_before
 
 # re-upload identical file
 mkintake data $file
 pilo ingest-pile
 
-diff -u $TMP/manifest_before /$PILE/.manifest \
+diff -u $TMP/manifest_before $manifest \
     || fail "manifest changed on idempotent ingest"

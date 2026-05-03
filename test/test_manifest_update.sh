@@ -12,4 +12,4 @@ pilo ingest-pile
 
 pilo manifest-update
 
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE

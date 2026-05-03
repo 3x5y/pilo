@@ -11,9 +11,10 @@ mkintake data $file
 pilo ingest-pile
 
 # manifest still valid
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE
 
+manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
 # only one entry
-count=$(grep -c " \./in/$file$" /$PILE/.manifest) \
+count=$(grep -c " \./in/$file$" $manifest) \
     || fail "file not present in manifest"
 [ "$count" -eq 1 ] || fail "duplicate manifest entries"

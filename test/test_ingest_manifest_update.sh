@@ -8,5 +8,5 @@ capture_file $file
 pilo ingest-pile
 
 assert_file_exists /$PILE/in/$file
-assert_manifest_valid /$PILE
-assert_manifest_entry /$PILE " \./in/$file$"
+assert_manifest_valid pile /$PILE
+assert_manifest_entry pile " \./in/$file$"

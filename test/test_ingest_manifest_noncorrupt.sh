@@ -13,7 +13,7 @@ capture_status pilo ingest-pile
 assert_command_fail
 
 # manifest must still be valid
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE
 
 # and still reflect original state
 assert_grep good < /$PILE/in/b.txt

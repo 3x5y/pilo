@@ -23,4 +23,4 @@ assert_not_exists /$PILE/in/b.txt
 assert_grep original < /$PILE/in/a.txt
 
 # manifest must still verify
-(cd /$PILE && sha256sum --quiet --strict -c .manifest)
+assert_manifest_valid pile /$PILE

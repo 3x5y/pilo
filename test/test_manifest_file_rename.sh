@@ -11,6 +11,7 @@ with_writable $PILE \
     mv /$PILE/in/$file /$PILE/sort/$file
 pilo manifest-update
 
-assert_grep " \./sort/$file$" < /$PILE/.manifest
-assert_not_grep " \./in/$file$" < /$PILE/.manifest
-assert_manifest_valid /$PILE
+manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+assert_grep " \./sort/$file$" < $manifest
+assert_not_grep " \./in/$file$" < $manifest
+assert_manifest_valid pile /$PILE

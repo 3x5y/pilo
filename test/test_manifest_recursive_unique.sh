@@ -6,5 +6,6 @@ mkintake data b/file.txt
 
 pilo ingest-pile
 
-count=$(grep -c "file.txt$" /$PILE/.manifest)
+manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+count=$(grep -c "file.txt$" $manifest)
 [ "$count" -eq 2 ] || fail "expected two distinct entries"

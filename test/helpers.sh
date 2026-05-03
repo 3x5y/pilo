@@ -108,16 +108,25 @@ assert_command_fail() {
 }
 
 assert_manifest_entry() {
-    dir="$1"
+    subset="$1"
     entry="$2"
-    assert_grep "$entry" < "$dir"/.manifest \
-        || fail "missing entry '$entry' in '$dir/.manifest'"
+    case $subset in
+        pile) manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest ;;
+        static) manifest=$PILO_STATIC_PATH/.manifest ;;
+    esac
+    assert_grep "$entry" < "$manifest" \
+        || fail "missing entry '$entry' in '$manifest'"
 }
 
 assert_manifest_valid() {
-    dir="$1"
-    (cd "$dir" && sha256sum --quiet --strict -c .manifest) \
-        || fail "manifest '$dir/.manifest is invalid"
+    subset="$1"
+    dir="$2"
+    case $subset in
+        pile) manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest ;;
+        static) manifest=$PILO_STATIC_PATH/.manifest ;;
+    esac
+    (cd "$dir" && sha256sum --quiet --strict -c "$manifest") \
+        || fail "manifest $manifest is invalid"
 }
 
 assert_owner() {

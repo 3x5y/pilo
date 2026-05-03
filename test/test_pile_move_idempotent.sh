@@ -10,4 +10,4 @@ pilo ingest-pile
 pilo rewrite "mv	in/$file	sort/$file" >/dev/null || true
 
 assert_file_exists /$PILE/sort/$file
-assert_manifest_valid /$PILE
+assert_manifest_valid pile /$PILE

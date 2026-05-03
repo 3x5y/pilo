@@ -8,10 +8,11 @@ mkfile data $file
 capture_file $file
 pilo ingest-pile
 with_writable $PILE \
-    mkdir -p /$PILE/out/$archive/$dir
+    runuser mkdir -p /$PILE/out/$archive/$dir
 with_writable $PILE \
     mv /$PILE/in/$file /$PILE/out/$archive/$dir
 zfs create -p $STATIC/$archive
+chown $PILO_USER:$PILO_USER /$STATIC/$archive
 
 pilo static-promote
 
