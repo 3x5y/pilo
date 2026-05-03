@@ -2,6 +2,8 @@
 set -eu
 
 pile=$PILO_PILE_PATH
+manifest_dir="$PILO_ADMIN_PATH"/manifest
+manifest="$manifest_dir"/pile.manifest
 
 tmp=$(tmpfile)
 chmod +r $tmp
@@ -10,10 +12,16 @@ require_dir "$pile"
 cd $pile
 generate_manifest > "$tmp"
 
-as_user mkdir -p "$PILO_ADMIN_PATH"/manifest
-if [ ! -d "$PILO_ADMIN_PATH/.git" ]
+if [ ! -d "$manifest_dir/.git" ]
 then
-    git -c init.defaultBranch=master \
-        init "$PILO_ADMIN_PATH" >/dev/null
+    as_user \
+        git -c init.defaultBranch=master \
+        init "$manifest_dir" >/dev/null
 fi
-as_user cp $tmp "$PILO_ADMIN_PATH"/manifest/pile.manifest
+
+as_user cp $tmp "$manifest"
+as_user git -C "$manifest_dir" add "$manifest"
+if ! as_user git -C "$manifest_dir" diff --quiet --cached
+then
+    as_user git -C "$manifest_dir" commit -m "manifest update" >/dev/null
+fi

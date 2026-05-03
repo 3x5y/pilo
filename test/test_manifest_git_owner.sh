@@ -7,4 +7,4 @@ pilo ingest-pile
 
 pilo manifest-update
 
-assert_dir_exists "$PILO_ADMIN_PATH"/manifest/.git
+assert_owner $PILO_USER "$PILO_ADMIN_PATH"/manifest/.git

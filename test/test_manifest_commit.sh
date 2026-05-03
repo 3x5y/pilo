@@ -7,4 +7,5 @@ pilo ingest-pile
 
 pilo manifest-update
 
-assert_dir_exists "$PILO_ADMIN_PATH"/manifest/.git
+cd "$PILO_ADMIN_PATH"/manifest
+runuser git log --oneline | assert_grep "manifest update"
