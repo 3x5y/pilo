@@ -71,6 +71,18 @@ def files_equal(a, b):
     return filecmp.cmp(a, b, shallow=False)
 
 
+def domain(rel: Path):
+    parts = rel.parts
+    if not parts:
+        return "invalid"
+
+    if parts[0] in ("in", "out", "sort"):
+        return "pile"
+    if parts[0] in ("collection", "filing"):
+        return "static"
+    return "invalid"
+
+
 class Context:
     def __init__(self, environ=os.environ, args=None):
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
@@ -83,8 +95,27 @@ class Context:
         self.user = environ["PILO_USER"]
         self.args = args and args[1:] or []
 
-    def dataset_for(self, target):
-        return f"{self.static_dataset}/{target}"
+    def dataset_for(self, rel: Path):
+        parts = rel.parts
+
+        if parts[0] in ("in", "out", "sort"):
+            return self.pile_dataset
+        if parts[0] == "collection":
+            return f"{self.static_dataset}/collection"
+        if parts[0] == "filing":
+            if len(parts) < 2:
+                fatal("invalid filing path")
+            return f"{self.static_dataset}/filing/{parts[1]}"
+
+        fatal(f"no dataset for path: {rel}")
+
+    def resolve_path(self, rel: Path):
+        if rel.parts[0] in ("in", "out", "sort"):
+            return self.pile_path / rel
+        elif rel.parts[0] in ("collection", "filing"):
+            return self.static_path / rel
+        else:
+            fatal(f"invalid path root: {rel}")
 
     def as_user(self, cmd):
         if os.geteuid() == 0:

@@ -15,23 +15,24 @@ def main():
     if not out_path.is_dir():
         return
 
+    def dataset_for(target):
+        return f"{cx.static_dataset}/{target}"
+
     def validate_file(src, target, rel):
-        dataset = cx.dataset_for(target)
+        static_dataset = dataset_for(target)
+        pilo.require_dataset(static_dataset)
         dst = cx.static_path / target / rel
-        pilo.require_dataset(dataset)
         if dst.is_file():
             if not pilo.files_equal(src, dst):
                 pilo.fatal(f"destination conflict for {rel}")
 
     def apply_file(src, target, rel):
-        dataset = cx.dataset_for(target)
+        static_dataset = dataset_for(target)
         dst = cx.static_path / target / rel
         dst_dir = dst.parent
-
         if not dst.is_file():
-            with pilo.dataset_writable(dataset):
+            with pilo.dataset_writable(static_dataset):
                 cx.copy(src, dst)
-
         with pilo.dataset_writable(cx.pile_dataset):
             os.remove(src)
 
@@ -45,10 +46,8 @@ def main():
     # collect files
     col_dir = out_path / "collection"
     fil_dir = out_path / "filing"
-
     col_files = sorted(pilo.iter_files(col_dir)) if col_dir.is_dir() else []
     fil_files = sorted(pilo.iter_files(fil_dir)) if fil_dir.is_dir() else []
-
     if not col_files and not fil_files:
         pilo.fatal("/out/ directory empty")
 
@@ -63,9 +62,9 @@ def main():
         if len(rel.parts) < 2:
             pilo.fatal("invalid filing structure")
 
-        dataset = rel.parts[0]
+        subset = rel.parts[0]
         subpath = Path(*rel.parts[1:])
-        validate_file(f, f"filing/{dataset}", subpath)
+        validate_file(f, f"filing/{subset}", subpath)
 
     # --- apply phase ---
 
@@ -75,10 +74,9 @@ def main():
 
     for f in fil_files:
         rel = f.relative_to(fil_dir)
-        parts = rel.parts
-        dataset = parts[0]
-        subpath = Path(*parts[1:])
-        apply_file(f, f"filing/{dataset}", subpath)
+        subset = rel.parts[0]
+        subpath = Path(*rel.parts[1:])
+        apply_file(f, f"filing/{subset}", subpath)
 
     # update manifests
     subprocess.run(["pilo", "manifest-update"], check=True)
