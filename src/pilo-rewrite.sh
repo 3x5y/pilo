@@ -1,17 +1,52 @@
 #!/bin/sh
 set -eu
 
-dataset=$PILO_PILE_DATASET
-path=$PILO_PILE_PATH
-
 require_arg "${1:-}" "missing command"
 
 CMD="$1"
 TAB='	'
 
 
+domain() {
+    case "$1" in
+        in/*|out/*|sort/*) echo pile ;;
+        collection/*|filing/*) echo static ;;
+        *) echo invalid ;;
+    esac
+}
+
+resolve_path() {
+    case "$1" in
+        in/*|out/*|sort/*)
+            echo "$PILO_PILE_PATH/$1"
+            ;;
+        collection/*|filing/*)
+            echo "$PILO_STATIC_PATH/$1"
+            ;;
+        *)
+            echo "ERROR: invalid path root: $1"
+            exit 1
+            ;;
+    esac
+}
+
+dataset_for_path() {
+    case "$1" in
+        in/*|out/*)
+            echo "$PILO_PILE_DATASET"
+            ;;
+        collection/*)
+            echo "$PILO_STATIC_DATASET/collection"
+            ;;
+        filing/*)
+            sub=$(echo "$1" | cut -d/ -f2)
+            echo "$PILO_STATIC_DATASET/filing/$sub"
+            ;;
+    esac
+}
+
 exec_op() {
-    mode="$1"   # validate | apply
+    mode="$1" # validate | apply
     op="$2"
     src="$3"
     dst="$4"
@@ -35,8 +70,14 @@ exec_op() {
             ;;
     esac
 
-    SRC="$path/$src"
-    DST="$path/$dst"
+    if [ "$(domain "$src")" != "$(domain "$dst")" ]
+    then
+        echo "ERROR: cross-domain move not allowed"
+        exit 1
+    fi
+
+    SRC=$(resolve_path "$src")
+    DST=$(resolve_path "$dst")
 
     [ -f "$SRC" ] || fatal "source missing: $src"
 
@@ -50,7 +91,14 @@ exec_op() {
     fi
 
     DIR=$(dirname "$DST")
+    ds=$(dataset_for_path "$src")
+    with_writable $ds \
+        write_change "$SRC" "$DST"
+}
 
+write_change() {
+    SRC=$1
+    DST=$2
     if [ -f "$DST" ]
     then
         rm "$SRC"
@@ -99,6 +147,15 @@ add_tmpfile_cleanup $op_list $src_seen $dst_seen
 
 printf "%s\n" "$CMD" > "$op_list"
 validate_ops
-with_writable $dataset \
-    apply_ops
+apply_ops
 pilo manifest-update
+# update static manifest too
+(
+    cd "$PILO_STATIC_PATH"
+    tmp=$(mktemp)
+    find . -type f ! -name .manifest -print0 \
+      | LC_COLLATE=C sort -z \
+      | xargs -r0 sha256sum > "$tmp"
+    with_writable "$PILO_STATIC_DATASET" \
+        mv "$tmp" .manifest
+)

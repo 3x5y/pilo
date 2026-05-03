@@ -8,9 +8,9 @@ manifest="$manifest_dir"/pile.manifest
 tmp=$(tmpfile)
 chmod +r $tmp
 
-require_dir "$pile"
 cd $pile
 generate_manifest > "$tmp"
+add_tmpfile_cleanup $tmp
 
 if [ ! -d "$manifest_dir/.git" ]
 then
