@@ -1,6 +1,6 @@
 
 require_arg() {
-    [ -n "${1:-}" ] || die "missing argument: $2"
+    [ -n "${1:-}" ] || fatal "missing argument: $2"
 }
 
 fatal() {
