@@ -9,6 +9,22 @@ DST_REL="$2"
     exit 1
 }
 
+dataset_for_path() {
+    case "$1" in
+        in/*)
+            echo "$PILO_PILE_DATASET"
+            ;;
+        collection/*)
+            echo "$PILO_STATIC_DATASET/collection"
+            ;;
+        filing/*)
+            sub=$(echo "$1" | cut -d/ -f2)
+            echo "$PILO_STATIC_DATASET/filing/$sub"
+            ;;
+    esac
+}
+
+
 case "$DST_REL" in
     in/*)
         DST="$PILO_PILE_PATH/$DST_REL"
@@ -16,7 +32,7 @@ case "$DST_REL" in
         ;;
     collection/*|filing/*)
         DST="$PILO_STATIC_PATH/$DST_REL"
-        # dataset resolution later
+        DATASET=$(dataset_for_path "$DST_REL")
         ;;
     *)
         echo "ERROR: invalid target path"
