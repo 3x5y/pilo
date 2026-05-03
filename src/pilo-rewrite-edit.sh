@@ -14,8 +14,7 @@ if [ "${1:-}" = "--script" ]
 then
     tmp_before=$(mktemp)
     tmp_after=$(mktemp)
-
-    trap "rm -f $tmp_before $tmp_after" EXIT
+    add_tmpfile_cleanup $tmp_before $tmp_after
 
     cd "$pile"
     find in -type f | LC_COLLATE=C sort > "$tmp_before"
@@ -40,7 +39,7 @@ then
 fi
 
 tmp=$(mktemp)
-trap "rm -f $tmp" EXIT
+add_tmpfile_cleanup $tmp
 
 cd "$pile"
 find in -type f | LC_COLLATE=C sort > "$tmp"

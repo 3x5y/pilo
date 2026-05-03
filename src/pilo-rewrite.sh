@@ -32,7 +32,7 @@ resolve_path() {
 
 dataset_for_path() {
     case "$1" in
-        in/*|out/*)
+        in/*|out/*|sort/*)
             echo "$PILO_PILE_DATASET"
             ;;
         collection/*)
@@ -90,21 +90,21 @@ exec_op() {
         return
     fi
 
-    DIR=$(dirname "$DST")
     ds=$(dataset_for_path "$src")
     with_writable $ds \
         write_change "$SRC" "$DST"
 }
 
 write_change() {
-    SRC=$1
-    DST=$2
-    if [ -f "$DST" ]
+    local src=$1
+    local dst=$2
+    if [ -f "$dst" ]
     then
-        rm "$SRC"
+        rm "$src"
     else
-        mkdir -p "$DIR"
-        mv "$SRC" "$DST"
+        local dir=$(dirname "$dst")
+        mkdir -p "$dir"
+        mv "$src" "$dst"
     fi
 }
 
