@@ -22,7 +22,13 @@ then
 
     cat > "$tmp_after"
 
-    diff -u "$tmp_before" "$tmp_after" || true
+    paste "$tmp_before" "$tmp_after" | while read old new
+    do
+        if [ "$old" != "$new" ]
+        then
+            printf "mv\t%s\t%s\n" "$old" "$new"
+        fi
+    done
 
     exit 0
 fi
