@@ -2,7 +2,7 @@
 set -eu
 
 pile=$PILO_PILE_PATH
-manifest=$pile/.manifest
+manifest="$PILO_ADMIN_PATH/manifest/pile.manifest"
 
 cd "$pile"
 [ -s "$manifest" ] || exit 0
