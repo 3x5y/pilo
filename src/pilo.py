@@ -95,3 +95,16 @@ def files_under(path):
         for f in files:
             result.append(os.path.join(root, f))
     return result
+
+
+class Context:
+    def __init__(self, environ=os.environ, args=None):
+        self.intake_dataset = environ["PILO_INTAKE_DATASET"]
+        self.pile_dataset = environ["PILO_PILE_DATASET"]
+        self.static_dataset = environ["PILO_STATIC_DATASET"]
+        self.admin_path = environ["PILO_ADMIN_PATH"]
+        self.intake_path = environ["PILO_INTAKE_PATH"]
+        self.pile_path = environ["PILO_PILE_PATH"]
+        self.static_path = environ["PILO_STATIC_PATH"]
+        self.user = environ["PILO_USER"]
+        self.args = args and args[1:] or []

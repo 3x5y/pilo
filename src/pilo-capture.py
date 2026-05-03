@@ -4,21 +4,23 @@ import os
 import shutil
 import sys
 
-from pilo import fatal, require_env, require_dataset
+from pilo import fatal, require_dataset, Context
 
 
 def main():
-    if len(sys.argv) < 2:
+    cx = Context(os.environ, sys.argv)
+
+    if not cx.args:
         fatal("missing argument: source file")
 
-    src = sys.argv[1]
+    src = cx.args[0]
+
     if not os.path.exists(src):
         fatal(f"source file missing: {src}")
 
-    intake_dataset = require_env("PILO_INTAKE_DATASET")
-    intake_path = require_env("PILO_INTAKE_PATH")
-    require_dataset(intake_dataset)
-    dst = os.path.join(intake_path, os.path.basename(src))
+    require_dataset(cx.intake_dataset)
+    name = os.path.basename(src)
+    dst = os.path.join(cx.intake_path, name)
 
     try:
         if os.path.isdir(src):

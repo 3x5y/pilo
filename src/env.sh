@@ -1,6 +1,7 @@
 
 : "${PILO_ROOT:?PILO_ROOT not set}"
 : "${PILO_PATH:?PILO_PATH not set}"
+: "${PILO_USER:?PILO_USER not set}"
 
 export PILO_ACTIVE_DATASET="$PILO_ROOT/active"
 export PILO_ADMIN_DATASET="$PILO_ROOT/active/admin"

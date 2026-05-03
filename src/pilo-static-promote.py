@@ -4,7 +4,7 @@ import sys
 import subprocess
 import shutil
 
-import pilo as P
+import pilo
 
 def run(cmd, **kwargs):
     result = subprocess.run(cmd, text=True, capture_output=True, **kwargs)
@@ -14,37 +14,32 @@ def run(cmd, **kwargs):
 
 
 def main():
-
-    pile_dataset = os.environ["PILO_PILE_DATASET"]
-    static_dataset = os.environ["PILO_STATIC_DATASET"]
-    static_path = os.environ["PILO_STATIC_PATH"]
-    out_path = os.path.join(os.environ["PILO_PILE_PATH"], "out")
-    user = os.environ['PILO_USER']
+    cx = pilo.Context(os.environ)
+    out_path = os.path.join(cx.pile_path, "out")
 
     if not os.path.isdir(out_path):
         return
 
     def validate_file(src, target, rel):
-        dataset = f"{static_dataset}/{target}"
-        dst = os.path.join(static_path, target, rel)
-        P.require_dataset(dataset)
+        dataset = f"{cx.static_dataset}/{target}"
+        dst = os.path.join(cx.static_path, target, rel)
+        pilo.require_dataset(dataset)
         if os.path.isfile(dst):
-            if not P.files_equal(src, dst):
-                P.fatal(f"destination conflict for {rel}")
+            if not pilo.files_equal(src, dst):
+                pilo.fatal(f"destination conflict for {rel}")
 
     def apply_file(src, target, rel):
-        dataset = f"{static_dataset}/{target}"
-        dst = os.path.join(static_path, target, rel)
+        dataset = f"{cx.static_dataset}/{target}"
+        dst = os.path.join(cx.static_path, target, rel)
         dst_dir = os.path.dirname(dst)
 
         if not os.path.isfile(dst):
-            with P.dataset_writable(dataset):
-                P.as_user(["mkdir", "-p", dst_dir])
-                #P.as_user(['cp', '-a', src, dst])
+            with pilo.dataset_writable(dataset):
+                pilo.as_user(["mkdir", "-p", dst_dir])
                 shutil.copy2(src, dst) # doesn't preserve owner
-                shutil.chown(dst, user, user)
+                shutil.chown(dst, cx.user, cx.user)
 
-        with P.dataset_writable(pile_dataset):
+        with pilo.dataset_writable(cx.pile_dataset):
             os.remove(src)
 
 
@@ -54,17 +49,17 @@ def main():
         if not os.path.exists(full):
             continue
         if name not in ("collection", "filing"):
-            P.fatal(f"invalid /out/ structure: {name}")
+            pilo.fatal(f"invalid /out/ structure: {name}")
 
     # collect files
     collection_dir = os.path.join(out_path, "collection")
     filing_dir = os.path.join(out_path, "filing")
 
-    col_files = P.files_under(collection_dir) if os.path.isdir(collection_dir) else []
-    fil_files = P.files_under(filing_dir) if os.path.isdir(filing_dir) else []
+    col_files = pilo.files_under(collection_dir) if os.path.isdir(collection_dir) else []
+    fil_files = pilo.files_under(filing_dir) if os.path.isdir(filing_dir) else []
 
     if not col_files and not fil_files:
-        P.fatal("/out/ directory empty")
+        pilo.fatal("/out/ directory empty")
 
     # --- validation phase ---
 
@@ -76,7 +71,7 @@ def main():
         rel = os.path.relpath(f, filing_dir)
         parts = rel.split("/", 1)
         if len(parts) != 2:
-            P.fatal("invalid filing structure")
+            pilo.fatal("invalid filing structure")
 
         dataset, subpath = parts
         validate_file(f, f"filing/{dataset}", subpath)

@@ -18,6 +18,7 @@ runuser() {
         PATH=$PATH \
         PILO_ROOT=$PILO_ROOT \
         PILO_PATH=$PILO_PATH \
+        PILO_USER=$PILO_USER \
         PILO_ADMIN_PATH=$PILO_ADMIN_PATH \
         PILO_INTAKE_PATH=$PILO_INTAKE_PATH \
         PILO_PILE_PATH=$PILO_PILE_PATH \

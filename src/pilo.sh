@@ -19,7 +19,7 @@ then
     . "$HERE"/pilo.conf.sh
 fi
 
-export PILO_ROOT PILO_PATH
+export PILO_ROOT PILO_PATH PILO_USER
 
 . "$HERE"/env.sh
 
