@@ -1,4 +1,5 @@
 import filecmp
+import hashlib
 import os
 import shutil
 import subprocess
@@ -25,8 +26,10 @@ def zfs_set_readonly(dataset, state):
 
 def zfs_get_readonly(dataset):
     cmd = 'zfs get -Ho value readonly ' + dataset
-    result = subprocess.run(cmd.split(), capture_output=True,
-                            text=True, check=True)
+    result = subprocess.run(cmd.split(),
+                            capture_output=True,
+                            text=True,
+                            check=True)
     return result.stdout.strip() == 'on'
 
 
@@ -37,6 +40,13 @@ def dataset_exists(dataset):
         stderr=subprocess.DEVNULL,
     )
     return result.returncode == 0
+
+
+def generate_manifest_lines(root: Path):
+    for path in sorted(iter_files(root)):
+        rel = path.relative_to(root)
+        h = hashlib.sha256(path.read_bytes()).hexdigest()
+        yield f"{h}  ./{rel}"
 
 
 @contextmanager
@@ -117,11 +127,13 @@ class Context:
         else:
             fatal(f"invalid path root: {rel}")
 
-    def as_user(self, cmd):
+    def as_user(self, cmd, check=True, **kw):
         if os.geteuid() == 0:
-            return subprocess.run(["sudo", "-u", self.user] + cmd, check=True)
+            return subprocess.run(["sudo", "-u", self.user] + cmd,
+                                  check=check,
+                                  **kw)
         else:
-            return subprocess.run(cmd, check=True)
+            return subprocess.run(cmd, check=check, **kw)
 
     def ensure_owned(self, path):
         shutil.chown(path, self.user, self.user)
@@ -138,3 +150,21 @@ class Context:
         self.ensure_dir(dst.parent)
         shutil.copy2(str(src), str(dst))
         self.ensure_owned(dst)
+
+    def ensure_git_repo(self, path: Path):
+        git_path = path / ".git"
+        if not git_path.is_dir():
+            self.ensure_dir(path)
+            cmd = ["git", "-c", "init.defaultBranch=master", "init", str(path)]
+            self.as_user(cmd, capture_output=True)
+
+    def git_commit_if_changed(self, repo: Path, file: Path, message: str):
+        cmd = ["git", "-C", str(repo), "add", str(file)]
+        self.as_user(cmd)
+
+        cmd = ["git", "-C", str(repo), "diff", "--quiet", "--cached"]
+        result = self.as_user(cmd, check=False)
+
+        if result.returncode != 0:
+            cmd = [ "git", "-C", str(repo), "commit", "-m", message]
+            self.as_user(cmd, capture_output=True)
