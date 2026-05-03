@@ -3,37 +3,32 @@ import os
 import sys
 import subprocess
 import shutil
+from pathlib import Path
 
 import pilo
-
-def run(cmd, **kwargs):
-    result = subprocess.run(cmd, text=True, capture_output=True, **kwargs)
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip())
-    return result.stdout
 
 
 def main():
     cx = pilo.Context(os.environ)
-    out_path = os.path.join(cx.pile_path, "out")
+    out_path = cx.pile_path / "out"
 
-    if not os.path.isdir(out_path):
+    if not out_path.is_dir():
         return
 
     def validate_file(src, target, rel):
-        dataset = f"{cx.static_dataset}/{target}"
-        dst = os.path.join(cx.static_path, target, rel)
+        dataset = cx.dataset_for(target)
+        dst = cx.static_path / target / rel
         pilo.require_dataset(dataset)
-        if os.path.isfile(dst):
+        if dst.is_file():
             if not pilo.files_equal(src, dst):
                 pilo.fatal(f"destination conflict for {rel}")
 
     def apply_file(src, target, rel):
-        dataset = f"{cx.static_dataset}/{target}"
-        dst = os.path.join(cx.static_path, target, rel)
-        dst_dir = os.path.dirname(dst)
+        dataset = cx.dataset_for(target)
+        dst = cx.static_path / target / rel
+        dst_dir = dst.parent
 
-        if not os.path.isfile(dst):
+        if not dst.is_file():
             with pilo.dataset_writable(dataset):
                 cx.copy(src, dst)
 
@@ -41,19 +36,18 @@ def main():
             os.remove(src)
 
     # validate top-level dirs
-    for name in os.listdir(out_path):
-        full = os.path.join(out_path, name)
-        if not os.path.exists(full):
+    for child in out_path.iterdir():
+        if not child.exists():
             continue
-        if name not in ("collection", "filing"):
+        if child.name not in ("collection", "filing"):
             pilo.fatal(f"invalid /out/ structure: {name}")
 
     # collect files
-    collection_dir = os.path.join(out_path, "collection")
-    filing_dir = os.path.join(out_path, "filing")
+    col_dir = out_path / "collection"
+    fil_dir = out_path / "filing"
 
-    col_files = pilo.files_under(collection_dir) if os.path.isdir(collection_dir) else []
-    fil_files = pilo.files_under(filing_dir) if os.path.isdir(filing_dir) else []
+    col_files = sorted(pilo.iter_files(col_dir)) if col_dir.is_dir() else []
+    fil_files = sorted(pilo.iter_files(fil_dir)) if fil_dir.is_dir() else []
 
     if not col_files and not fil_files:
         pilo.fatal("/out/ directory empty")
@@ -61,27 +55,29 @@ def main():
     # --- validation phase ---
 
     for f in col_files:
-        rel = os.path.relpath(f, collection_dir)
+        rel = f.relative_to(col_dir)
         validate_file(f, "collection", rel)
 
     for f in fil_files:
-        rel = os.path.relpath(f, filing_dir)
-        parts = rel.split("/", 1)
-        if len(parts) != 2:
+        rel = f.relative_to(fil_dir)
+        if len(rel.parts) < 2:
             pilo.fatal("invalid filing structure")
 
-        dataset, subpath = parts
+        dataset = rel.parts[0]
+        subpath = Path(*rel.parts[1:])
         validate_file(f, f"filing/{dataset}", subpath)
 
     # --- apply phase ---
 
     for f in col_files:
-        rel = os.path.relpath(f, collection_dir)
+        rel = f.relative_to(col_dir)
         apply_file(f, "collection", rel)
 
     for f in fil_files:
-        rel = os.path.relpath(f, filing_dir)
-        dataset, subpath = rel.split("/", 1)
+        rel = f.relative_to(fil_dir)
+        parts = rel.parts
+        dataset = parts[0]
+        subpath = Path(*parts[1:])
         apply_file(f, f"filing/{dataset}", subpath)
 
     # update manifests

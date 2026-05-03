@@ -11,20 +11,20 @@ def verify_manifest(cx, subset):
     if subset == 'pile':
         base_dir = cx.pile_path
     elif subset in ('collection', 'filing'):
-        base_dir = os.path.join(cx.static_path, subset)
+        base_dir = cx.static_path / subset
     else:
         raise Exception(f"Unsupported subset '{subset}'")
 
-    manifest = os.path.join(cx.admin_path, "manifest", f"{subset}.manifest")
+    manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
 
     # equivalent to [ -s "$manifest" ] || return 0
-    if not os.path.isfile(manifest) or os.path.getsize(manifest) == 0:
+    if not manifest.is_file() or manifest.stat().st_size == 0:
         return
 
     try:
         subprocess.run(
             ["sha256sum", "--quiet", "--strict", "-c", manifest],
-            cwd=base_dir,
+            cwd=str(base_dir),
             check=True,
         )
     except subprocess.CalledProcessError as e:

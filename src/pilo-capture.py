@@ -3,6 +3,7 @@
 import os
 import shutil
 import sys
+from pathlib import Path
 
 from pilo import fatal, require_dataset, Context
 
@@ -13,17 +14,19 @@ def main():
     if not cx.args:
         fatal("missing argument: source file")
 
-    src = cx.args[0]
+    src = Path(cx.args[0])
 
-    if not os.path.exists(src):
+    if not src.exists():
         fatal(f"source file missing: {src}")
 
     require_dataset(cx.intake_dataset)
-    name = os.path.basename(src)
-    dst = os.path.join(cx.intake_path, name)
+
+    dst = cx.intake_path / src.name
+    if dst.exists():
+        fatal(f"destination already exists: {dst}")
 
     try:
-        if os.path.isdir(src):
+        if src.is_dir():
             shutil.copytree(src, dst, copy_function=shutil.copy2, dirs_exist_ok=True)
         else:
             shutil.copy2(src, dst)

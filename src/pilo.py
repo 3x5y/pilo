@@ -5,18 +5,12 @@ import subprocess
 import sys
 
 from contextlib import contextmanager
+from pathlib import Path
 
 
 def fatal(msg):
     print(f"ERROR: {msg}", file=sys.stderr)
     sys.exit(1)
-
-
-def require_env(name):
-    val = os.environ.get(name)
-    if not val:
-        fatal(f"{name} not set in environment")
-    return val
 
 
 def run(cmd, check=True):
@@ -63,39 +57,18 @@ def require_dataset(dataset):
 
 
 def list_files(root):
-    files = []
-    for base, _, filenames in os.walk(root):
-        for f in filenames:
-            files.append(os.path.join(base, f))
-    return sorted(files)
+    return sorted(iter_files(root))
 
 
-def ensure_dir(path, user):
-    if not os.path.isdir(path):
-        run(["sudo", "-u", user, "mkdir", "-p", path])
+def iter_files(root):
+    root = Path(root)
+    for p in root.rglob("*"):
+        if p.is_file():
+            yield p
 
 
 def files_equal(a, b):
     return filecmp.cmp(a, b, shallow=False)
-
-
-def as_user(cmd):
-    user = os.environ.get("PILO_USER")
-    if not user:
-        fatal("PILO_USER not set")
-
-    if os.geteuid() == 0:
-        return subprocess.run(["sudo", "-u", user] + cmd, check=True)
-    else:
-        return subprocess.run(cmd, check=True)
-
-
-def files_under(path):
-    result = []
-    for root, _, files in os.walk(path):
-        for f in files:
-            result.append(os.path.join(root, f))
-    return result
 
 
 class Context:
@@ -103,12 +76,15 @@ class Context:
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
         self.pile_dataset = environ["PILO_PILE_DATASET"]
         self.static_dataset = environ["PILO_STATIC_DATASET"]
-        self.admin_path = environ["PILO_ADMIN_PATH"]
-        self.intake_path = environ["PILO_INTAKE_PATH"]
-        self.pile_path = environ["PILO_PILE_PATH"]
-        self.static_path = environ["PILO_STATIC_PATH"]
+        self.admin_path = Path(environ["PILO_ADMIN_PATH"])
+        self.intake_path = Path(environ["PILO_INTAKE_PATH"])
+        self.pile_path = Path(environ["PILO_PILE_PATH"])
+        self.static_path = Path(environ["PILO_STATIC_PATH"])
         self.user = environ["PILO_USER"]
         self.args = args and args[1:] or []
+
+    def dataset_for(self, target):
+        return f"{self.static_dataset}/{target}"
 
     def as_user(self, cmd):
         if os.geteuid() == 0:
@@ -123,13 +99,11 @@ class Context:
         self.as_user(["mkdir", "-p", path])
 
     def move(self, src, dst):
-        dst_dir = os.path.dirname(dst)
-        self.ensure_dir(dst_dir)
-        shutil.move(src, dst)
+        self.ensure_dir(dst.parent)
+        shutil.move(str(src), str(dst))
         self.ensure_owned(dst)
 
     def copy(self, src, dst):
-        dst_dir = os.path.dirname(dst)
-        self.ensure_dir(dst_dir)
-        shutil.copy2(src, dst)
+        self.ensure_dir(dst.parent)
+        shutil.copy2(str(src), str(dst))
         self.ensure_owned(dst)

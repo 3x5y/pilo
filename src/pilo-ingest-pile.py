@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from pathlib import Path
 
 import pilo
 
@@ -11,27 +12,26 @@ def main():
     pilo.require_dataset(cx.intake_dataset)
     pilo.require_dataset(cx.pile_dataset)
 
-    files = pilo.list_files(cx.intake_path)
+    files = list(pilo.iter_files(cx.intake_path))
 
     def validate_files():
         for src in files:
-            rel = os.path.relpath(src, cx.intake_path)
-            dst = os.path.join(cx.pile_path, "in", rel)
+            rel = src.relative_to(cx.intake_path)
+            dst = cx.pile_path / "in" / rel
 
-            if os.path.isfile(dst) and not pilo.files_equal(src, dst):
+            if dst.is_file() and not pilo.files_equal(src, dst):
                 pilo.fatal(f"name collision with different content: '{rel}'")
 
     def apply_changes():
         for src in files:
-            rel = os.path.relpath(src, cx.intake_path)
-            dst = os.path.join(cx.pile_path, "in", rel)
+            rel = src.relative_to(cx.intake_path)
+            dst = cx.pile_path / "in" / rel
 
-            if os.path.isfile(dst):
+            if dst.is_file():
                 if pilo.files_equal(src, dst):
-                    os.remove(src)
+                    src.unlink()
                 else:
-                    # redundant with validate check above?
-                    pilo.fatal(f"name collision with different content: '{rel}'")
+                    raise Error('validation is broken')
             else:
                 cx.move(src, dst)
 
