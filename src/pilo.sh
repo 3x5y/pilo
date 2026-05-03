@@ -19,14 +19,20 @@ then
     . "$HERE"/pilo.conf.sh
 fi
 
-: ${PILO_ROOT:=}
-: ${PILO_PATH:=}
+export PILO_ROOT PILO_PATH
 
 . "$HERE"/env.sh
 
 require_dir "$PILO_PATH"
 require_dataset "$PILO_ROOT"
 
-target="$HERE/pilo-$cmd.sh"
-[ -f "$target" ] || fatal "unknown command: $cmd"
-. "$target"
+target="$HERE/pilo-$cmd"
+if [ -f "$target".py ]
+then
+    exec python3 "$target".py "$@"
+elif [ -f "$target".sh ]
+then
+    . "$target".sh
+else
+    fatal "unknown command: $cmd"
+fi
