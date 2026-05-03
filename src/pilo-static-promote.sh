@@ -37,8 +37,7 @@ validate_file() {
     require_dataset "$dataset"
     if [ -f "$dst" ] && ! cmp -s "$src" "$dst"
     then
-        echo "ERROR: destination conflict for $rel"
-        exit 1
+        fatal "destination conflict for $rel"
     fi
 }
 
@@ -88,8 +87,7 @@ do
             subpath=${rel#*/}
             ;;
         *)
-            echo "ERROR: invalid filing structure"
-            exit 1
+            fatal "invalid filing structure"
             ;;
     esac
     validate_file "$f" "filing/$dataset" "$subpath"

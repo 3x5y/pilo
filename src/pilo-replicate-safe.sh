@@ -20,7 +20,7 @@ case "$STATUS" in
         exit $VERIFY_STATUS
         ;;
     *)
-        echo "ERROR: unknown verification state"
+        error "unknown verification state"
         echo "$VERIFY_OUTPUT"
         exit $VERIFY_STATUS
         ;;
@@ -34,7 +34,7 @@ POST_STATE=${POST_STATUS_LINE#STATUS=}
 if [ "$POST_STATE" != "OK" ]
 then
     echo "$POST"
-    echo "ERROR: replication did not converge"
+    error "replication did not converge"
     exit $POST_STATUS
 fi
 exit 0

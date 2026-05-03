@@ -23,8 +23,7 @@ then
 
     if sort "$tmp_after" | uniq -d | grep -q .
     then
-        echo "ERROR: duplicate entries in edited list"
-        exit 1
+        fatal "duplicate entries in edited list"
     fi
 
     paste "$tmp_before" "$tmp_after" | while read old new

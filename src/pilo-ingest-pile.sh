@@ -21,8 +21,7 @@ do
 
     if [ -f "$dst" ] && ! cmp -s "$src" "$dst"
     then
-        echo "ERROR: name collision with different content: '$rel'"
-        exit 1
+        fatal "name collision with different content: '$rel'"
     fi
 done < "$tmp_list"
 

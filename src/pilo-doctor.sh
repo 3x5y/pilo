@@ -3,29 +3,29 @@ set -eu
 
 STATUS=0
 
-error() {
-    echo "ERROR: $*" >&2
+warn() {
+    error "$@"
     STATUS=1
 }
 
 check_dataset() {
     if ! dataset_exists "$1"
     then
-        error "missing required dataset: $1"
+        warn "missing required dataset: $1"
     fi
 }
 
 check_readonly() {
     if [ "$(get_readonly "$1")" != on ]
     then
-        error "dataset not readonly: $1"
+        warn "dataset not readonly: $1"
     fi
 }
 
 check_dir() {
     if ! dir_exists "$1"
     then
-        error "missing directory: $1"
+        warn "missing directory: $1"
     fi
 }
 

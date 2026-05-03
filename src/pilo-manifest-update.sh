@@ -16,7 +16,7 @@ if [ ! -d "$manifest_dir/.git" ]
 then
     as_user \
         git -c init.defaultBranch=master \
-        init "$manifest_dir" >/dev/null
+            init "$manifest_dir" >/dev/null
 fi
 
 as_user cp $tmp "$manifest"

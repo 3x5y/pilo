@@ -24,8 +24,7 @@ resolve_path() {
             echo "$PILO_STATIC_PATH/$1"
             ;;
         *)
-            echo "ERROR: invalid path root: $1"
-            exit 1
+            fatal "invalid path root: $1"
             ;;
     esac
 }
@@ -72,8 +71,7 @@ exec_op() {
 
     if [ "$(domain "$src")" != "$(domain "$dst")" ]
     then
-        echo "ERROR: cross-domain move not allowed"
-        exit 1
+        fatal "cross-domain move not allowed"
     fi
 
     SRC=$(resolve_path "$src")

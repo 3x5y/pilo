@@ -3,8 +3,12 @@ require_arg() {
     [ -n "${1:-}" ] || fatal "missing argument: $2"
 }
 
-fatal() {
+error() {
     echo "ERROR: $*" >&2
+}
+
+fatal() {
+    error "$@"
     exit 1
 }
 
@@ -51,23 +55,19 @@ dataset_exists() {
 }
 
 require_dataset() {
-    if ! dataset_exists "$1"
-    then
-        echo "ERROR: missing required dataset: $1"
-        return 1
-    fi
+    dataset_exists "$1" || fatal "missing required dataset: $1"
 }
 
 dir_exists() {
     [ -d "$1" ]
 }
 
+file_exists() {
+    [ -f "$1" ]
+}
+
 require_dir() {
-    if ! dir_exists "$1"
-    then
-        echo "ERROR: path does not exist: $1"
-        return 1
-    fi
+    dir_exists "$1" || fatal "path does not exist: $1"
 }
 
 ensure_dir() {

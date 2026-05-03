@@ -4,10 +4,7 @@ set -eu
 SRC="$1"
 DST_REL="$2"
 
-[ -f "$SRC" ] || {
-    echo "ERROR: source file missing: $SRC"
-    exit 1
-}
+file_exists "$SRC" || fatal "source file missing: $SRC"
 
 dataset_for_path() {
     case "$1" in
@@ -35,15 +32,11 @@ case "$DST_REL" in
         DATASET=$(dataset_for_path "$DST_REL")
         ;;
     *)
-        echo "ERROR: invalid target path"
-        exit 1
+        fatal "invalid target path"
         ;;
 esac
 
-[ -f "$DST" ] || {
-    echo "ERROR: target does not exist: $DST_REL"
-    exit 1
-}
+file_exists "$DST" || fatal "target does not exist: $DST_REL"
 
 zfs set readonly=off "$DATASET"
 cp "$SRC" "$DST"
