@@ -87,6 +87,7 @@ init_system() {
     STASH=$root/stash
     STATIC=$root/static
     COLLECTION=$root/static/collection
+    FILING=$root/static/filing
     ADMIN_PATH=$mount/active/admin
     INTAKE_PATH=$mount/active/pile-intake
     PILE_PATH=$mount/active/pile-readonly
@@ -103,6 +104,7 @@ init_system() {
     zfs create -p $INTAKE
     zfs create -p $PILE
     zfs create -p $COLLECTION
+    zfs create -p $FILING
     chown $PILO_USER:$PILO_USER $PILO_ADMIN_PATH
     chown $PILO_USER:$PILO_USER $PILO_INTAKE_PATH
     chown $PILO_USER:$PILO_USER $PILO_PILE_PATH
