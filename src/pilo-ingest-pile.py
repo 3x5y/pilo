@@ -43,11 +43,8 @@ def main():
 
     validate_files()
 
-    try:
-        P.run(["zfs", "set", "readonly=off", pile_dataset])
+    with P.dataset_writable(pile_dataset):
         apply_changes()
-    finally:
-        P.run(["zfs", "set", "readonly=on", pile_dataset], check=False)
 
     P.run(["pilo", "manifest-update"])
 

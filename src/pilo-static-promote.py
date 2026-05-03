@@ -29,7 +29,7 @@ def main():
         dst = os.path.join(static_path, target, rel)
         P.require_dataset(dataset)
         if os.path.isfile(dst):
-            if not P.file_equal(src, dst):
+            if not P.files_equal(src, dst):
                 P.fatal(f"destination conflict for {rel}")
 
     def apply_file(src, target, rel):
@@ -38,17 +38,15 @@ def main():
         dst_dir = os.path.dirname(dst)
 
         if not os.path.isfile(dst):
-            def create():
+            with P.dataset_writable(dataset):
                 P.as_user(["mkdir", "-p", dst_dir])
                 #P.as_user(['cp', '-a', src, dst])
                 shutil.copy2(src, dst) # doesn't preserve owner
                 shutil.chown(dst, user, user)
-            P.with_writable(dataset, create)
 
-        def remove_src():
+        with P.dataset_writable(pile_dataset):
             os.remove(src)
 
-        P.with_writable(pile_dataset, remove_src)
 
     # validate top-level dirs
     for name in os.listdir(out_path):
