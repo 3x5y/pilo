@@ -112,8 +112,3 @@ done < "$fil_tmp"
 
 # update manifests
 pilo manifest-update
-tmp=$(mktemp)
-cd "$static_path"
-generate_manifest > "$tmp"
-with_writable $static_dataset \
-    mv "$tmp" .manifest

@@ -147,13 +147,3 @@ printf "%s\n" "$CMD" > "$op_list"
 validate_ops
 apply_ops
 pilo manifest-update
-# update static manifest too
-(
-    cd "$PILO_STATIC_PATH"
-    tmp=$(mktemp)
-    find . -type f ! -name .manifest -print0 \
-      | LC_COLLATE=C sort -z \
-      | xargs -r0 sha256sum > "$tmp"
-    with_writable "$PILO_STATIC_DATASET" \
-        mv "$tmp" .manifest
-)
