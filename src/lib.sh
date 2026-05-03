@@ -37,6 +37,15 @@ tmpfile() {
     echo "$f"
 }
 
+as_user() {
+    if [ "$(id -un)" = "$PILO_USER" ]
+    then
+        "$@"
+    else
+        sudo -u "$PILO_USER" "$@"
+    fi
+}
+
 dataset_exists() {
     zfs list "$1" >/dev/null 2>&1
 }
@@ -62,7 +71,7 @@ require_dir() {
 }
 
 ensure_dir() {
-    dir_exists "$1" || mkdir -p "$1"
+    dir_exists "$1" || as_user mkdir -p "$1"
 }
 
 with_writable() {

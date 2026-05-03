@@ -42,7 +42,7 @@ apply_changes() {
                 fatal "name collision with different content: '$rel'"
             fi
         else
-            mkdir -p "$dst_dir"
+            ensure_dir "$dst_dir"
             mv "$src" "$dst"
         fi
     done < "$tmp_list"

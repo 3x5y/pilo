@@ -119,3 +119,11 @@ assert_manifest_valid() {
     (cd "$dir" && sha256sum --quiet --strict -c .manifest) \
         || fail "manifest '$dir/.manifest is invalid"
 }
+
+assert_owner() {
+    local owner="$(stat -c %U "$2")"
+    if [ "$owner" != "$1" ]
+    then
+        fail "path '$2' not owned by $1 (found $owner instead)"
+    fi
+}
