@@ -39,5 +39,13 @@ then
     exit 0
 fi
 
-echo "ERROR: unsupported mode"
-exit 1
+tmp=$(mktemp)
+trap "rm -f $tmp" EXIT
+
+cd "$pile"
+find in -type f | LC_COLLATE=C sort > "$tmp"
+
+${EDITOR:-vi} "$tmp"
+
+SCRIPT=$(pilo rewrite-edit --script < "$tmp")
+pilo rewrite "$SCRIPT"
