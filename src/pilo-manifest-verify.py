@@ -4,17 +4,11 @@ import os
 import subprocess
 import sys
 
-
-def fatal(msg):
-    print(f"ERROR: {msg}", file=sys.stderr)
-    sys.exit(1)
+from pilo import fatal, require_env
 
 
 def verify_manifest(subset, base_dir):
-    admin_path = os.environ.get("PILO_ADMIN_PATH")
-    if not admin_path:
-        fatal("PILO_ADMIN_PATH not set")
-
+    admin_path = require_env("PILO_ADMIN_PATH")
     manifest = os.path.join(admin_path, "manifest", f"{subset}.manifest")
 
     # equivalent to [ -s "$manifest" ] || return 0
@@ -33,12 +27,8 @@ def verify_manifest(subset, base_dir):
 
 
 def main():
-    pile_path = os.environ.get("PILO_PILE_PATH")
-    static_path = os.environ.get("PILO_STATIC_PATH")
-
-    if not pile_path or not static_path:
-        fatal("environment not configured")
-
+    pile_path = require_env("PILO_PILE_PATH")
+    static_path = require_env("PILO_STATIC_PATH")
     verify_manifest("pile", pile_path)
     verify_manifest("collection", os.path.join(static_path, "collection"))
     verify_manifest("filing", os.path.join(static_path, "filing"))
