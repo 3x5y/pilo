@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
 import sys
 
 import pilo
@@ -12,42 +11,20 @@ def get_incr_basis(src, dst):
     if not guid:
         return None
 
-    for name, g in pilo.zfs_list_snapshots_with_guid(src):
+    for name, g in pilo.zfs_snapshot_guids(src):
         if g == guid:
             return name
     return None
 
 
-def repl_full(last_src, dst):
-    send = subprocess.Popen(
-        ["zfs", "send", "-R", last_src],
-        stdout=subprocess.PIPE,
-    )
-    recv = subprocess.Popen(
-        ["zfs", "receive", "-h", "-u", "-o", "readonly=on", dst],
-        stdin=send.stdout,
-    )
-    send.stdout.close()
-    recv.communicate()
-
-    if send.wait() != 0 or recv.returncode != 0:
-        pilo.fatal("replication failed")
-
-
-def repl_incr(last_src, dst, base):
-    send = subprocess.Popen(
-        ["zfs", "send", "-h", "-R", "-I", base, last_src],
-        stdout=subprocess.PIPE,
-    )
-    recv = subprocess.Popen(
-        ["zfs", "receive", "-u", "-o", "readonly=on", dst],
-        stdin=send.stdout,
-    )
-    send.stdout.close()
-    recv.communicate()
-
-    if send.wait() != 0 or recv.returncode != 0:
-        pilo.fatal("replication failed")
+def zfs_replicate(last_src, dst, base=None):
+    if base is not None:
+        send_opts = ["-I", base]
+    else:
+        send_opts = []
+    send_cmd = ["zfs", "send", "-h", "-R"] + send_opts + [last_src]
+    recv_cmd = ["zfs", "receive", "-u", "-o", "readonly=on", dst]
+    pilo.simple_pipe(send_cmd, recv_cmd)
 
 
 def main():
@@ -59,27 +36,21 @@ def main():
         src = os.environ["PILO_ROOT"]
         dst = os.environ["PILO_REPLICA_ROOT"]
 
-    src_snaps = pilo.zfs_list_snapshots(src)
-    if not src_snaps:
+    last_src = pilo.zfs_latest_snapshot(src)
+    last_dst = pilo.zfs_latest_snapshot(dst)
+
+    if not last_src:
         pilo.fatal("no source snapshot")
 
-    last_src = src_snaps[-1]
-
-    try:
-        dst_snaps = pilo.zfs_list_snapshots(dst)
-        last_dst = dst_snaps[-1] if dst_snaps else None
-    except subprocess.CalledProcessError:
-        last_dst = None
-
     if not last_dst:
-        repl_full(last_src, dst)
+        zfs_replicate(last_src, dst)
     else:
         base = get_incr_basis(src, dst)
         if not base:
             pilo.fatal(f"base snapshot missing on source: {base}")
         if last_src == base:
             return # idempotent
-        repl_incr(last_src, dst, base)
+        zfs_replicate(last_src, dst, base)
 
 
 if __name__ == "__main__":

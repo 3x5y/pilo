@@ -20,6 +20,15 @@ def run(cmd, check=True):
     return subprocess.run(cmd, check=check)
 
 
+def simple_pipe(src_cmd, sink_cmd):
+    source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
+    sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
+    source.stdout.close()
+    sink.communicate()
+    if source.wait() != 0 or sink.returncode != 0:
+        pilo.fatal("replication failed")
+
+
 def snapshot_timestamp():
     return datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
@@ -44,7 +53,16 @@ def zfs_list_snapshots(dataset):
     return [line for line in result.stdout.strip().splitlines() if line]
 
 
-def zfs_list_snapshots_with_guid(dataset):
+def zfs_latest_snapshot(dataset):
+    try:
+        snaps = zfs_list_snapshots(dataset)
+    except subprocess.CalledProcessError:
+        return None
+    else:
+        return snaps and snaps[-1] or None
+
+
+def zfs_snapshot_guids(dataset):
     result = subprocess.run(
         ["zfs", "list", "-t", "snapshot", "-o", "name,guid", dataset],
         capture_output=True,
