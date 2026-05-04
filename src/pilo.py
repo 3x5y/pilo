@@ -147,41 +147,6 @@ class Context:
     def resolve_dataset(self, rel: Path):
         return self._resolve(rel).dataset
 
-    def _dataset_for(self, rel: Path):
-        top = rel.parts[0]
-        if top in ("in", "out", "sort"):
-            return self.pile_dataset
-        if top == "collection":
-            return f"{self.static_dataset}/collection"
-        if top == "filing":
-            if len(parts) < 2:
-                fatal("invalid filing path")
-            subset = rel.parts[1]
-            return f"{self.static_dataset}/filing/{subset}"
-        fatal(f"no dataset for path: {rel}")
-
-    def _resolve_dataset(self, rel: Path):
-        top = rel.parts[0]
-        if top in ("in", "out", "sort"):
-            return self.pile_path / rel, self.pile_dataset
-        if top == "collection":
-            return self.static_path / rel, f"{self.static_dataset}/collection"
-        if top == "filing":
-            if len(rel.parts) < 2:
-                pilo.fatal("invalid filing path")
-            subset = rel.parts[1]
-            dataset = f"{self.static_dataset}/filing/{subset}"
-            return self.static_path / rel, dataset
-        pilo.fatal("invalid target path")
-
-    def _resolve_path(self, rel: Path):
-        top = rel.parts[0]
-        if top in ("in", "out", "sort"):
-            return self.pile_path / rel
-        elif top in ("collection", "filing"):
-            return self.static_path / rel
-        fatal(f"invalid path root: {rel}")
-
     def as_user(self, cmd, check=True, **kw):
         if os.geteuid() == 0:
             return subprocess.run(["sudo", "-u", self.user] + cmd,
