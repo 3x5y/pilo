@@ -11,4 +11,4 @@ zfs snapshot $TEST_ROOT/active/admin/newds@t1
 capture_status pilo replication-verify
 
 assert_command_fail expected missing dataset
-echo "$OUTPUT" | assert_grep behind
+echo "$OUTPUT" | assert_grep BEHIND

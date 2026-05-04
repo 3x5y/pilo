@@ -51,7 +51,7 @@ def interactive(cx):
     script = "\n".join(generate_script(before, after))
     result = subprocess.run(["pilo", "rewrite", script])
     tmp.unlink(missing_ok=True)
-    exit(result.returncode)
+    sys.exit(result.returncode)
 
 
 def main():

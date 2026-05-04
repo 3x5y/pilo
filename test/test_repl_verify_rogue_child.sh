@@ -13,4 +13,4 @@ zfs snapshot $TEST_REPLICA/active/admin/sub@evil
 capture_status pilo replication-verify
 
 assert_command_fail expected child divergence
-echo "$OUTPUT" | assert_grep divergence
+echo "$OUTPUT" | assert_grep DIVERGED

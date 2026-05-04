@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import subprocess
+import sys
 
 from pilo import fatal, Context
 
@@ -27,7 +28,7 @@ def verify_manifest(cx, subset):
         )
     except subprocess.CalledProcessError as e:
         # preserve shell behaviour: just fail
-        exit(e.returncode)
+        sys.exit(e.returncode)
 
 
 def main():
