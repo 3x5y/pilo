@@ -78,7 +78,7 @@ def get_latest_guid(dataset):
         ["zfs", "list", "-t", "snapshot", "-Ho", "guid", "-s", "creation", dataset],
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
     lines = result.stdout.strip().splitlines()
     return lines[-1] if lines else None
