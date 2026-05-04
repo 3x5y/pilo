@@ -33,6 +33,39 @@ def zfs_snapshot(name: str, dataset: str):
     )
 
 
+def zfs_list_snapshots(dataset):
+    cmd = 'zfs list -t snapshot -Ho name -s creation ' + dataset
+    result = subprocess.run(
+        cmd.split(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [line for line in result.stdout.strip().splitlines() if line]
+
+
+def zfs_list_snapshots_with_guid(dataset):
+    result = subprocess.run(
+        ["zfs", "list", "-t", "snapshot", "-o", "name,guid", dataset],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    lines = result.stdout.strip().splitlines()
+    return [line.split() for line in lines if line]
+
+
+def get_latest_guid(dataset):
+    result = subprocess.run(
+        ["zfs", "list", "-t", "snapshot", "-Ho", "guid", "-s", "creation", dataset],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    lines = result.stdout.strip().splitlines()
+    return lines[-1] if lines else None
+
+
 def zfs_set_readonly(dataset, state):
     prop = 'on' if state else 'off'
     cmd = f'zfs set readonly={prop} {dataset}'
