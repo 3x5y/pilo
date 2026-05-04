@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -21,7 +21,7 @@ env_setup() {
     TMP_ROOT=$(mktemp -d /tmp/test.XXXXXXXX)
     chmod a+rx $TMP_ROOT
     USAGE=$(df /tmp | grep -E -o '[0-9]+% /tmp')
-    echo "[SETUP] $USAGE TMP_ROOT=$TMP_ROOT"
+    printf "[SETUP] %s TMP_ROOT=%s\n" "$USAGE" "$TMP_ROOT"
     zpool_cleanup
     truncate -s 2G /$TMP_ROOT/vdev1
     truncate -s 2G /$TMP_ROOT/vdev2
@@ -54,7 +54,7 @@ test_setup() {
     init_system $TEST_ROOT
     init_replica $REPLICA_ROOT
     export TMP="$TMP_ROOT"/$TEST_NAME
-    mkdir "$TMP"
+    mkdir -p "$TMP"
     chown $PILO_USER:$PILO_USER "$TMP"
 }
 
@@ -124,22 +124,22 @@ test_teardown() {
 }
 
 run_tests() {
-    for test_file in "$@"
+    while IFS= read -r test_file
     do
-        TEST_NAME=$(basename $test_file .sh)
+        TEST_NAME=${test_file%.sh}
         [ -e "$test_file" ] || continue
         test_setup
         if (. "$TESTLIB"; . "$test_file")
         then
-            echo "[${GREEN}PASS${RESET}] $TEST_NAME"
+            printf "[${GREEN}PASS${RESET}] $TEST_NAME\n"
             test_teardown
         else
             RESULT=$?
-            echo "[${RED}FAIL${RESET}] $TEST_NAME"
+            printf "[${RED}FAIL${RESET}] $TEST_NAME\n"
             test_teardown
             [ -z "${TEST_FAIL_FAST:-}" ] || break
         fi
-    done
+    done < <( find "$@" -type f -name 'test_*.sh' | LC_COLLATE=C sort )
 }
 
 cmd_clean() {
