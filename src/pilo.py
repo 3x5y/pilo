@@ -36,10 +36,47 @@ def snapshot_timestamp():
 def zfs_snapshot(name: str, dataset: str):
     if not dataset:
         fatal("dataset required for snapshot")
-    subprocess.run(
-        ["zfs", "snapshot", "-r", f"{dataset}@{name}"],
-        check=True,
-    )
+    cmd = ["zfs", "snapshot", "-r", f"{dataset}@{name}"]
+    subprocess.run(cmd, check=True)
+
+
+def create_snapshot(name, dataset=None):
+    dataset = dataset or os.environ["PILO_ROOT"]
+    zfs_snapshot(name, dataset)
+    return f"{dataset}@{name}"
+
+
+def create_anchor(anchor_type, dataset=None):
+    dataset = dataset or os.environ["PILO_ROOT"]
+
+    ts = snapshot_timestamp()
+
+    if anchor_type == "daily":
+        name = f"daily-{ts}"
+        hold = False
+    elif anchor_type == "rotation":
+        name = f"rotation-{ts}"
+        hold = True
+    else:
+        fatal("invalid anchor type")
+
+    snap = create_snapshot(name, dataset)
+
+    if hold:
+        zfs_hold("repl-anchor", snap)
+
+    return snap
+
+
+def create_prefixed_snapshot(prefix, dataset=None):
+    ts = snapshot_timestamp()
+    name = f"{prefix}-{ts}"
+    return create_snapshot(name, dataset)
+
+
+def zfs_hold(tag, snapshot):
+    cmd = ["zfs", "hold", "-r", "repl-anchor", snapshot]
+    subprocess.run(cmd, check=True)
 
 
 def zfs_list_snapshots(dataset):
