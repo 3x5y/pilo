@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -17,6 +18,19 @@ def fatal(msg):
 
 def run(cmd, check=True):
     return subprocess.run(cmd, check=check)
+
+
+def snapshot_timestamp():
+    return datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+
+def zfs_snapshot(name: str, dataset: str):
+    if not dataset:
+        fatal("dataset required for snapshot")
+    subprocess.run(
+        ["zfs", "snapshot", "-r", f"{dataset}@{name}"],
+        check=True,
+    )
 
 
 def zfs_set_readonly(dataset, state):
