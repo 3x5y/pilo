@@ -65,8 +65,8 @@ def validate_ops(cx, ops):
         if src_domain != dst_domain:
             pilo.fatal("cross-domain move not allowed")
 
-        src_abs = cx.resolve_path(op.src)
-        dst_abs = cx.resolve_path(op.dst)
+        src_abs = cx.resolve(op.src).path
+        dst_abs = cx.resolve(op.dst).path
 
         if not src_abs.is_file():
             pilo.fatal(f"source missing: {op.src}")
@@ -76,9 +76,9 @@ def validate_ops(cx, ops):
 
 
 def apply_op(cx, op):
-    src_abs = cx.resolve_path(op.src)
-    dst_abs = cx.resolve_path(op.dst)
-    dataset = cx.resolve_dataset(op.src)
+    src_abs = cx.resolve(op.src).path
+    dst_abs = cx.resolve(op.dst).path
+    dataset = cx.resolve(op.src).dataset
 
     with pilo.dataset_writable(dataset):
         if dst_abs.exists():

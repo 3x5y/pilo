@@ -112,7 +112,7 @@ class Context:
         self.user = environ["PILO_USER"]
         self.args = args and args[1:] or []
 
-    def _resolve(self, rel: Path) -> Resolved:
+    def resolve(self, rel: Path) -> Resolved:
         if not rel.parts:
             fatal("empty path")
 
@@ -136,16 +136,6 @@ class Context:
                 dataset=f"{self.static_dataset}/filing/{subset}",
             )
         fatal(f"invalid path: {rel}")
-
-    def resolve_path_dataset(self, rel: Path):
-        r = self._resolve(rel)
-        return r.path, r.dataset
-
-    def resolve_path(self, rel: Path):
-        return self._resolve(rel).path
-
-    def resolve_dataset(self, rel: Path):
-        return self._resolve(rel).dataset
 
     def as_user(self, cmd, check=True, **kw):
         if os.geteuid() == 0:

@@ -15,26 +15,20 @@ def main():
     if not out_path.is_dir():
         return
 
-    def dataset_for(target):
-        return f"{cx.static_dataset}/{target}"
-
-    def validate_file(src, target, rel):
-        static_dataset = dataset_for(target)
-        pilo.require_dataset(static_dataset)
-        dst = cx.static_path / target / rel
-        if dst.is_file():
-            if not pilo.files_equal(src, dst):
+    def validate_file(src: Path, rel: Path):
+        r = cx.resolve(rel)
+        pilo.require_dataset(r.dataset)
+        if r.path.is_file():
+            if not pilo.files_equal(src, r.path):
                 pilo.fatal(f"destination conflict for {rel}")
 
-    def apply_file(src, target, rel):
-        static_dataset = dataset_for(target)
-        dst = cx.static_path / target / rel
-        dst_dir = dst.parent
-        if not dst.is_file():
-            with pilo.dataset_writable(static_dataset):
-                cx.copy(src, dst)
+    def apply_file(src: Path, rel: Path):
+        r = cx.resolve(rel)
+        if not r.path.is_file():
+            with pilo.dataset_writable(r.dataset):
+                cx.copy(src, r.path)
         with pilo.dataset_writable(cx.pile_dataset):
-            os.remove(src)
+            src.unlink()
 
     # validate top-level dirs
     for child in out_path.iterdir():
@@ -54,29 +48,30 @@ def main():
     # --- validation phase ---
 
     for f in col_files:
-        rel = f.relative_to(col_dir)
-        validate_file(f, "collection", rel)
+        rel = Path("collection") / f.relative_to(col_dir)
+        validate_file(f, rel)
 
     for f in fil_files:
         rel = f.relative_to(fil_dir)
         if len(rel.parts) < 2:
             pilo.fatal("invalid filing structure")
-
         subset = rel.parts[0]
         subpath = Path(*rel.parts[1:])
-        validate_file(f, f"filing/{subset}", subpath)
+        full_rel = Path("filing") / subset / subpath
+        validate_file(f, full_rel)
 
     # --- apply phase ---
 
     for f in col_files:
-        rel = f.relative_to(col_dir)
-        apply_file(f, "collection", rel)
+        rel = Path("collection") / f.relative_to(col_dir)
+        apply_file(f, rel)
 
     for f in fil_files:
         rel = f.relative_to(fil_dir)
         subset = rel.parts[0]
         subpath = Path(*rel.parts[1:])
-        apply_file(f, f"filing/{subset}", subpath)
+        full_rel = Path("filing") / subset / subpath
+        apply_file(f, full_rel)
 
     # update manifests
     subprocess.run(["pilo", "manifest-update"], check=True)

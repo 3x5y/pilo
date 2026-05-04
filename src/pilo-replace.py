@@ -17,13 +17,13 @@ def main():
     if not src.is_file():
         pilo.fatal(f"source file missing: {src}")
 
-    dst, dataset = cx.resolve_path_dataset(dst_rel)
+    resolved = cx.resolve(dst_rel)
 
-    if not dst.is_file():
+    if not resolved.path.is_file():
         pilo.fatal(f"target does not exist: {dst_rel}")
 
-    with pilo.dataset_writable(dataset):
-        cx.copy(src, dst)
+    with pilo.dataset_writable(resolved.dataset):
+        cx.copy(src, resolved.path)
 
     pilo.run(["pilo", "manifest-update"])
 
