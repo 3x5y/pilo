@@ -429,6 +429,10 @@ class Status:
         print(f"[OK] {msg}")
 
 
+def now_epoch():
+    return int(datetime.now().timestamp())
+
+
 def git_dirty(repo: Path):
     result = subprocess.run(
         ["git", "-C", str(repo), "diff", "--quiet"],
@@ -452,3 +456,33 @@ def zfs_latest_snapshot_with_time(dataset):
         return name, int(ts)
     except Exception:
         return name, None
+
+
+#####################
+#  recovery stuff   #
+#####################
+
+
+def zfs_destroy(dataset, recursive=True):
+    cmd = ["zfs", "destroy"]
+    if recursive:
+        cmd.append("-r")
+    cmd.append(dataset)
+    subprocess.run(cmd, check=False)
+
+
+def zfs_create_parent(dataset):
+    parent = dataset.rsplit("/", 1)[0]
+    if parent:
+        subprocess.run(["zfs", "create", "-p", parent], check=False)
+
+
+def zfs_send_recv(src_snap, dst, recursive=False):
+    send_cmd = ["zfs", "send"]
+    if recursive:
+        send_cmd.append("-R")
+    send_cmd.append(src_snap)
+
+    recv_cmd = ["zfs", "receive", dst]
+
+    simple_pipe(send_cmd, recv_cmd)

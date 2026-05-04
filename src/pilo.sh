@@ -23,8 +23,13 @@ export PILO_ROOT PILO_PATH PILO_USER
 
 . "$HERE"/env.sh
 
-require_dir "$PILO_PATH"
-require_dataset "$PILO_ROOT"
+case "$cmd" in
+    recover-*) ;;
+    *)
+        require_dir "$PILO_PATH"
+        require_dataset "$PILO_ROOT"
+        ;;
+esac
 
 target="$HERE/pilo-$cmd"
 if [ -f "$target".py ]
