@@ -9,6 +9,6 @@ pilo snapshot $snap
 pilo replicate
 zfs destroy -r $TEST_ROOT
 
-pilo-recover-baseline $repl $ADMIN $snap >/dev/null
+pilo recover-baseline $repl $ADMIN $snap >/dev/null
 
 assert_grep important < $ADMIN_PATH/.zfs/snapshot/$snap/$file

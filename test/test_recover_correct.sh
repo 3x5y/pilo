@@ -11,7 +11,7 @@ pilo snapshot $snap
 pilo replicate
 zfs destroy -r $TEST_ROOT
 
-pilo-recover-baseline $repl $PILE $snap >/dev/null
+pilo recover-baseline $repl $PILE $snap >/dev/null
 
 capture_status pilo manifest-verify
 assert_command_ok manifest verification failed after recovery

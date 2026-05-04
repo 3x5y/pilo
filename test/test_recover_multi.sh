@@ -19,9 +19,9 @@ pilo snapshot $snap
 pilo replicate
 zfs destroy -r $TEST_ROOT
 
-pilo-recover-baseline $repl_static $STATIC $snap >/dev/null
-pilo-recover-baseline $repl_pile $PILE $snap >/dev/null
-pilo-recover-baseline $repl_admin $ADMIN $snap >/dev/null
+pilo recover-baseline $repl_static $STATIC $snap >/dev/null
+pilo recover-baseline $repl_pile $PILE $snap >/dev/null
+pilo recover-baseline $repl_admin $ADMIN $snap >/dev/null
 
 assert_grep static-data < /$STATIC/.zfs/snapshot/$snap/$static_file
 assert_grep pile-data < /$PILE/.zfs/snapshot/$snap/in/$pile_file

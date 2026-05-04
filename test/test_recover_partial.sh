@@ -16,7 +16,7 @@ pilo replicate
 zfs destroy -r $TEST_ROOT
 
 # --- recover ONLY pile ---
-pilo-recover-baseline $repl_pile $PILE $snap >/dev/null
+pilo recover-baseline $repl_pile $PILE $snap >/dev/null
 
 # --- system should now be inconsistent ---
 capture_status pilo status
