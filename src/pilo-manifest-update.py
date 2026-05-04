@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 from pathlib import Path
 import tempfile
 
@@ -34,8 +33,7 @@ def update_subset(cx, name, root):
 
 
 def main():
-    cx = pilo.Context(os.environ)
-
+    cx = pilo.Context()
     update_subset(cx, "pile", cx.pile_path)
     update_subset(cx, "collection", cx.static_path / "collection")
     update_subset(cx, "filing", cx.static_path / "filing")

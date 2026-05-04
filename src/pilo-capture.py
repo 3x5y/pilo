@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
-import os
 import shutil
-import sys
 from pathlib import Path
 
 from pilo import fatal, require_dataset, Context
 
 
 def main():
-    cx = Context(os.environ, sys.argv)
+    cx = Context()
 
     if not cx.args:
         fatal("missing argument: source file")

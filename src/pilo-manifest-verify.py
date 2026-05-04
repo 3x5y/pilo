@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import os
 import subprocess
-import sys
 
 from pilo import fatal, Context
 
@@ -29,11 +27,11 @@ def verify_manifest(cx, subset):
         )
     except subprocess.CalledProcessError as e:
         # preserve shell behaviour: just fail
-        sys.exit(e.returncode)
+        exit(e.returncode)
 
 
 def main():
-    cx = Context(os.environ)
+    cx = Context()
     verify_manifest(cx, "pile")
     verify_manifest(cx, "collection")
     verify_manifest(cx, "filing")

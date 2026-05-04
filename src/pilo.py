@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -93,8 +94,14 @@ def domain(rel: Path):
     return "invalid"
 
 
+@dataclass
+class Resolved:
+    path: Path
+    dataset: str
+
+
 class Context:
-    def __init__(self, environ=os.environ, args=None):
+    def __init__(self, environ=os.environ, args=sys.argv):
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
         self.pile_dataset = environ["PILO_PILE_DATASET"]
         self.static_dataset = environ["PILO_STATIC_DATASET"]
@@ -105,27 +112,75 @@ class Context:
         self.user = environ["PILO_USER"]
         self.args = args and args[1:] or []
 
-    def dataset_for(self, rel: Path):
-        parts = rel.parts
+    def _resolve(self, rel: Path) -> Resolved:
+        if not rel.parts:
+            fatal("empty path")
 
-        if parts[0] in ("in", "out", "sort"):
-            return self.pile_dataset
-        if parts[0] == "collection":
-            return f"{self.static_dataset}/collection"
-        if parts[0] == "filing":
-            if len(parts) < 2:
+        top = rel.parts[0]
+        if top in ("in", "out", "sort"):
+            return Resolved(
+                path=self.pile_path / rel,
+                dataset=self.pile_dataset,
+            )
+        if top == "collection":
+            return Resolved(
+                path=self.static_path / rel,
+                dataset=f"{self.static_dataset}/collection",
+            )
+        if top == "filing":
+            if len(rel.parts) < 2:
                 fatal("invalid filing path")
-            return f"{self.static_dataset}/filing/{parts[1]}"
+            subset = rel.parts[1]
+            return Resolved(
+                path=self.static_path / rel,
+                dataset=f"{self.static_dataset}/filing/{subset}",
+            )
+        fatal(f"invalid path: {rel}")
 
-        fatal(f"no dataset for path: {rel}")
+    def resolve_path_dataset(self, rel: Path):
+        r = self._resolve(rel)
+        return r.path, r.dataset
 
     def resolve_path(self, rel: Path):
-        if rel.parts[0] in ("in", "out", "sort"):
+        return self._resolve(rel).path
+
+    def resolve_dataset(self, rel: Path):
+        return self._resolve(rel).dataset
+
+    def _dataset_for(self, rel: Path):
+        top = rel.parts[0]
+        if top in ("in", "out", "sort"):
+            return self.pile_dataset
+        if top == "collection":
+            return f"{self.static_dataset}/collection"
+        if top == "filing":
+            if len(parts) < 2:
+                fatal("invalid filing path")
+            subset = rel.parts[1]
+            return f"{self.static_dataset}/filing/{subset}"
+        fatal(f"no dataset for path: {rel}")
+
+    def _resolve_dataset(self, rel: Path):
+        top = rel.parts[0]
+        if top in ("in", "out", "sort"):
+            return self.pile_path / rel, self.pile_dataset
+        if top == "collection":
+            return self.static_path / rel, f"{self.static_dataset}/collection"
+        if top == "filing":
+            if len(rel.parts) < 2:
+                pilo.fatal("invalid filing path")
+            subset = rel.parts[1]
+            dataset = f"{self.static_dataset}/filing/{subset}"
+            return self.static_path / rel, dataset
+        pilo.fatal("invalid target path")
+
+    def _resolve_path(self, rel: Path):
+        top = rel.parts[0]
+        if top in ("in", "out", "sort"):
             return self.pile_path / rel
-        elif rel.parts[0] in ("collection", "filing"):
+        elif top in ("collection", "filing"):
             return self.static_path / rel
-        else:
-            fatal(f"invalid path root: {rel}")
+        fatal(f"invalid path root: {rel}")
 
     def as_user(self, cmd, check=True, **kw):
         if os.geteuid() == 0:

@@ -55,7 +55,7 @@ def interactive(cx):
 
 
 def main():
-    cx = pilo.Context(os.environ, sys.argv)
+    cx = pilo.Context()
 
     if len(cx.args) >= 1 and cx.args[0] == "--dump":
         print_files(cx)

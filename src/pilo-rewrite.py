@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 from pathlib import Path
 from dataclasses import dataclass
@@ -79,7 +78,7 @@ def validate_ops(cx, ops):
 def apply_op(cx, op):
     src_abs = cx.resolve_path(op.src)
     dst_abs = cx.resolve_path(op.dst)
-    dataset = cx.dataset_for(op.src)
+    dataset = cx.resolve_dataset(op.src)
 
     with pilo.dataset_writable(dataset):
         if dst_abs.exists():
@@ -95,11 +94,10 @@ def apply_ops(cx, ops):
 
 
 def main():
-    if len(sys.argv) < 2:
+    cx = pilo.Context()
+    if len(cx.args) < 1:
         pilo.fatal("missing command")
-
-    cmd = sys.argv[1]
-    cx = pilo.Context(os.environ)
+    cmd = cx.args[0]
     ops = parse_ops(cmd.splitlines())
     validate_ops(cx, ops)
     apply_ops(cx, ops)

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import shutil
 from pathlib import Path
 
@@ -8,7 +7,7 @@ import pilo
 
 
 def main():
-    cx = pilo.Context(os.environ)
+    cx = pilo.Context()
     pilo.require_dataset(cx.intake_dataset)
     pilo.require_dataset(cx.pile_dataset)
 

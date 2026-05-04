@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+
 import os
-import sys
 import subprocess
 import shutil
 from pathlib import Path
@@ -9,7 +9,7 @@ import pilo
 
 
 def main():
-    cx = pilo.Context(os.environ)
+    cx = pilo.Context()
     out_path = cx.pile_path / "out"
 
     if not out_path.is_dir():
