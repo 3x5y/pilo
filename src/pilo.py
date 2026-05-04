@@ -410,3 +410,45 @@ def replication_status(src, dst):
         return ReplicationStatus.UNKNOWN, "root GUID mismatch"
 
     return ReplicationStatus.OK, None
+
+
+################
+# status stuff #
+################
+
+
+class Status:
+    def __init__(self):
+        self.code = 0
+
+    def warn(self, msg):
+        print(f"[WARN] {msg}")
+        self.code = 1
+
+    def ok(self, msg):
+        print(f"[OK] {msg}")
+
+
+def git_dirty(repo: Path):
+    result = subprocess.run(
+        ["git", "-C", str(repo), "diff", "--quiet"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode != 0
+
+
+def zfs_latest_snapshot_with_time(dataset):
+    cmd = ["zfs", "list", "-p", "-t", "snapshot", "-o", "name,creation", "-s", "creation", dataset]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    lines = [l for l in result.stdout.splitlines() if l.startswith(dataset + "@")]
+
+    if not lines:
+        return None, None
+
+    name, ts = lines[-1].split()
+
+    try:
+        return name, int(ts)
+    except Exception:
+        return name, None
