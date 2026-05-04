@@ -22,9 +22,7 @@ def main():
     if not resolved.path.is_file():
         pilo.fatal(f"target does not exist: {dst_rel}")
 
-    with pilo.dataset_writable(resolved.dataset):
-        cx.copy(src, resolved.path)
-
+    cx.copy_static(src, resolved)
     pilo.run(["pilo", "manifest-update"])
 
 

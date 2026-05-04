@@ -25,8 +25,7 @@ def main():
     def apply_file(src: Path, rel: Path):
         r = cx.resolve(rel)
         if not r.path.is_file():
-            with pilo.dataset_writable(r.dataset):
-                cx.copy(src, r.path)
+            cx.copy_static(src, r)
         with pilo.dataset_writable(cx.pile_dataset):
             src.unlink()
 

@@ -161,6 +161,10 @@ class Context:
         shutil.copy2(str(src), str(dst))
         self.ensure_owned(dst)
 
+    def copy_static(self, src, resolved):
+        with dataset_writable(resolved.dataset):
+            self.copy(src, resolved.path)
+
     def ensure_git_repo(self, path: Path):
         git_path = path / ".git"
         if not git_path.is_dir():
