@@ -102,9 +102,14 @@ class Resolved:
 
 class Context:
     def __init__(self, environ=os.environ, args=sys.argv):
+        self.admin_dataset = environ["PILO_ADMIN_DATASET"]
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
         self.pile_dataset = environ["PILO_PILE_DATASET"]
         self.static_dataset = environ["PILO_STATIC_DATASET"]
+
+        self.collection_dataset = f"{self.static_dataset}/collection"
+        self.filing_dataset = f"{self.static_dataset}/filing"
+
         self.admin_path = Path(environ["PILO_ADMIN_PATH"])
         self.intake_path = Path(environ["PILO_INTAKE_PATH"])
         self.pile_path = Path(environ["PILO_PILE_PATH"])
