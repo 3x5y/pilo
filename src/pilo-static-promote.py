@@ -26,13 +26,10 @@ def main():
         r = cx.resolve(rel)
         if not r.path.is_file():
             cx.copy_static(src, r)
-        with pilo.dataset_writable(cx.pile_dataset):
-            src.unlink()
+        cx.remove_piled(src)
 
     # validate top-level dirs
     for child in out_path.iterdir():
-        if not child.exists():
-            continue
         if child.name not in ("collection", "filing"):
             pilo.fatal(f"invalid /out/ structure: {name}")
 
@@ -44,11 +41,11 @@ def main():
     if not col_files and not fil_files:
         pilo.fatal("/out/ directory empty")
 
-    # --- validation phase ---
+    ops = []
 
     for f in col_files:
         rel = Path("collection") / f.relative_to(col_dir)
-        validate_file(f, rel)
+        ops.append((f, rel))
 
     for f in fil_files:
         rel = f.relative_to(fil_dir)
@@ -57,22 +54,14 @@ def main():
         subset = rel.parts[0]
         subpath = Path(*rel.parts[1:])
         full_rel = Path("filing") / subset / subpath
-        validate_file(f, full_rel)
+        ops.append((f, full_rel))
 
-    # --- apply phase ---
+    for src, rel in ops:
+        validate_file(src, rel)
 
-    for f in col_files:
-        rel = Path("collection") / f.relative_to(col_dir)
-        apply_file(f, rel)
+    for src, rel in ops:
+        apply_file(src, rel)
 
-    for f in fil_files:
-        rel = f.relative_to(fil_dir)
-        subset = rel.parts[0]
-        subpath = Path(*rel.parts[1:])
-        full_rel = Path("filing") / subset / subpath
-        apply_file(f, full_rel)
-
-    # update manifests
     subprocess.run(["pilo", "manifest-update"], check=True)
 
 

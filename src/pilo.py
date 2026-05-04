@@ -165,6 +165,10 @@ class Context:
         with dataset_writable(resolved.dataset):
             self.copy(src, resolved.path)
 
+    def remove_piled(self, path):
+        with dataset_writable(self.pile_dataset):
+            path.unlink()
+
     def ensure_git_repo(self, path: Path):
         git_path = path / ".git"
         if not git_path.is_dir():
