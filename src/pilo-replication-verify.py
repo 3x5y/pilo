@@ -42,24 +42,16 @@ def map_dataset(name, src_root, dst_root):
     return f"{dst_root}/{suffix}" if suffix else dst_root
 
 
-def stderr(msg):
-    print(msg, file=sys.stderr)
-
-
 def main():
     src = os.environ.get("PILO_ROOT")
     dst = os.environ.get("PILO_REPLICA_ROOT")
 
-    stderr("HERE")
     if not src or not dst:
         pilo.fatal("missing replication environment")
 
-    stderr("HERE")
     src_guid = pilo.get_latest_guid(src)
-    stderr("HERE")
     dst_guid = pilo.get_latest_guid(dst)
 
-    stderr("HERE")
     if not dst_guid:
         status_fail("EMPTY", "no snapshots on target")
 
