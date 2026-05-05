@@ -1,11 +1,16 @@
 #!/bin/sh
 set -e
 
-repl=$REPLICA_ROOT/admin
+pilo snapshot t0
+pilo replicate
 
-zfs snapshot $ADMIN@t0
+pilo snapshot t1
+pilo replicate
 
-pilo replicate $ADMIN $repl
-
-[ $(zfs get -H -o value readonly $repl) = on ] \
-    || fail $repl not readonly after initial replication
+for ds in \
+    $TEST_REPLICA/active/admin \
+    $TEST_REPLICA/static
+do
+    [ "$(zfs get -H -o value readonly $ds)" = on ] \
+        || fail "$ds not readonly"
+done
