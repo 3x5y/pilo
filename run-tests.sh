@@ -78,10 +78,6 @@ init_system() {
         zfs create $root
         mount=/$root
     fi
-    export PILO_USER=ubuntu
-    export PILO_ROOT=$root
-    export PILO_REPLICA_ROOT=$REPLICA_ROOT
-    export PILO_PATH=$mount
     ADMIN=$root/active/admin
     INTAKE=$root/active/pile-intake
     PILE=$root/active/pile-readonly
@@ -97,6 +93,10 @@ init_system() {
     : "${PILO_INTAKE_PATH:=$INTAKE_PATH}"
     : "${PILO_PILE_PATH:=$PILE_PATH}"
     : "${PILO_STATIC_PATH:=$STATIC_PATH}"
+    export PILO_USER=ubuntu
+    export PILO_ROOT=$root
+    export PILO_PATH=$mount
+    export PILO_REPLICA_ROOT=$REPLICA_ROOT
     export PILO_ADMIN_PATH
     export PILO_INTAKE_PATH
     export PILO_PILE_PATH
@@ -106,10 +106,6 @@ init_system() {
     zfs create -p $PILE
     zfs create -p $COLLECTION
     zfs create -p $FILING
-    chown $PILO_USER:$PILO_USER $PILO_ADMIN_PATH
-    chown $PILO_USER:$PILO_USER $PILO_INTAKE_PATH
-    chown $PILO_USER:$PILO_USER $PILO_PILE_PATH
-    chown $PILO_USER:$PILO_USER $PILO_STATIC_PATH/collection
     #zfs create -p $root/stash
     #zfs create -p $root/static/filing/2025
     pilo init

@@ -1,6 +1,7 @@
 import filecmp
 import hashlib
 import os
+import pwd
 import shutil
 import subprocess
 import sys
@@ -35,24 +36,95 @@ def require_dataset(dataset):
         fatal(f"missing required dataset: {dataset}")
 
 
-#####################
-# static file stuff #
-#####################
+def zfs_get_prop(dataset, propname):
+    cmd = 'zfs get -Ho value'.split()
+    args = [propname, dataset]
+    result = subprocess.run(cmd + args,
+                            capture_output=True,
+                            text=True,
+                            check=True)
+    return result.stdout.strip()
+
+
+def zfs_set_prop(dataset, propval, recursive=False):
+    if recursive:
+        for child in zfs_list_filesystems(dataset):
+            zfs_set_prop(child, propval, recursive=False)
+    else:
+        cmd = ["zfs", "set", propval, dataset]
+        subprocess.run(cmd, check=True)
+
+
+def zfs_get_readonly(dataset):
+    return zfs_get_prop(dataset, 'readonly') == 'on'
 
 
 def zfs_set_readonly(dataset, state):
     prop = 'on' if state else 'off'
-    cmd = f'zfs set readonly={prop} {dataset}'
-    subprocess.run(cmd.split(), check=True)
+    zfs_set_prop(dataset, f'readonly={prop}')
 
 
-def zfs_get_readonly(dataset):
-    cmd = 'zfs get -Ho value readonly ' + dataset
-    result = subprocess.run(cmd.split(),
-                            capture_output=True,
-                            text=True,
-                            check=True)
-    return result.stdout.strip() == 'on'
+#####################
+#    init stuff     #
+#####################
+
+DATASETS = {
+    "active/admin": {
+        "mount": "admin",
+        "readonly": False,
+    },
+    "active/pile-intake": {
+        "mount": "pile-intake",
+        "readonly": False,
+    },
+    "active/pile-readonly": {
+        "mount": "pile-readonly",
+        "readonly": True,
+    },
+    "static/collection": {
+        "mount": "static/collection",
+        "readonly": True,
+    },
+    "static/filing": {
+        "mount": "static/filing",
+        "readonly": False,
+    },
+}
+
+
+def apply_dataset_contract(cx):
+    for rel, spec in DATASETS.items():
+        ds = f"{cx.root_dataset}/{rel}"
+        mountpoint = cx.path / spec["mount"]
+        require_dataset(ds)
+        zfs_set_readonly(ds, spec["readonly"])
+        # not yet
+        #zfs_set_prop(ds, f"mountpoint={mountpoint}")
+        zfs_set_prop(ds, "canmount=on")
+
+
+def ensure_runtime_dirs(cx):
+    pile = cx.pile_path
+    with dataset_writable(cx.pile_dataset):
+        cx.ensure_dir(pile / "in")
+        cx.ensure_dir(pile / "sort")
+        cx.ensure_dir(pile / "out")
+        cx.ensure_dir(pile / "out" / "collection")
+        cx.ensure_dir(pile / "out" / "filing")
+
+
+def apply_ownership(cx):
+    cx.ensure_owned(cx.admin_path),
+    cx.ensure_owned(cx.intake_path),
+    with dataset_writable(cx.pile_dataset):
+        cx.ensure_owned(cx.pile_path),
+    with dataset_writable(cx.collection_dataset):
+        cx.ensure_owned(cx.static_path / "collection"),
+
+
+#####################
+# static file stuff #
+#####################
 
 
 def generate_manifest_lines(root: Path):
@@ -119,11 +191,13 @@ class Context:
         self.collection_dataset = f"{self.static_dataset}/collection"
         self.filing_dataset = f"{self.static_dataset}/filing"
 
+        self.path = Path(environ["PILO_PATH"])
         self.admin_path = Path(environ["PILO_ADMIN_PATH"])
         self.intake_path = Path(environ["PILO_INTAKE_PATH"])
         self.pile_path = Path(environ["PILO_PILE_PATH"])
         self.static_path = Path(environ["PILO_STATIC_PATH"])
         self.user = environ["PILO_USER"]
+        self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
 
     def resolve(self, rel: Path) -> Resolved:
@@ -160,10 +234,15 @@ class Context:
             return subprocess.run(cmd, check=check, **kw)
 
     def ensure_owned(self, path):
-        shutil.chown(path, self.user, self.user)
+        stat = os.stat(path)
+        if not stat.st_uid == stat.st_gid == self.user_id:
+            shutil.chown(path, self.user, self.user)
 
     def ensure_dir(self, path):
-        self.as_user(["mkdir", "-p", path])
+        if not path.is_dir():
+            #self.as_user(["mkdir", "-p", path])
+            path.mkdir(parents=True, exist_ok=True)
+            self.ensure_owned(path)
 
     def move(self, src, dst):
         self.ensure_dir(dst.parent)

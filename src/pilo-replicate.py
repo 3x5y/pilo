@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-
 import pilo
 
 
 def main():
 
-    if len(sys.argv) > 1:
-        src = sys.argv[1]
-        dst = sys.argv[2]
+    cx = pilo.Context()
+    if cx.args:
+        src, dst = cx.args
     else:
-        src = os.environ["PILO_ROOT"]
-        dst = os.environ["PILO_REPLICA_ROOT"]
+        src = cx.root_dataset
+        dst = cx.replica_dataset
 
     return pilo.replicate(src, dst)
 

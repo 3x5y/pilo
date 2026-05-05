@@ -52,8 +52,8 @@ def check_snapshot(cx, st: pilo.Status):
 
 
 def check_replication(cx, st: pilo.Status):
-    src = os.environ["PILO_ROOT"]
-    dst = os.environ["PILO_REPLICA_ROOT"]
+    src = cx.root_dataset
+    dst = cx.replica_dataset
 
     src_snap = pilo.zfs_latest_snapshot(src)
     dst_snap = pilo.zfs_latest_snapshot(dst)
@@ -81,7 +81,7 @@ def check_datasets(cx, st: pilo.Status):
 
 
 def main():
-    cx = pilo.Context(os.environ)
+    cx = pilo.Context()
     st = pilo.Status()
 
     check = cx.args[0] if cx.args else None

@@ -8,8 +8,9 @@ import pilo
 
 
 def main():
-    src = os.environ["PILO_ROOT"]
-    dst = os.environ["PILO_REPLICA_ROOT"]
+    cx = pilo.Context()
+    src = cx.root_dataset
+    dst = cx.replica_dataset
 
     status, msg = pilo.replication_status(src, dst)
 

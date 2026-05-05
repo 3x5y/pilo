@@ -42,6 +42,12 @@ def main():
 
     pilo.recover_dataset(snap, target, recursive=True)
 
+    # not yet
+    #pilo.apply_dataset_contract(cx)
+    #pilo.ensure_runtime_dirs(cx)
+    #pilo.apply_ownership(cx)
+    #subprocess.run(["zfs", "mount", "-a"], check=True)
+
     subprocess.run(["pilo", "status"], check=False)
 
 if __name__ == "__main__":

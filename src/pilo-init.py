@@ -1,28 +1,23 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
-
 import pilo
 
 
 def main():
     cx = pilo.Context()
 
-    pilo.require_dataset(cx.admin_dataset)
-    pilo.require_dataset(cx.intake_dataset)
-    pilo.require_dataset(cx.pile_dataset)
-    pilo.require_dataset(cx.collection_dataset)
+    datasets = [
+        cx.admin_dataset,
+        cx.intake_dataset,
+        cx.pile_dataset,
+        cx.collection_dataset,
+    ]
+    for ds in datasets:
+        pilo.require_dataset(ds)
 
-    pile = cx.pile_path
-
-    cx.ensure_dir(pile / "in")
-    cx.ensure_dir(pile / "sort")
-    cx.ensure_dir(pile / "out")
-    cx.ensure_dir(pile / "out" / "collection")
-    cx.ensure_dir(pile / "out" / "filing")
-
-    pilo.zfs_set_readonly(cx.pile_dataset, True)
-    pilo.zfs_set_readonly(cx.collection_dataset, True)
+    pilo.apply_dataset_contract(cx)
+    pilo.ensure_runtime_dirs(cx)
+    pilo.apply_ownership(cx)
 
 
 if __name__ == "__main__":

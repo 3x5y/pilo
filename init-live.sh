@@ -36,36 +36,17 @@ init_primary() {
     zfs create -v $ds/static/$col
     zfs create -v $ds/static/$fil/2025
 
-    # unused for tests
+    # unused for now
     #zfs create $ds/active/git
     #zfs create $ds/active/special
     #zfs create $ds/active/transient
     #zfs create $ds/active/working
     #zfs create $ds/spool
     #zfs create $ds/stash
-
-    chown -v $user:$user $mount/pile-intake
-    chown -v $user:$user $mount/pile-readonly
-    chown -v $user:$user $mount/admin
-    chown -v $user:$user $mount/static/$col
-    chown -v $user:$user $mount/static/$fil/2025
-
-    # unused for tests
-    #chown $user:$user $mount/git
-    #chown $user:$user $mount/special
-    #chown $user:$user $mount/spool
-    #chown $user:$user $mount/stash
-    #chown $user:$user $mount/transient
-    #chown $user:$user $mount/working
-
-    # defer to `pilo init`
-    #zfs set readonly=on $ds/active/pile-readonly
-    #zfs set readonly=on $ds/static/$col
-    #zfs set readonly=on $ds/static/$fil/2025
 }
 
 init_replica() {
-    local root=$1
+    local root=$(dirname $1)
     zfs create -v -o canmount=off -o mountpoint=none $root
 }
 
@@ -84,32 +65,27 @@ init_secondary() {
     zfs create -v $root/static/$col-annex
     #zfs create -v $root/static/$fil-annex/1990-2009
     #zfs create -v $root/static/$fil-annex/2010-2019
-
-    chown -v $user:$user $mount/scratch
-    chown -v $user:$user $mount/static/$col-annex
-    #chown -v $user:$user $mount/static/$fil-annex/1990-2009
-    #chown -v $user:$user $mount/static/$fil-annex/2010-2019
-
-    zfs set readonly=on $root/static/$col-annex
-    #zfs set readonly=on $root/static/$fil-annex/1990-2009
-    #zfs set readonly=on $root/static/$fil-annex/2010-2019
 }
 
-PRI_POOL=z0-att
 PRI_DEV=/tmp/z0
-
-SEC_POOL=z1-rem
 SEC_DEV=/tmp/z1
+
+PRI_POOL=z0-att
+SEC_POOL=z1-rem
+
+HERE=$(readlink -f $(dirname -- "$0"))
+. "$HERE"/pilo.conf.sh
 
 destroy_pool $PRI_POOL $PRI_DEV
 destroy_pool $SEC_POOL $SEC_DEV
-find /z -type d -delete
+find $PILO_PATH -type d -delete
 
 init_pool $PRI_POOL $PRI_DEV
 init_pool $SEC_POOL $SEC_DEV
 
-init_primary $PRI_POOL/pri /z user
-init_replica $SEC_POOL/bak /z user
+init_primary $PILO_ROOT $PILO_PATH $PILO_USER
+init_replica $PILO_REPLICA_ROOT $PILO_PATH $PILO_USER
+
 # unused for tests
-init_secondary $SEC_POOL/sec /z user
+#init_secondary $SEC_POOL/sec $PILO_PATH $PILO_USER
 
