@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 import subprocess
 import pilo
 
@@ -22,11 +20,12 @@ def map_to_replica(target, root, repl_root):
 
 
 def main():
-    root = os.environ["PILO_ROOT"]
-    repl_root = os.environ["PILO_REPLICA_ROOT"]
+    cx = pilo.Context()
+    root = cx.root_dataset
+    repl_root = cx.replica_dataset
 
-    if len(sys.argv) > 1:
-        target = sys.argv[1]
+    if cx.args:
+        target = cx.args[0]
     else:
         target = root
 
@@ -41,7 +40,7 @@ def main():
     if pilo.dataset_exists(target):
         pilo.fatal(f"destination exists: {target}")
 
-    pilo.zfs_send_recv(snap, target, recursive=True)
+    pilo.recover_dataset(snap, target, recursive=True)
 
     subprocess.run(["pilo", "status"], check=False)
 

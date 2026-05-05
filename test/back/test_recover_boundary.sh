@@ -10,7 +10,8 @@ zfs create -p $STASH
 echo temp > /$STASH/$temp
 pilo snapshot $snap
 pilo replicate
-zfs destroy -r $TEST_ROOT
+zfs destroy -r $ADMIN
+zfs destroy -r $STASH
 
 pilo recover-baseline $repl $ADMIN $snap >/dev/null
 

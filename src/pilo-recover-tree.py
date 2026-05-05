@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 
-import sys
 import pilo
 
 
 def main():
-    if len(sys.argv) < 4:
+    cx = pilo.Context()
+
+    if len(cx.args) != 3:
         pilo.fatal("usage: recover-tree SRC DST SNAP")
 
-    src, dst, snap = sys.argv[1:4]
-    #pilo.zfs_destroy(dst)
-    pilo.zfs_send_recv(f"{src}@{snap}", dst, recursive=True)
+    src, dst, snap = cx.args
+    pilo.recover_dataset(
+        src_snap=f"{src}@{snap}",
+        dst=dst,
+        recursive=True,
+    )
 
 
 if __name__ == "__main__":

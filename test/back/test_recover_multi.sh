@@ -17,7 +17,9 @@ capture_file file.txt
 pilo ingest-pile
 pilo snapshot $snap
 pilo replicate
-zfs destroy -r $TEST_ROOT
+zfs destroy -r $STATIC
+zfs destroy -r $PILE
+zfs destroy -r $ADMIN
 
 pilo recover-baseline $repl_static $STATIC $snap >/dev/null
 pilo recover-baseline $repl_pile $PILE $snap >/dev/null

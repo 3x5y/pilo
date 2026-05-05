@@ -14,6 +14,7 @@ pilo replicate
 
 # --- destroy everything ---
 zfs destroy -r $TEST_ROOT
+zfs create -p $TEST_ROOT/active
 
 # --- recover ONLY pile ---
 pilo recover-baseline $repl_pile $PILE $snap >/dev/null

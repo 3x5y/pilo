@@ -109,6 +109,8 @@ class Resolved:
 
 class Context:
     def __init__(self, environ=os.environ, args=sys.argv):
+        self.root_dataset = environ["PILO_ROOT"]
+        self.replica_dataset = environ["PILO_REPLICA_ROOT"]
         self.admin_dataset = environ["PILO_ADMIN_DATASET"]
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
         self.pile_dataset = environ["PILO_PILE_DATASET"]
@@ -471,9 +473,17 @@ def zfs_destroy(dataset, recursive=True):
     subprocess.run(cmd, check=False)
 
 
+def zfs_snapshot_exists(snap):
+    return subprocess.run(
+        ["zfs", "list", "-t", "snapshot", snap],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode == 0
+
+
 def zfs_create_parent(dataset):
     parent = dataset.rsplit("/", 1)[0]
-    if parent:
+    if parent and not dataset_exists(parent):
         subprocess.run(["zfs", "create", "-p", parent], check=False)
 
 
@@ -484,3 +494,17 @@ def zfs_send_recv(src_snap, dst, recursive=False):
     send_cmd.append(src_snap)
     recv_cmd = ["zfs", "receive", dst]
     simple_pipe(send_cmd, recv_cmd)
+
+
+def recover_dataset(src_snap, dst, recursive=False, require_new=True):
+    if not zfs_snapshot_exists(src_snap):
+        fatal(f"source snapshot does not exist: {src_snap}")
+
+    if require_new and dataset_exists(dst):
+        fatal(f"destination exists: {dst}")
+
+    zfs_send_recv(src_snap, dst, recursive=recursive)
+
+    snap_name = src_snap.split("@", 1)[1]
+    if not zfs_snapshot_exists(f"{dst}@{snap_name}"):
+        fatal("recovery completed but snapshot missing at destination")

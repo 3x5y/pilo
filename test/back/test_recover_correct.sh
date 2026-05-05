@@ -9,7 +9,7 @@ pilo ingest-pile
 pilo manifest-update
 pilo snapshot $snap
 pilo replicate
-zfs destroy -r $TEST_ROOT
+zfs destroy -r $PILE
 
 pilo recover-baseline $repl $PILE $snap >/dev/null
 
