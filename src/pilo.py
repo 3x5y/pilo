@@ -275,7 +275,7 @@ def zfs_list_snapshots(dataset):
         cmd.split(),
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
     return [line for line in result.stdout.strip().splitlines() if line]
 
@@ -482,7 +482,5 @@ def zfs_send_recv(src_snap, dst, recursive=False):
     if recursive:
         send_cmd.append("-R")
     send_cmd.append(src_snap)
-
     recv_cmd = ["zfs", "receive", dst]
-
     simple_pipe(send_cmd, recv_cmd)

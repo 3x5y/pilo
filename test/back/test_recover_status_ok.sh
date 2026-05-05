@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+pilo snapshot t0
+pilo replicate
+
+zfs destroy -r $TEST_ROOT
+
+pilo recover >/dev/null
+
+capture_status pilo status
+
+assert_command_ok
