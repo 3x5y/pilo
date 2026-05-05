@@ -80,6 +80,7 @@ init_system() {
     fi
     export PILO_USER=ubuntu
     export PILO_ROOT=$root
+    export PILO_REPLICA_ROOT=$REPLICA_ROOT
     export PILO_PATH=$mount
     ADMIN=$root/active/admin
     INTAKE=$root/active/pile-intake

@@ -1,3 +1,4 @@
+PILO_USER=user
 PILO_ROOT=z0-att/pri
 PILO_REPLICA_ROOT=z1-rem/bak/pri
 PILO_PATH=/z

@@ -24,17 +24,17 @@ init_primary() {
     local user=$3
 
     # namespaces
-    zfs create -o canmount=off -o mountpoint=$mount $ds
-    zfs create -o canmount=off -o mountpoint=$mount $ds/active
-    zfs create -o canmount=off $ds/static
-    zfs create -o canmount=off $ds/static/$fil
+    zfs create -v -o canmount=off -o mountpoint=$mount $ds
+    zfs create -v -o canmount=off -o mountpoint=$mount $ds/active
+    zfs create -v -o canmount=off $ds/static
+    zfs create -v -o canmount=off $ds/static/$fil
 
     # datasets
-    zfs create $ds/active/pile-readonly
-    zfs create $ds/active/pile-intake
-    zfs create $ds/active/admin
-    zfs create $ds/static/$col
-    zfs create $ds/static/$fil/2025
+    zfs create -v $ds/active/pile-readonly
+    zfs create -v $ds/active/pile-intake
+    zfs create -v $ds/active/admin
+    zfs create -v $ds/static/$col
+    zfs create -v $ds/static/$fil/2025
 
     # unused for tests
     #zfs create $ds/active/git
@@ -44,11 +44,11 @@ init_primary() {
     #zfs create $ds/spool
     #zfs create $ds/stash
 
-    chown $user:$user $mount/pile-intake
-    chown $user:$user $mount/pile-readonly
-    chown $user:$user $mount/admin
-    chown $user:$user $mount/static/$col
-    chown $user:$user $mount/static/$fil/2025
+    chown -v $user:$user $mount/pile-intake
+    chown -v $user:$user $mount/pile-readonly
+    chown -v $user:$user $mount/admin
+    chown -v $user:$user $mount/static/$col
+    chown -v $user:$user $mount/static/$fil/2025
 
     # unused for tests
     #chown $user:$user $mount/git
@@ -66,7 +66,7 @@ init_primary() {
 
 init_replica() {
     local root=$1
-    zfs create -o canmount=off -o mountpoint=none $root
+    zfs create -v -o canmount=off -o mountpoint=none $root
 }
 
 init_secondary() {
@@ -75,24 +75,24 @@ init_secondary() {
     local user=$3
 
     # namespaces
-    zfs create -o canmount=off -o mountpoint=$mount $root
-    zfs create -o canmount=off $root/static
-    zfs create -o canmount=off $root/static/$fil-annex
+    zfs create -v -o canmount=off -o mountpoint=$mount $root
+    zfs create -v -o canmount=off $root/static
+    zfs create -v -o canmount=off $root/static/$fil-annex
 
     # datasets
-    zfs create $root/scratch
-    zfs create $root/static/$col-annex
-    zfs create $root/static/$fil-annex/1990-2009
-    zfs create $root/static/$fil-annex/2010-2019
+    zfs create -v $root/scratch
+    zfs create -v $root/static/$col-annex
+    #zfs create -v $root/static/$fil-annex/1990-2009
+    #zfs create -v $root/static/$fil-annex/2010-2019
 
-    chown $user:$user $mount/scratch
-    chown $user:$user $mount/static/$col-annex
-    chown $user:$user $mount/static/$fil-annex/1990-2009
-    chown $user:$user $mount/static/$fil-annex/2010-2019
+    chown -v $user:$user $mount/scratch
+    chown -v $user:$user $mount/static/$col-annex
+    #chown -v $user:$user $mount/static/$fil-annex/1990-2009
+    #chown -v $user:$user $mount/static/$fil-annex/2010-2019
 
     zfs set readonly=on $root/static/$col-annex
-    zfs set readonly=on $root/static/$fil-annex/1990-2009
-    zfs set readonly=on $root/static/$fil-annex/2010-2019
+    #zfs set readonly=on $root/static/$fil-annex/1990-2009
+    #zfs set readonly=on $root/static/$fil-annex/2010-2019
 }
 
 PRI_POOL=z0-att
@@ -111,5 +111,5 @@ init_pool $SEC_POOL $SEC_DEV
 init_primary $PRI_POOL/pri /z user
 init_replica $SEC_POOL/bak /z user
 # unused for tests
-#init_secondary $SEC_POOL/sec /z user
+init_secondary $SEC_POOL/sec /z user
 
