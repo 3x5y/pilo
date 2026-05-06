@@ -7,6 +7,6 @@ pilo replicate
 zfs destroy -r $TEST_ROOT
 
 # recover whole root, not per-dataset
-pilo recover-tree $TEST_REPLICA $TEST_ROOT $snap >/dev/null
+pilo recover-tree $TEST_ROOT >/dev/null
 
 zfs list -t snapshot | assert_grep "$TEST_ROOT@$snap"

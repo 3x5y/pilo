@@ -687,7 +687,6 @@ def build_recovery_plan(cx, target):
     mapping.validate_within_src(target)
 
     replica = mapping.map(target)
-    # fails step 1 test
     require_dataset(replica)
 
     snap = zfs_latest_snapshot(replica)
@@ -697,7 +696,6 @@ def build_recovery_plan(cx, target):
     if not snap.startswith(replica + "@"):
         fatal("snapshot does not belong to replica")
 
-    # fails step 4 test
     require_new_dataset(target)
 
     return RecoveryPlan(

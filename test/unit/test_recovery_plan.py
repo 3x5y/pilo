@@ -1,6 +1,18 @@
+import importlib
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 import pilo
+
+
+def import_command(name):
+    modname = f'pilo-{name}'
+    filename = modname + '.py'
+    modpath = Path(pilo.__file__).parent / filename
+    spec = importlib.util.spec_from_file_location(modname, modpath)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def make_context():
@@ -198,3 +210,48 @@ class TestRecoveryPlan(unittest.TestCase):
         pilo.execute_recovery_plan(plan, cx)
 
         mock_owner.assert_called_once_with(cx)
+
+    @patch("pilo.execute_recovery_plan")
+    @patch("pilo.build_recovery_plan")
+    def test_recover_uses_plan(self, mock_build, mock_exec):
+        cx = make_context()
+        mock_build.return_value = pilo.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            snapshot="backup/a@r-1",
+            recursive=True,
+        )
+
+        with patch("pilo.Context", return_value=cx):
+            with patch.object(cx, "args", ["tank/a"]):
+                mod = import_command('recover')
+                mod.main()
+
+        mock_build.assert_called_once_with(cx, "tank/a")
+        mock_exec.assert_called_once()
+
+    @patch("pilo.execute_recovery_plan")
+    @patch("pilo.build_recovery_plan")
+    def test_recover_tree_delegates(self, mock_build, mock_exec):
+        cx = make_context()
+
+        with patch("pilo.Context", return_value=cx):
+            with patch.object(cx, "args", ["tank/a"]):
+                mod = import_command('recover-tree')
+                mod.main()
+
+        mock_build.assert_called_once_with(cx, "tank/a")
+        mock_exec.assert_called_once()
+
+    @patch("pilo.execute_recovery_plan")
+    @patch("pilo.build_recovery_plan")
+    def test_recover_baseline_delegates(self, mock_build, mock_exec):
+        cx = make_context()
+
+        with patch("pilo.Context", return_value=cx):
+            with patch.object(cx, "args", ["tank/a"]):
+                mod = import_command('recover-baseline')
+                mod.main()
+
+        mock_build.assert_called_once_with(cx, "tank/a")
+        mock_exec.assert_called_once()

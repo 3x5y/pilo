@@ -6,13 +6,15 @@ import pilo
 def main():
     cx = pilo.Context()
 
-    if len(cx.args) != 3:
-        pilo.fatal("usage: recover-baseline SRC DST SNAP")
+    if not cx.args:
+        pilo.fatal("usage: recover-baseline TARGET")
 
-    src, dst, snap = cx.args
-    src_snap = f"{src}@{snap}"
-    pilo.restore_dataset(src_snap, dst, recursive=False)
-    print(f"Restored {dst} from {src_snap}")
+    target = cx.args[0]
+
+    plan = pilo.build_recovery_plan(cx, target)
+    pilo.execute_recovery_plan(plan, cx)
+
+    print(f"Restored {target}")
 
 
 if __name__ == "__main__":
