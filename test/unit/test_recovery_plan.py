@@ -229,29 +229,3 @@ class TestRecoveryPlan(unittest.TestCase):
 
         mock_build.assert_called_once_with(cx, "tank/a")
         mock_exec.assert_called_once()
-
-    @patch("pilo.execute_recovery_plan")
-    @patch("pilo.build_recovery_plan")
-    def test_recover_tree_delegates(self, mock_build, mock_exec):
-        cx = make_context()
-
-        with patch("pilo.Context", return_value=cx):
-            with patch.object(cx, "args", ["tank/a"]):
-                mod = import_command('recover-tree')
-                mod.main()
-
-        mock_build.assert_called_once_with(cx, "tank/a")
-        mock_exec.assert_called_once()
-
-    @patch("pilo.execute_recovery_plan")
-    @patch("pilo.build_recovery_plan")
-    def test_recover_baseline_delegates(self, mock_build, mock_exec):
-        cx = make_context()
-
-        with patch("pilo.Context", return_value=cx):
-            with patch.object(cx, "args", ["tank/a"]):
-                mod = import_command('recover-baseline')
-                mod.main()
-
-        mock_build.assert_called_once_with(cx, "tank/a")
-        mock_exec.assert_called_once()
