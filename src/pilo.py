@@ -46,6 +46,17 @@ def require_snapshot(snapshot):
         fatal(f"missing snapshot: {snapshot}")
 
 
+def require_snapshot_of_dataset(snap, dataset):
+    require_snapshot(snap)
+    if not snap.startswith(dataset + "@"):
+        fatal(f"snapshot {snap} does not belong to {dataset}")
+
+
+def require_within_dataset(target, root):
+    if not target == root and not target.startswith(root + "/"):
+        fatal(f"{target} outside {root}")
+
+
 class validate:
     @staticmethod
     def dataset_exists(ds):
@@ -622,7 +633,8 @@ class RecoveryPlan:
 def build_recovery_plan(cx, target):
     mapping = DatasetMapping(cx.root_dataset, cx.replica_dataset)
 
-    mapping.validate_within_src(target)
+    #mapping.validate_within_src(target)
+    require_within_dataset(target, cx.root_dataset)
 
     replica = mapping.map(target)
     require_dataset(replica)
@@ -631,8 +643,7 @@ def build_recovery_plan(cx, target):
     if not snap:
         fatal("no snapshots on replica")
 
-    if not snap.startswith(replica + "@"):
-        fatal("snapshot does not belong to replica")
+    require_snapshot_of_dataset(snap, replica)
 
     require_new_dataset(target)
 
@@ -666,12 +677,8 @@ def build_restore_plan(src, dst, snap, recursive):
 
     src_snap = f"{src}@{snap}"
 
-    if not zfs_snapshot_exists(src_snap):
-        fatal("snapshot does not exist")
-
-    if not src_snap.startswith(src + "@"):
-        fatal("snapshot does not belong to source")
-
+    require_snapshot(src_snap)
+    require_snapshot_of_dataset(src_snap, src)
     require_new_dataset(dst)
 
     return RestorePlan(
@@ -712,6 +719,8 @@ def build_replication_plan(src, dst):
     if not last_src:
         fatal("no source snapshot")
 
+    # if strict (need to change test mocks)
+    #require_dataset(src)
     if not last_dst:
         return ReplicationPlan( src, dst, last_src, None, "full")
 

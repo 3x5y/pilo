@@ -11,9 +11,10 @@ make_context = helpers.make_context
 class TestRecoveryPlan(unittest.TestCase):
 
     #@patch("pilo.dataset_exists", return_value=True)
+    @patch("pilo.zfs_snapshot_exists", return_value=True)
     @patch("pilo.dataset_exists")
     @patch("pilo.zfs_latest_snapshot")
-    def test_build_plan_root(self, mock_latest, mock_exists):
+    def test_build_plan_root(self, mock_latest, mock_exists, *_):
         mock_latest.return_value = "backup/a@r-123"
 
         def side_effect(ds):
@@ -48,9 +49,11 @@ class TestRecoveryPlan(unittest.TestCase):
         with self.assertRaises(SystemExit):
             pilo.build_recovery_plan(cx, "tank/a")
 
+
+    @patch("pilo.zfs_snapshot_exists", return_value=True)
     @patch("pilo.dataset_exists")
     @patch("pilo.zfs_latest_snapshot")
-    def test_build_plan_subdataset(self, mock_latest, mock_exists):
+    def test_build_plan_subdataset(self, mock_latest, mock_exists, *_):
         mock_latest.return_value = "backup/a/foo@r-1"
 
         def side_effect(ds):
