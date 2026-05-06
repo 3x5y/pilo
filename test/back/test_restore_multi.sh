@@ -21,9 +21,9 @@ zfs destroy -r $COLLECTION
 zfs destroy -r $PILE
 zfs destroy -r $ADMIN
 
-pilo recover-baseline $COLLECTION 2>/dev/null
-pilo recover-baseline $PILE 2>/dev/null
-pilo recover-baseline $ADMIN >/dev/null
+pilo restore $repl_coll $COLLECTION $snap
+pilo restore $repl_pile $PILE $snap
+pilo restore $repl_admin $ADMIN $snap
 
 assert_grep static-data < /$COLLECTION/.zfs/snapshot/$snap/$static_file
 assert_grep pile-data < /$PILE/.zfs/snapshot/$snap/in/$pile_file

@@ -13,7 +13,7 @@ pilo replicate
 zfs destroy -r $ADMIN
 zfs destroy -r $STASH
 
-pilo recover-baseline $ADMIN >/dev/null
+pilo restore $repl $ADMIN $snap
 
 assert_grep admin < /$ADMIN/.zfs/snapshot/$snap/$file
 assert_not_exists /$STASH/$temp

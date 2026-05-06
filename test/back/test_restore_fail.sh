@@ -7,6 +7,6 @@ pilo snapshot baseline
 # deliberately skip replication
 zfs destroy -r $TEST_ROOT
 
-capture_status pilo recover-baseline $ADMIN #>/dev/null
+capture_status pilo restore $repl $ADMIN baseline
 
 assert_command_fail recovery succeeded without replica data

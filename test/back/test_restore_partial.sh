@@ -12,12 +12,11 @@ with_writable $STATIC \
 pilo snapshot $snap
 pilo replicate
 
-# --- destroy everything ---
 zfs destroy -r $TEST_ROOT
 zfs create -p $TEST_ROOT/active
 
 # --- recover ONLY pile ---
-pilo recover-baseline $PILE 2>/dev/null
+pilo restore $repl_pile $PILE $snap
 
 # --- system should now be inconsistent ---
 capture_status pilo status

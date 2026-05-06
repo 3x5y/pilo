@@ -54,7 +54,7 @@ export PILO_PILE_PATH
 export PILO_STATIC_PATH
 
 case "$cmd" in
-    recover*) ;;
+    recover|restore*) ;;
     *)
         require_dir "$PILO_PATH"
         require_dataset "$PILO_ROOT"
