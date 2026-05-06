@@ -36,6 +36,30 @@ def require_dataset(dataset):
         fatal(f"missing required dataset: {dataset}")
 
 
+def require_new_dataset(dataset):
+    if dataset_exists(dataset):
+        fatal(f"destination exists: {dataset}")
+
+
+def require_snapshot(snapshot):
+    if not zfs_snapshot_exists(snapshot):
+        fatal(f"missing snapshot: {snapshot}")
+
+
+class validate:
+    @staticmethod
+    def dataset_exists(ds):
+        require_dataset(ds)
+
+    @staticmethod
+    def snapshot_exists(snap):
+        require_snapshot(snap)
+
+    @staticmethod
+    def new_dataset(ds):
+        require_new_dataset(ds)
+
+
 def zfs_get_prop(dataset, propname):
     cmd = 'zfs get -Ho value'.split()
     args = [propname, dataset]
@@ -590,11 +614,10 @@ def zfs_send_recv(src_snap, dst, recursive=False):
 
 
 def restore_dataset(src_snap, dst, recursive=False, require_new=True):
-    if not zfs_snapshot_exists(src_snap):
-        fatal(f"source snapshot does not exist: {src_snap}")
+    require_snapshot(src_snap)
 
-    if require_new and dataset_exists(dst):
-        fatal(f"destination exists: {dst}")
+    if require_new:
+        require_new_dataset(dst)
 
     zfs_send_recv(src_snap, dst, recursive=recursive)
 
