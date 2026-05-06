@@ -2,10 +2,6 @@ import unittest
 from unittest.mock import patch
 
 import pilo
-import helpers
-
-
-make_context = helpers.make_context
 
 
 class TestReplicationPlan(unittest.TestCase):

@@ -520,18 +520,6 @@ def replication_status(src, dst):
 ################
 
 
-class Status:
-    def __init__(self):
-        self.code = 0
-
-    def warn(self, msg):
-        print(f"[WARN] {msg}")
-        self.code = 1
-
-    def ok(self, msg):
-        print(f"[OK] {msg}")
-
-
 def now_epoch():
     return int(datetime.now().timestamp())
 
@@ -780,3 +768,120 @@ def execute_replication_plan(plan: ReplicationPlan):
 
     if plan.mode == "noop":
         return
+
+
+@dataclass
+class SystemStatus:
+    messages: list[str] = None
+    code: int = 0
+
+    def __post_init__(self):
+        if self.messages is None:
+            self.messages = []
+
+    def warn(self, msg):
+        self.messages.append(("WARN", msg))
+        self.code = 1
+
+    def ok(self, msg):
+        self.messages.append(("OK", msg))
+
+
+def check_replication_status(cx, st: SystemStatus):
+    src = cx.root_dataset
+    dst = cx.replica_dataset
+
+    src_snap = zfs_latest_snapshot(src)
+    dst_snap = zfs_latest_snapshot(dst)
+
+    src_name = src_snap.split("@", 1)[1] if src_snap else "**MISSING**"
+    dst_name = dst_snap.split("@", 1)[1] if dst_snap else "**MISSING**"
+
+    if src_name != dst_name:
+        st.warn(f"replication: latest={src_name} replicated={dst_name}")
+    else:
+        st.ok(f"replication: {src_name}")
+
+
+def check_snapshot_status(cx, st: SystemStatus, max_age=None):
+    dataset = cx.pile_dataset
+
+    name, ts = zfs_latest_snapshot_with_time(dataset)
+    if max_age is None:
+        max_age = int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600"))
+
+    if not name:
+        st.warn(f"snapshot: none for {dataset}")
+        return
+
+    if ts is None:
+        st.warn("snapshot: could not parse timestamp")
+        return
+
+    age = now_epoch() - ts
+
+    if age > max_age:
+        st.warn(f"snapshot: stale ({age} s)")
+    else:
+        st.ok(f"snapshot: fresh ({age} s)")
+
+
+def check_dataset_status(cx, st: SystemStatus):
+    required = [
+        cx.admin_dataset,
+        cx.intake_dataset,
+        cx.pile_dataset,
+        f"{cx.static_dataset}/collection",
+    ]
+
+    for ds in required:
+        if not dataset_exists(ds):
+            st.warn(f"incomplete: missing dataset {ds}")
+
+
+def check_transient_status(cx, st: SystemStatus):
+    for git_dir in cx.admin_path.rglob(".git"):
+        repo = git_dir.parent
+        if git_dirty(repo):
+            st.warn(f"transient: repo {repo} has uncommitted changes")
+
+
+def check_pile_status(cx, st: SystemStatus):
+    pile = cx.pile_path
+    if not pile.exists():
+        return
+
+    now = now_epoch()
+    max_age = int(os.environ.get("CONFIG_PILE_MAX_AGE", "86400"))
+
+    for f in iter_files(pile):
+        age = now - int(f.stat().st_mtime)
+        if age > max_age:
+            st.warn(f"pile: {f} is older than threshold")
+
+
+def collect_system_status(cx, check=None):
+    st = SystemStatus()
+
+    checks = {
+        "transient": check_transient_status,
+        "pile": check_pile_status,
+        "snapshot": check_snapshot_status,
+        "replication": check_replication_status,
+        "datasets": check_dataset_status,
+    }
+
+    for name, fn in checks.items():
+        if check is None or check == name:
+            print('check', name)
+            fn(cx, st)
+
+    #check_transient_status(cx, st)
+    #check_dataset_status(cx, st)
+    #check_snapshot_status(
+    #    cx, st,
+    #    max_age=int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600")),
+    #)
+    #check_replication_status(cx, st)
+
+    return st
