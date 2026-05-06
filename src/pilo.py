@@ -439,40 +439,6 @@ def zfs_snapshot(name: str, dataset: str):
     subprocess.run(cmd, check=True)
 
 
-def create_snapshot(name, dataset=None):
-    dataset = dataset or os.environ["PILO_ROOT"]
-    zfs_snapshot(name, dataset)
-    return f"{dataset}@{name}"
-
-
-def create_anchor(anchor_type, dataset=None):
-    dataset = dataset or os.environ["PILO_ROOT"]
-
-    ts = snapshot_timestamp()
-
-    if anchor_type == "daily":
-        name = f"daily-{ts}"
-        hold = False
-    elif anchor_type == "rotation":
-        name = f"rotation-{ts}"
-        hold = True
-    else:
-        fatal("invalid anchor type")
-
-    snap = create_snapshot(name, dataset)
-
-    if hold:
-        zfs_hold("repl-anchor", snap)
-
-    return snap
-
-
-def create_prefixed_snapshot(prefix, dataset=None):
-    ts = snapshot_timestamp()
-    name = f"{prefix}-{ts}"
-    return create_snapshot(name, dataset)
-
-
 def zfs_hold(tag, snapshot):
     cmd = ["zfs", "hold", "-r", tag, snapshot]
     subprocess.run(cmd, check=True)
@@ -873,15 +839,59 @@ def collect_system_status(cx, check=None):
 
     for name, fn in checks.items():
         if check is None or check == name:
-            print('check', name)
             fn(cx, st)
 
-    #check_transient_status(cx, st)
-    #check_dataset_status(cx, st)
-    #check_snapshot_status(
-    #    cx, st,
-    #    max_age=int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600")),
-    #)
-    #check_replication_status(cx, st)
-
     return st
+
+
+@dataclass(frozen=True)
+class SnapshotPolicy:
+    prefix: str
+    hold: bool = False
+    raw: bool = False
+
+    def build_name(self, ts: str) -> str:
+        if self.raw:
+            return self.prefix
+        return f"{self.prefix}-{ts}"
+
+
+def create_snapshot_with_policy(policy: SnapshotPolicy, dataset: str, ts=None):
+    if not dataset:
+        fatal("dataset required for snapshot")
+
+    ts = ts or snapshot_timestamp()
+    name = policy.build_name(ts)
+
+    zfs_snapshot(name, dataset)
+    snap = f"{dataset}@{name}"
+
+    if policy.hold:
+        zfs_hold("repl-anchor", snap)
+
+    return snap
+
+
+def create_prefixed_snapshot(prefix, dataset=None):
+    dataset = dataset or os.environ["PILO_ROOT"]
+    policy = SnapshotPolicy(prefix=prefix)
+    return create_snapshot_with_policy(policy, dataset)
+
+
+def create_anchor(anchor_type, dataset=None):
+    dataset = dataset or os.environ["PILO_ROOT"]
+
+    if anchor_type == "daily":
+        policy = SnapshotPolicy(prefix="daily", hold=False)
+    elif anchor_type == "rotation":
+        policy = SnapshotPolicy(prefix="rotation", hold=True)
+    else:
+        fatal("invalid anchor type")
+
+    return create_snapshot_with_policy(policy, dataset)
+
+
+def create_snapshot(name, dataset=None):
+    dataset = dataset or os.environ["PILO_ROOT"]
+    policy = SnapshotPolicy(prefix=name, raw=True)
+    return create_snapshot_with_policy(policy, dataset, ts="")
