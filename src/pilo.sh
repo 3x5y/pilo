@@ -2,7 +2,11 @@
 set -eu
 
 HERE=$(dirname $(readlink -f "$0"))
-. "$HERE"/lib.sh
+
+fatal() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
 
 cmd=${1:-}
 [ "$cmd" ] || fatal "missing command"
@@ -53,21 +57,13 @@ export PILO_INTAKE_PATH
 export PILO_PILE_PATH
 export PILO_STATIC_PATH
 
-case "$cmd" in
-    recover|restore*) ;;
-    *)
-        require_dir "$PILO_PATH"
-        require_dataset "$PILO_ROOT"
-        ;;
-esac
+export PYTHONPATH=$HERE
+export PYTHONDONTWRITEBYTECODE=1
 
-target="$HERE/pilo-$cmd"
-if [ -f "$target".py ]
+target="$HERE/pilo/cmd/pilo-$cmd.py"
+if [ -f "$target" ]
 then
-    exec python3 "$target".py "$@"
-elif [ -f "$target".sh ]
-then
-    . "$target".sh
+        exec python3 "$target" "$@"
 else
     fatal "unknown command: $cmd"
 fi

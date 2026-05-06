@@ -2,10 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import pilo
-import helpers
-
-
-make_context = helpers.make_context
+from pilotest import make_context, import_command
 
 
 class TestNormalize(unittest.TestCase):
@@ -80,7 +77,7 @@ class TestNormalize(unittest.TestCase):
         cx = make_context()
 
         with patch("pilo.Context", return_value=cx):
-            mod = helpers.import_command('init')
+            mod = import_command('init')
             mod.main()
 
         mock_norm.assert_called_once_with(cx)

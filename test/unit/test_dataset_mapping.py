@@ -1,4 +1,5 @@
 import unittest
+
 from pilo import DatasetMapping
 
 
@@ -29,7 +30,3 @@ class TestDatasetMapping(unittest.TestCase):
         src = "tank/a/foo/bar"
         dst = m.map(src)
         self.assertEqual(m.inverse(dst), src)
-
-
-if __name__ == "__main__":
-    unittest.main()

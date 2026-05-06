@@ -2,7 +2,7 @@
 set -e
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-TESTLIB="$HERE/test/helpers.sh"
+TESTLIB="$HERE/test/pilotest.sh"
 
 export PATH=$HERE/src:$PATH
 export PYTHONDONTWRITEBYTECODE=1
@@ -148,14 +148,10 @@ cmd_clean() {
     done
 }
 
-cmd_run() {
+cmd_system() {
     env_setup
-    if [ "$#" -gt 0 ]
-    then
-        run_tests "$@"
-    else
-        run_tests "$HERE/test"/test_*.sh
-    fi
+    [ "$#" -ne 0 ] || set -- "$HERE/test"
+    run_tests "$@"
     env_teardown
 }
 
@@ -164,29 +160,16 @@ cmd_unit() {
         exec python3 -B -m unittest discover "$@"
 }
 
-usage() {
-    echo "Usage: $0 COMMAND"
-    echo "Commands"
-    echo "  clean"
-    echo "  run [tests]"
-    exit 1
-}
+opt=${1:-}
+shift || true
 
-cmd=$1
-shift
-
-case "$cmd" in
-    clean)
-        cmd_clean
-        ;;
-    run)
-        cmd_run "$@"
-        ;;
-    unit)
-        cmd_unit "$@"
+case "$opt" in
+    --clean|--system|--unit)
+        cmd_${opt#--} "$@"
         ;;
     *)
-        usage
+        echo "Usage: $0 COMMAND --clean|--system|--unit"
+        exit 1
         ;;
 esac
 exit $RESULT

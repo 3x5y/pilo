@@ -2,10 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import pilo
-import helpers
-
-
-make_context = helpers.make_context
+from pilotest import make_context, import_command
 
 
 class TestRecoveryPlan(unittest.TestCase):
@@ -203,7 +200,7 @@ class TestRecoveryPlan(unittest.TestCase):
 
         with patch("pilo.Context", return_value=cx):
             with patch.object(cx, "args", ["tank/a"]):
-                mod = helpers.import_command('recover')
+                mod = import_command('recover')
                 mod.main()
 
         mock_build.assert_called_once_with(cx, "tank/a")

@@ -1,13 +1,14 @@
 
 import importlib
 from pathlib import Path
+
 import pilo
 
 
 def import_command(name):
     modname = f'pilo-{name}'
     filename = modname + '.py'
-    modpath = Path(pilo.__file__).parent / filename
+    modpath = Path(pilo.__file__).parent / 'pilo' / 'cmd' / filename
     spec = importlib.util.spec_from_file_location(modname, modpath)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

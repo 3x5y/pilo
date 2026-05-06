@@ -2,10 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import pilo
-import helpers
-
-
-make_context = helpers.make_context
+import pilotest
 
 
 class TestRestorePlan(unittest.TestCase):
@@ -69,11 +66,11 @@ class TestRestorePlan(unittest.TestCase):
     @patch("pilo.execute_restore_plan")
     @patch("pilo.build_restore_plan")
     def test_restore_command(self, mock_build, mock_exec):
-        cx = make_context()
+        cx = pilotest.make_context()
 
         with patch("pilo.Context", return_value=cx):
             with patch.object(cx, "args", ["tank/a", "tank/b", "r-1"]):
-                mod = helpers.import_command('restore')
+                mod = pilotest.import_command('restore')
                 mod.main()
 
         mock_build.assert_called_once_with("tank/a", "tank/b", "r-1", False)
