@@ -33,21 +33,10 @@ def main():
 
     replica = map_to_replica(target, root, repl_root)
 
-    snap = pilo.zfs_latest_snapshot(replica)
-    if not snap:
-        pilo.fatal("no snapshots on replica")
-
-    if pilo.dataset_exists(target):
-        pilo.fatal(f"destination exists: {target}")
-
-    pilo.recover_dataset(snap, target, recursive=True)
-
-    pilo.apply_dataset_contract(cx)
-    subprocess.run(["zfs", "mount", "-a"], check=True)
-    #pilo.ensure_runtime_dirs(cx)
-    #pilo.apply_ownership(cx)
+    pilo.recover_dataset_tree(cx, target, replica)
 
     subprocess.run(["pilo", "status"], check=False)
+
 
 if __name__ == "__main__":
     main()

@@ -105,7 +105,6 @@ def apply_filesystem(ds, mountpoint, readonly):
     mp = zfs_get_prop(ds, 'mountpoint')
     if mp != str(mountpoint):
         zfs_set_prop(ds, f"mountpoint={mountpoint}")
-    zfs_set_prop(ds, f"mountpoint={mountpoint}")
     zfs_set_prop(ds, "canmount=on")
 
 
@@ -558,7 +557,7 @@ def zfs_latest_snapshot_with_time(dataset):
 
 
 #####################
-#  recovery stuff   #
+#   restore stuff   #
 #####################
 
 
@@ -593,7 +592,7 @@ def zfs_send_recv(src_snap, dst, recursive=False):
     simple_pipe(send_cmd, recv_cmd)
 
 
-def recover_dataset(src_snap, dst, recursive=False, require_new=True):
+def restore_dataset(src_snap, dst, recursive=False, require_new=True):
     if not zfs_snapshot_exists(src_snap):
         fatal(f"source snapshot does not exist: {src_snap}")
 
@@ -604,4 +603,30 @@ def recover_dataset(src_snap, dst, recursive=False, require_new=True):
 
     snap_name = src_snap.split("@", 1)[1]
     if not zfs_snapshot_exists(f"{dst}@{snap_name}"):
-        fatal("recovery completed but snapshot missing at destination")
+        fatal("restore completed but snapshot missing at destination")
+
+
+def restore_from_snapshot(src, dst, snap, recursive):
+    src_snap = f"{src}@{snap}"
+    restore_dataset(src_snap, dst, recursive=recursive)
+
+
+def recover_dataset_tree(cx, target, replica, require_new=True):
+    snap = zfs_latest_snapshot(replica)
+    if not snap:
+        fatal("no snapshots on replica")
+
+    if require_new and dataset_exists(target):
+        fatal(f"destination exists: {target}")
+
+    restore_dataset(snap, target, recursive=True)
+
+    # normalise dataset properties
+    apply_dataset_contract(cx)
+
+    # ensure datasets are mountable and mounted
+    subprocess.run(["zfs", "mount", "-a"], check=True)
+
+    # Optional: runtime + ownership (debatable)
+    #ensure_runtime_dirs(cx)
+    #apply_ownership(cx)

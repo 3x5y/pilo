@@ -7,12 +7,12 @@ def main():
     cx = pilo.Context()
 
     if len(cx.args) != 3:
-        pilo.fatal("usage: recover-tree SRC DST SNAP")
+        pilo.fatal("usage: recover-baseline SRC DST SNAP")
 
     src, dst, snap = cx.args
     src_snap = f"{src}@{snap}"
-    pilo.recover_dataset(src_snap, dst, recursive=False)
-    print(f"Recovered {dst} from {src_snap}")
+    pilo.restore_dataset(src_snap, dst, recursive=False)
+    print(f"Restored {dst} from {src_snap}")
 
 
 if __name__ == "__main__":
