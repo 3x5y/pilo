@@ -333,11 +333,6 @@ def _replicate_incremental(base, snapshot, dst):
     zfs_set_prop(dst, "canmount=off", recursive=True)
 
 
-def _map_dataset(name, src_root, dst_root):
-    suffix = name[len(src_root):].lstrip("/")
-    return f"{dst_root}/{suffix}" if suffix else dst_root
-
-
 def simple_pipe(src_cmd, sink_cmd):
     source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
     sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
@@ -487,8 +482,10 @@ def replication_status(src, dst):
     if not dst_guid:
         return ReplicationStatus.EMPTY, "no snapshots on target"
 
+    mapping = DatasetMapping(src, dst)
+
     for dst_ds in zfs_list_filesystems(dst):
-        src_ds = _map_dataset(dst_ds, dst, src)
+        src_ds = mapping.inverse(dst_ds)
 
         src_guids = set(zfs_list_guids(src_ds))
         dst_guids = set(zfs_list_guids(dst_ds))
@@ -500,7 +497,7 @@ def replication_status(src, dst):
             return ReplicationStatus.BEHIND, f"behind in {dst_ds}"
 
     for src_ds in zfs_list_filesystems(src):
-        dst_ds = _map_dataset(src_ds, src, dst)
+        dst_ds = mapping.map(src_ds)
         if not dataset_exists(dst_ds):
             return ReplicationStatus.BEHIND, f"missing {dst_ds}"
 
@@ -630,3 +627,30 @@ def recover_dataset_tree(cx, target, replica, require_new=True):
     # Optional: runtime + ownership (debatable)
     #ensure_runtime_dirs(cx)
     #apply_ownership(cx)
+
+
+@dataclass(frozen=True)
+class DatasetMapping:
+    src_root: str
+    dst_root: str
+
+    def _suffix(self, dataset: str, root: str) -> str:
+        if not dataset.startswith(root):
+            fatal(f"dataset outside root: {dataset}")
+        return dataset[len(root):].lstrip("/")
+
+    def map(self, dataset: str) -> str:
+        suffix = self._suffix(dataset, self.src_root)
+        return f"{self.dst_root}/{suffix}" if suffix else self.dst_root
+
+    def inverse(self, dataset: str) -> str:
+        suffix = self._suffix(dataset, self.dst_root)
+        return f"{self.src_root}/{suffix}" if suffix else self.src_root
+
+    def validate_within_src(self, dataset: str):
+        if not dataset.startswith(self.src_root):
+            fatal(f"target outside source root: {dataset}")
+
+    def validate_within_dst(self, dataset: str):
+        if not dataset.startswith(self.dst_root):
+            fatal(f"target outside destination root: {dataset}")

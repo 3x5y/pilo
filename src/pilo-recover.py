@@ -31,7 +31,9 @@ def main():
 
     validate_target(target, root)
 
-    replica = map_to_replica(target, root, repl_root)
+    mapping = pilo.DatasetMapping(root, repl_root)
+    mapping.validate_within_src(target)
+    replica = mapping.map(target)
 
     pilo.recover_dataset_tree(cx, target, replica)
 

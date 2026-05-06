@@ -159,6 +159,12 @@ cmd_run() {
     env_teardown
 }
 
+cmd_unit() {
+    ls $HERE/src/pilo.py
+    PYTHONPATH=$HERE/src \
+        exec python3 -B -m unittest discover "$@"
+}
+
 usage() {
     echo "Usage: $0 COMMAND"
     echo "Commands"
@@ -176,6 +182,9 @@ case "$cmd" in
         ;;
     run)
         cmd_run "$@"
+        ;;
+    unit)
+        cmd_unit "$@"
         ;;
     *)
         usage
