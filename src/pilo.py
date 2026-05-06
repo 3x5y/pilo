@@ -119,10 +119,10 @@ def ensure_runtime_dirs(cx):
 
 
 def apply_ownership(cx):
-    cx.ensure_owned(cx.admin_path),
-    cx.ensure_owned(cx.intake_path),
+    cx.ensure_owned(cx.admin_path)
+    cx.ensure_owned(cx.intake_path)
     with dataset_writable(cx.pile_dataset):
-        cx.ensure_owned(cx.pile_path),
+        cx.ensure_owned(cx.pile_path)
     with dataset_writable(cx.collection_dataset):
         cx.ensure_owned(cx.collection_path)
 
@@ -455,7 +455,7 @@ def create_prefixed_snapshot(prefix, dataset=None):
 
 
 def zfs_hold(tag, snapshot):
-    cmd = ["zfs", "hold", "-r", "repl-anchor", snapshot]
+    cmd = ["zfs", "hold", "-r", tag, snapshot]
     subprocess.run(cmd, check=True)
 
 
