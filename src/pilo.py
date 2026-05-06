@@ -716,3 +716,39 @@ def execute_recovery_plan(plan: RecoveryPlan, cx):
     subprocess.run(["zfs", "mount", "-a"], check=True)
     ensure_runtime_dirs(cx)
     apply_ownership(cx)
+
+
+@dataclass(frozen=True)
+class RestorePlan:
+    src_snapshot: str
+    dst: str
+    recursive: bool
+
+
+def build_restore_plan(src, dst, snap, recursive):
+    if "@" in snap:
+        fatal("snapshot must not include dataset")
+
+    src_snap = f"{src}@{snap}"
+
+    if not zfs_snapshot_exists(src_snap):
+        fatal("snapshot does not exist")
+
+    if not src_snap.startswith(src + "@"):
+        fatal("snapshot does not belong to source")
+
+    require_new_dataset(dst)
+
+    return RestorePlan(
+        src_snapshot=src_snap,
+        dst=dst,
+        recursive=recursive,
+    )
+
+
+def execute_restore_plan(plan: RestorePlan):
+    restore_dataset(
+        plan.src_snapshot,
+        plan.dst,
+        recursive=plan.recursive,
+    )
