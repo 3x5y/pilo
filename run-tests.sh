@@ -160,7 +160,7 @@ cmd_run() {
 }
 
 cmd_unit() {
-    PYTHONPATH=$HERE/src \
+    PYTHONPATH=$HERE/src:$HERE/test \
         exec python3 -B -m unittest discover "$@"
 }
 

@@ -1,6 +1,7 @@
 import unittest
 from pilo import DatasetMapping
 
+
 class TestDatasetMapping(unittest.TestCase):
     def test_root_mapping(self):
         m = DatasetMapping("tank/a", "backup/a")
@@ -13,9 +14,6 @@ class TestDatasetMapping(unittest.TestCase):
     def test_inverse(self):
         m = DatasetMapping("tank/a", "backup/a")
         self.assertEqual(m.inverse("backup/a/foo"), "tank/a/foo")
-
-
-class TestValidation(unittest.TestCase):
 
     def test_validate_within_src_ok(self):
         m = DatasetMapping("tank/a", "backup/a")

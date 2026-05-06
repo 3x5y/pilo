@@ -1,35 +1,11 @@
-import importlib
 import unittest
-from pathlib import Path
 from unittest.mock import patch
+
 import pilo
+import helpers
 
 
-def import_command(name):
-    modname = f'pilo-{name}'
-    filename = modname + '.py'
-    modpath = Path(pilo.__file__).parent / filename
-    spec = importlib.util.spec_from_file_location(modname, modpath)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def make_context():
-    return pilo.Context(environ={
-        "PILO_ROOT": "tank/a",
-        "PILO_REPLICA_ROOT": "backup/a",
-        "PILO_ADMIN_DATASET": "tank/a/admin",
-        "PILO_INTAKE_DATASET": "tank/a/intake",
-        "PILO_PILE_DATASET": "tank/a/pile",
-        "PILO_STATIC_DATASET": "tank/a/static",
-        "PILO_PATH": "/tmp",
-        "PILO_ADMIN_PATH": "/tmp/admin",
-        "PILO_INTAKE_PATH": "/tmp/intake",
-        "PILO_PILE_PATH": "/tmp/pile",
-        "PILO_STATIC_PATH": "/tmp/static",
-        "PILO_USER": "root",
-    })
+make_context = helpers.make_context
 
 
 class TestNormalize(unittest.TestCase):
@@ -104,7 +80,7 @@ class TestNormalize(unittest.TestCase):
         cx = make_context()
 
         with patch("pilo.Context", return_value=cx):
-            mod = import_command('init')
+            mod = helpers.import_command('init')
             mod.main()
 
         mock_norm.assert_called_once_with(cx)
