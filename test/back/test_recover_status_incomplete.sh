@@ -8,7 +8,7 @@ zfs destroy -r $ADMIN
 zfs destroy -r $PILE
 
 # recover only admin
-pilo recover $ADMIN >/dev/null
+pilo recover $ADMIN 2>/dev/null
 
 capture_status pilo status
 

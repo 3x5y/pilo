@@ -68,39 +68,45 @@ def zfs_set_readonly(dataset, state):
 #    init stuff     #
 #####################
 
-DATASETS = {
-    "active/admin": {
-        "mount": "admin",
-        "readonly": False,
-    },
-    "active/pile-intake": {
-        "mount": "pile-intake",
-        "readonly": False,
-    },
-    "active/pile-readonly": {
-        "mount": "pile-readonly",
-        "readonly": True,
-    },
-    "static/collection": {
-        "mount": "static/collection",
-        "readonly": True,
-    },
-    "static/filing": {
-        "mount": "static/filing",
-        "readonly": False,
-    },
-}
-
 
 def apply_dataset_contract(cx):
-    for rel, spec in DATASETS.items():
-        ds = f"{cx.root_dataset}/{rel}"
-        mountpoint = cx.path / spec["mount"]
-        require_dataset(ds)
-        zfs_set_readonly(ds, spec["readonly"])
-        # not yet
-        #zfs_set_prop(ds, f"mountpoint={mountpoint}")
-        zfs_set_prop(ds, "canmount=on")
+
+    apply_namespace(cx.root_dataset + '/active')
+    apply_filesystem(cx.root_dataset + '/active/admin',
+                     readonly=False,
+                     mountpoint=cx.admin_path)
+    apply_filesystem(cx.root_dataset + '/active/pile-intake',
+                     readonly=False,
+                     mountpoint=cx.intake_path)
+    apply_filesystem(cx.root_dataset + '/active/pile-readonly',
+                     readonly=True,
+                     mountpoint=cx.pile_path)
+
+    apply_namespace(cx.root_dataset + '/static')
+    apply_filesystem(cx.root_dataset + '/static/collection',
+                     readonly=True,
+                     mountpoint=cx.collection_path)
+
+    apply_namespace(cx.root_dataset + '/static/filing',
+                    mountpoint=cx.filing_path)
+
+
+def apply_namespace(ds, mountpoint=None):
+    require_dataset(ds)
+    mp = zfs_get_prop(ds, 'mountpoint')
+    if mountpoint and mp != str(mountpoint):
+        zfs_set_prop(ds, f"mountpoint={mountpoint}")
+    zfs_set_prop(ds, "canmount=off")
+
+
+def apply_filesystem(ds, mountpoint, readonly):
+    require_dataset(ds)
+    zfs_set_readonly(ds, readonly)
+    mp = zfs_get_prop(ds, 'mountpoint')
+    if mp != str(mountpoint):
+        zfs_set_prop(ds, f"mountpoint={mountpoint}")
+    zfs_set_prop(ds, f"mountpoint={mountpoint}")
+    zfs_set_prop(ds, "canmount=on")
 
 
 def ensure_runtime_dirs(cx):
@@ -119,7 +125,7 @@ def apply_ownership(cx):
     with dataset_writable(cx.pile_dataset):
         cx.ensure_owned(cx.pile_path),
     with dataset_writable(cx.collection_dataset):
-        cx.ensure_owned(cx.static_path / "collection"),
+        cx.ensure_owned(cx.collection_path)
 
 
 #####################
@@ -187,7 +193,6 @@ class Context:
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
         self.pile_dataset = environ["PILO_PILE_DATASET"]
         self.static_dataset = environ["PILO_STATIC_DATASET"]
-
         self.collection_dataset = f"{self.static_dataset}/collection"
         self.filing_dataset = f"{self.static_dataset}/filing"
 
@@ -196,6 +201,11 @@ class Context:
         self.intake_path = Path(environ["PILO_INTAKE_PATH"])
         self.pile_path = Path(environ["PILO_PILE_PATH"])
         self.static_path = Path(environ["PILO_STATIC_PATH"])
+        #self.collection_path = Path(environ["PILO_COLLECTION_PATH"])
+        #self.filing_path = Path(environ["PILO_FILING_PATH"])
+        self.collection_path = self.static_path / 'collection'
+        self.filing_path = self.static_path / 'filing'
+
         self.user = environ["PILO_USER"]
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
@@ -305,15 +315,23 @@ def _find_incremental_base(src, dst):
 
 
 def _replicate_full(snapshot, dst):
-    send = ["zfs", "send", "-R", snapshot]
-    recv = ["zfs", "receive", "-h", "-u", "-o", "readonly=on", dst]
+    send = ["zfs", "send", "-h", "-R", snapshot]
+    recv = ["zfs", "receive", "-u",
+            "-o", "readonly=on",
+            "-o", "mountpoint=none",
+            dst]
     simple_pipe(send, recv)
+    zfs_set_prop(dst, "canmount=off", recursive=True)
 
 
 def _replicate_incremental(base, snapshot, dst):
     send = ["zfs", "send", "-h", "-R", "-I", base, snapshot]
-    recv = ["zfs", "receive", "-u", "-o", "readonly=on", dst]
+    recv = ["zfs", "receive", "-u",
+            "-o", "readonly=on",
+            "-o", "mountpoint=none",
+            dst]
     simple_pipe(send, recv)
+    zfs_set_prop(dst, "canmount=off", recursive=True)
 
 
 def _map_dataset(name, src_root, dst_root):

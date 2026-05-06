@@ -24,16 +24,16 @@ init_primary() {
     local user=$3
 
     # namespaces
-    zfs create -v -o canmount=off -o mountpoint=$mount $ds
-    zfs create -v -o canmount=off -o mountpoint=$mount $ds/active
-    zfs create -v -o canmount=off $ds/static
-    zfs create -v -o canmount=off $ds/static/$fil
+    zfs create -v -o canmount=off -o mountpoint=none $ds
+    zfs create -v -o canmount=off -o mountpoint=none $ds/active
+    zfs create -v -o canmount=off -o mountpoint=none $ds/static
+    zfs create -v -o canmount=off -o mountpoint=$mount/static/filing $ds/static/$fil
 
     # datasets
-    zfs create -v $ds/active/pile-readonly
-    zfs create -v $ds/active/pile-intake
-    zfs create -v $ds/active/admin
-    zfs create -v $ds/static/$col
+    zfs create -v -o mountpoint=$mount/admin $ds/active/admin
+    zfs create -v -o mountpoint=$mount/intake $ds/active/pile-intake
+    zfs create -v -o mountpoint=$mount/pile $ds/active/pile-readonly
+    zfs create -v -o mountpoint=$mount/static/collection $ds/static/$col
     zfs create -v $ds/static/$fil/2025
 
     # unused for now

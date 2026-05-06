@@ -13,5 +13,6 @@ zfs snapshot $ADMIN@t1
 pilo replicate $ADMIN $repl
 
 zfs list -t snapshot | assert_grep $repl@t1
-zfs inherit mountpoint $REPLICA_ROOT
+zfs set canmount=on $repl
+zfs set mountpoint=/$repl $repl
 assert_grep v2 < /$repl/.zfs/snapshot/t1/$file
