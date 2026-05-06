@@ -160,7 +160,6 @@ cmd_run() {
 }
 
 cmd_unit() {
-    ls $HERE/src/pilo.py
     PYTHONPATH=$HERE/src \
         exec python3 -B -m unittest discover "$@"
 }

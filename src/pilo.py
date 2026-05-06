@@ -632,14 +632,8 @@ def restore_from_snapshot(src, dst, snap, recursive):
 
 
 def recover_dataset_tree(cx, target, replica, require_new=True):
-    snap = zfs_latest_snapshot(replica)
-    if not snap:
-        fatal("no snapshots on replica")
-
-    if require_new and dataset_exists(target):
-        fatal(f"destination exists: {target}")
-
-    restore_dataset(snap, target, recursive=True)
+    plan = build_recovery_plan(cx, target)
+    execute_recovery_plan(plan)
 
     # normalise dataset properties
     apply_dataset_contract(cx)
@@ -677,3 +671,46 @@ class DatasetMapping:
     def validate_within_dst(self, dataset: str):
         if not dataset.startswith(self.dst_root):
             fatal(f"target outside destination root: {dataset}")
+
+
+@dataclass(frozen=True)
+class RecoveryPlan:
+    target: str
+    replica: str
+    snapshot: str
+    recursive: bool
+
+
+def build_recovery_plan(cx, target):
+    mapping = DatasetMapping(cx.root_dataset, cx.replica_dataset)
+
+    mapping.validate_within_src(target)
+
+    replica = mapping.map(target)
+    # fails step 1 test
+    require_dataset(replica)
+
+    snap = zfs_latest_snapshot(replica)
+    if not snap:
+        fatal("no snapshots on replica")
+
+    if not snap.startswith(replica + "@"):
+        fatal("snapshot does not belong to replica")
+
+    # fails step 4 test
+    require_new_dataset(target)
+
+    return RecoveryPlan(
+        target=target,
+        replica=replica,
+        snapshot=snap,
+        recursive=True,
+    )
+
+
+def execute_recovery_plan(plan: RecoveryPlan):
+    restore_dataset(
+        plan.snapshot,
+        plan.target,
+        recursive=plan.recursive,
+    )
