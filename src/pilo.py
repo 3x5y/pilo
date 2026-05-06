@@ -479,24 +479,8 @@ def zfs_hold(tag, snapshot):
 
 
 def replicate(src, dst):
-    last_src = zfs_latest_snapshot(src)
-    last_dst = zfs_latest_snapshot(dst)
-
-    if not last_src:
-        fatal("no source snapshot")
-
-    if not last_dst:
-        return _replicate_full(last_src, dst)
-
-    base = _find_incremental_base(src, dst)
-
-    if not base:
-        fatal(f"base snapshot missing on source: {base}")
-
-    if base == last_src:
-        return  # idempotent
-
-    return _replicate_incremental(base, last_src, dst)
+    plan = build_replication_plan(src, dst)
+    return execute_replication_plan(plan)
 
 
 def replication_status(src, dst):
@@ -756,3 +740,43 @@ def normalize_system(cx):
     subprocess.run(["zfs", "mount", "-a"], check=True)
     ensure_runtime_dirs(cx)
     apply_ownership(cx)
+
+
+@dataclass(frozen=True)
+class ReplicationPlan:
+    src: str
+    dst: str
+    snapshot: str
+    base: str | None
+    mode: str  # "full" | "incremental" | "noop"
+
+
+def build_replication_plan(src, dst):
+    last_src = zfs_latest_snapshot(src)
+    last_dst = zfs_latest_snapshot(dst)
+
+    if not last_src:
+        fatal("no source snapshot")
+
+    if not last_dst:
+        return ReplicationPlan( src, dst, last_src, None, "full")
+
+    base = _find_incremental_base(src, dst)
+
+    if not base:
+        fatal(f"base snapshot missing on source: {base}")
+
+    if base == last_src:
+        return ReplicationPlan(src, dst, last_src, base, "noop")
+
+    return ReplicationPlan(src, dst, last_src, base, "incremental")
+
+def execute_replication_plan(plan: ReplicationPlan):
+    if plan.mode == "full":
+        return _replicate_full(plan.snapshot, plan.dst)
+
+    if plan.mode == "incremental":
+        return _replicate_incremental(plan.base, plan.snapshot, plan.dst)
+
+    if plan.mode == "noop":
+        return
