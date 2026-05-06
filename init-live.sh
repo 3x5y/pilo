@@ -15,13 +15,12 @@ init_pool() {
     local name=$1
     local file=$2
     truncate -s 1G "$file"
-    zpool create -m none -O canmount=off -O mountpoint=none $name "$file"
+    zpool create -m none -O canmount=off $name "$file"
 }
 
 init_primary() {
     local ds=$1
     local mount=$2
-    local user=$3
 
     # namespaces
     zfs create -v -o canmount=off -o mountpoint=none $ds
@@ -29,7 +28,7 @@ init_primary() {
     zfs create -v -o canmount=off -o mountpoint=none $ds/static
     zfs create -v -o canmount=off -o mountpoint=$mount/static/filing $ds/static/$fil
 
-    # datasets
+    # filesystems
     zfs create -v -o mountpoint=$mount/admin $ds/active/admin
     zfs create -v -o mountpoint=$mount/intake $ds/active/pile-intake
     zfs create -v -o mountpoint=$mount/pile $ds/active/pile-readonly
@@ -53,7 +52,6 @@ init_replica() {
 init_secondary() {
     local root=$1
     local mount=$2
-    local user=$3
 
     # namespaces
     zfs create -v -o canmount=off -o mountpoint=$mount $root
@@ -83,9 +81,9 @@ find $PILO_PATH -type d -delete
 init_pool $PRI_POOL $PRI_DEV
 init_pool $SEC_POOL $SEC_DEV
 
-init_primary $PILO_ROOT $PILO_PATH $PILO_USER
-init_replica $PILO_REPLICA_ROOT $PILO_PATH $PILO_USER
+init_primary $PILO_ROOT $PILO_PATH
+init_replica $PILO_REPLICA_ROOT $PILO_PATH
 
 # unused for tests
-#init_secondary $SEC_POOL/sec $PILO_PATH $PILO_USER
+#init_secondary $SEC_POOL/sec $PILO_PATH
 
