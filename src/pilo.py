@@ -708,9 +708,13 @@ def build_recovery_plan(cx, target):
     )
 
 
-def execute_recovery_plan(plan: RecoveryPlan):
+def execute_recovery_plan(plan: RecoveryPlan, cx):
     restore_dataset(
         plan.snapshot,
         plan.target,
         recursive=plan.recursive,
     )
+    apply_dataset_contract(cx)
+    subprocess.run(["zfs", "mount", "-a"], check=True)
+    ensure_runtime_dirs(cx)
+    apply_ownership(cx)

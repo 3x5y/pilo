@@ -36,7 +36,8 @@ def main():
     replica = mapping.map(target)
     pilo.validate.dataset_exists(replica)
 
-    pilo.recover_dataset_tree(cx, target, replica)
+    plan = pilo.build_recovery_plan(cx, target)
+    pilo.execute_recovery_plan(plan, cx)
 
     subprocess.run(["pilo", "status"], check=False)
 

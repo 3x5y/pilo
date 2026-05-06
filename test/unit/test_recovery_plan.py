@@ -94,8 +94,12 @@ class TestRecoveryPlan(unittest.TestCase):
         with self.assertRaises(SystemExit):
             pilo.build_recovery_plan(cx, "tank/a")
 
+    @patch("pilo.apply_ownership")
+    @patch("pilo.subprocess.run")
+    @patch("pilo.apply_dataset_contract")
     @patch("pilo.restore_dataset")
-    def test_execute_plan(self, mock_restore):
+    def test_execute_plan(self, mock_restore, mock_contract, mock_run,
+                          mock_owner):
         plan = pilo.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
@@ -103,10 +107,94 @@ class TestRecoveryPlan(unittest.TestCase):
             recursive=True,
         )
 
-        pilo.execute_recovery_plan(plan)
+        cx = make_context()
+        pilo.execute_recovery_plan(plan, cx)
 
         mock_restore.assert_called_once_with(
             "backup/a@r-1",
             "tank/a",
             recursive=True,
         )
+
+    @patch("pilo.apply_ownership")
+    @patch("pilo.subprocess.run")
+    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.restore_dataset")
+    def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
+                                           mock_owner, mock_run):
+        cx = make_context()
+
+        plan = pilo.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            snapshot="backup/a@r-1",
+            recursive=True,
+        )
+
+        pilo.execute_recovery_plan(plan, cx)
+
+        mock_restore.assert_called_once()
+        mock_contract.assert_called_once_with(cx)
+
+    @patch("pilo.apply_ownership")
+    @patch("pilo.subprocess.run")
+    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.restore_dataset")
+    def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
+                                          mock_run, mock_owner):
+        cx = make_context()
+
+        plan = pilo.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            snapshot="backup/a@r-1",
+            recursive=True,
+        )
+
+        pilo.execute_recovery_plan(plan, cx)
+
+        #mock_run.assert_called_with(["zfs", "mount", "-a"], check=True)
+        mock_run.assert_any_call(["zfs", "mount", "-a"], check=True)
+
+    @patch("pilo.apply_ownership")
+    @patch("pilo.ensure_runtime_dirs")
+    @patch("pilo.subprocess.run")
+    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.restore_dataset")
+    def test_execute_plan_ensures_runtime_dirs(
+        self, mock_restore, mock_contract, mock_run, mock_dirs,
+        mock_owner,
+    ):
+        cx = make_context()
+
+        plan = pilo.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            snapshot="backup/a@r-1",
+            recursive=True,
+        )
+
+        pilo.execute_recovery_plan(plan, cx)
+
+        mock_dirs.assert_called_once_with(cx)
+
+    @patch("pilo.apply_ownership")
+    @patch("pilo.ensure_runtime_dirs")
+    @patch("pilo.subprocess.run")
+    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.restore_dataset")
+    def test_execute_plan_applies_ownership(
+        self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner
+    ):
+        cx = make_context()
+
+        plan = pilo.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            snapshot="backup/a@r-1",
+            recursive=True,
+        )
+
+        pilo.execute_recovery_plan(plan, cx)
+
+        mock_owner.assert_called_once_with(cx)
