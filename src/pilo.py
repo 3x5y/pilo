@@ -712,10 +712,7 @@ def execute_recovery_plan(plan: RecoveryPlan, cx):
         plan.target,
         recursive=plan.recursive,
     )
-    apply_dataset_contract(cx)
-    subprocess.run(["zfs", "mount", "-a"], check=True)
-    ensure_runtime_dirs(cx)
-    apply_ownership(cx)
+    normalize_system(cx)
 
 
 @dataclass(frozen=True)
@@ -752,3 +749,10 @@ def execute_restore_plan(plan: RestorePlan):
         plan.dst,
         recursive=plan.recursive,
     )
+
+
+def normalize_system(cx):
+    apply_dataset_contract(cx)
+    subprocess.run(["zfs", "mount", "-a"], check=True)
+    ensure_runtime_dirs(cx)
+    apply_ownership(cx)

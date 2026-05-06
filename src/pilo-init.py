@@ -15,9 +15,7 @@ def main():
     for ds in datasets:
         pilo.require_dataset(ds)
 
-    pilo.apply_dataset_contract(cx)
-    pilo.ensure_runtime_dirs(cx)
-    pilo.apply_ownership(cx)
+    pilo.normalize_system(cx)
 
 
 if __name__ == "__main__":
