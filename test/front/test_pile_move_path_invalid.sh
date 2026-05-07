@@ -10,4 +10,4 @@ pilo ingest-pile
 capture_status pilo rewrite "mv	in/$file	../evil.txt"
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep invalid
+echo "$OUTPUT" | assert_grep traversal not allowed

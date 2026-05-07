@@ -860,3 +860,103 @@ def verify_manifest_lines(root: Path, lines):
             return False
 
     return True
+
+
+@dataclass(frozen=True)
+class RewriteOp:
+    kind: str
+    src: Path
+    dst: Path
+
+
+def validate_relative_path(path: Path):
+    if path.is_absolute():
+        fatal("absolute paths not allowed")
+
+    if ".." in path.parts:
+        fatal("parent traversal not allowed")
+
+def parse_rewrite_ops(lines):
+    ops = []
+
+    for line in lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        parts = line.split("\t")
+
+        if len(parts) != 3:
+            fatal(f"invalid command: {line}")
+
+        kind, src, dst = parts
+
+        if kind != "mv":
+            fatal(f"unsupported operation: '{kind}'")
+
+        src_p = Path(src)
+        dst_p = Path(dst)
+
+        validate_relative_path(src_p)
+        validate_relative_path(dst_p)
+
+        ops.append(
+            RewriteOp(
+                kind=kind,
+                src=src_p,
+                dst=dst_p,
+            )
+        )
+
+    return ops
+
+
+@dataclass(frozen=True)
+class ResolvedRewriteOp:
+    op: RewriteOp
+    src: Resolved
+    dst: Resolved
+
+
+def resolve_rewrite_op(cx, op: RewriteOp):
+    return ResolvedRewriteOp(
+        op=op,
+        src=cx.resolve(op.src),
+        dst=cx.resolve(op.dst),
+    )
+
+
+def validate_rewrite_op(cx, op: ResolvedRewriteOp):
+    src_domain = domain(op.op.src)
+    dst_domain = domain(op.op.dst)
+
+    if src_domain != dst_domain:
+        fatal("cross-domain move not allowed")
+
+    src_abs = op.src.path
+    dst_abs = op.dst.path
+
+    if not src_abs.is_file():
+        fatal(f"source missing: {op.src}")
+
+    if dst_abs.is_file() and not files_equal(src_abs, dst_abs):
+        fatal(f"destination conflict: {op.dst}")
+
+
+def validate_rewrite_ops(cx, ops):
+    seen_src = set()
+    seen_dst = set()
+
+    for op in ops:
+
+        if op.op.src in seen_src:
+            fatal(f"duplicate source in script: {op.op.src}")
+
+        if op.op.dst in seen_dst:
+            fatal(f"destination conflict in script: {op.op.dst}")
+
+        seen_src.add(op.op.src)
+        seen_dst.add(op.op.dst)
+
+        validate_rewrite_op(cx, op)
