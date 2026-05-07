@@ -7,10 +7,9 @@ from pilotest import make_context, import_command
 
 class TestRecoveryPlan(unittest.TestCase):
 
-    #@patch("pilo.dataset_exists", return_value=True)
-    @patch("pilo.zfs_snapshot_exists", return_value=True)
-    @patch("pilo.dataset_exists")
-    @patch("pilo.zfs_latest_snapshot")
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.latest_snapshot")
     def test_build_plan_root(self, mock_latest, mock_exists, *_):
         mock_latest.return_value = "backup/a@r-123"
 
@@ -31,15 +30,15 @@ class TestRecoveryPlan(unittest.TestCase):
         self.assertEqual(plan.snapshot, "backup/a@r-123")
         self.assertTrue(plan.recursive)
 
-    @patch("pilo.dataset_exists", return_value=False)
+    @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_build_plan_requires_replica(self, _):
         cx = make_context()
 
         with self.assertRaises(SystemExit):
             pilo.build_recovery_plan(cx, "tank/a")
 
-    @patch("pilo.dataset_exists", return_value=True)
-    @patch("pilo.zfs_latest_snapshot", return_value="wrong@foo")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.latest_snapshot", return_value="wrong@foo")
     def test_snapshot_must_match_replica(self, mock_snap, _):
         cx = make_context()
 
@@ -47,9 +46,9 @@ class TestRecoveryPlan(unittest.TestCase):
             pilo.build_recovery_plan(cx, "tank/a")
 
 
-    @patch("pilo.zfs_snapshot_exists", return_value=True)
-    @patch("pilo.dataset_exists")
-    @patch("pilo.zfs_latest_snapshot")
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.latest_snapshot")
     def test_build_plan_subdataset(self, mock_latest, mock_exists, *_):
         mock_latest.return_value = "backup/a/foo@r-1"
 
@@ -69,8 +68,8 @@ class TestRecoveryPlan(unittest.TestCase):
         self.assertEqual(plan.replica, "backup/a/foo")
         self.assertEqual(plan.snapshot, "backup/a/foo@r-1")
 
-    @patch("pilo.dataset_exists")
-    @patch("pilo.zfs_latest_snapshot", return_value="backup/a@r-1")
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-1")
     def test_plan_requires_new_target(self, mock_snap, mock_exists):
         # target exists
         def side_effect(ds):

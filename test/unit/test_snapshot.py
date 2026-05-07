@@ -21,7 +21,7 @@ class TestSnapshotPolicy(unittest.TestCase):
 
         self.assertEqual(name, "x-TS")
 
-    @patch("pilo.zfs_snapshot")
+    @patch("pilo.zfs.snapshot")
     def test_creates_snapshot(self, mock_snap):
         policy = pilo.SnapshotPolicy(prefix="r")
 
@@ -56,8 +56,8 @@ class TestSnapshotPolicy(unittest.TestCase):
 
         self.assertEqual(snap, "tank/a@foo")
 
-    @patch("pilo.zfs_hold")
-    @patch("pilo.zfs_snapshot")
+    @patch("pilo.zfs.hold")
+    @patch("pilo.zfs.snapshot")
     def test_hold_applied(self, mock_snap, mock_hold):
         policy = pilo.SnapshotPolicy(prefix="x", hold=True)
 

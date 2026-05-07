@@ -2,6 +2,7 @@
 
 import sys
 import pilo
+import pilo.zfs
 
 
 class Doctor:
@@ -14,12 +15,12 @@ class Doctor:
         self.status = 1
 
     def check_dataset(self, dataset):
-        if not pilo.dataset_exists(dataset):
+        if not pilo.zfs.dataset_exists(dataset):
             self.warn(f"missing required dataset: {dataset}")
 
     def check_readonly(self, dataset):
         try:
-            if not pilo.zfs_get_readonly(dataset):
+            if not pilo.zfs.get_readonly(dataset):
                 self.warn(f"dataset not readonly: {dataset}")
         except Exception:
             self.warn(f"failed to read readonly state: {dataset}")

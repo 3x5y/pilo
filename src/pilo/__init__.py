@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import zfs
+
 
 def fatal(msg):
     print(f"ERROR: {msg}", file=sys.stderr)
@@ -22,27 +24,18 @@ def run(cmd, check=True):
     return subprocess.run(cmd, check=check)
 
 
-def dataset_exists(dataset):
-    result = subprocess.run(
-        ["zfs", "list", dataset],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return result.returncode == 0
-
-
 def require_dataset(dataset):
-    if not dataset_exists(dataset):
+    if not zfs.dataset_exists(dataset):
         fatal(f"missing required dataset: {dataset}")
 
 
 def require_new_dataset(dataset):
-    if dataset_exists(dataset):
+    if zfs.dataset_exists(dataset):
         fatal(f"destination exists: {dataset}")
 
 
 def require_snapshot(snapshot):
-    if not zfs_snapshot_exists(snapshot):
+    if not zfs.snapshot_exists(snapshot):
         fatal(f"missing snapshot: {snapshot}")
 
 
@@ -69,34 +62,6 @@ class validate:
     @staticmethod
     def new_dataset(ds):
         require_new_dataset(ds)
-
-
-def zfs_get_prop(dataset, propname):
-    cmd = 'zfs get -Ho value'.split()
-    args = [propname, dataset]
-    result = subprocess.run(cmd + args,
-                            capture_output=True,
-                            text=True,
-                            check=True)
-    return result.stdout.strip()
-
-
-def zfs_set_prop(dataset, propval, recursive=False):
-    if recursive:
-        for child in zfs_list_filesystems(dataset):
-            zfs_set_prop(child, propval, recursive=False)
-    else:
-        cmd = ["zfs", "set", propval, dataset]
-        subprocess.run(cmd, check=True)
-
-
-def zfs_get_readonly(dataset):
-    return zfs_get_prop(dataset, 'readonly') == 'on'
-
-
-def zfs_set_readonly(dataset, state):
-    prop = 'on' if state else 'off'
-    zfs_set_prop(dataset, f'readonly={prop}')
 
 
 #####################
@@ -128,19 +93,19 @@ def apply_dataset_contract(cx):
 
 def apply_namespace(ds, mountpoint=None):
     require_dataset(ds)
-    mp = zfs_get_prop(ds, 'mountpoint')
+    mp = zfs.get_prop(ds, 'mountpoint')
     if mountpoint and mp != str(mountpoint):
-        zfs_set_prop(ds, f"mountpoint={mountpoint}")
-    zfs_set_prop(ds, "canmount=off")
+        zfs.set_prop(ds, f"mountpoint={mountpoint}")
+    zfs.set_prop(ds, "canmount=off")
 
 
 def apply_filesystem(ds, mountpoint, readonly):
     require_dataset(ds)
-    zfs_set_readonly(ds, readonly)
-    mp = zfs_get_prop(ds, 'mountpoint')
+    zfs.set_readonly(ds, readonly)
+    mp = zfs.get_prop(ds, 'mountpoint')
     if mp != str(mountpoint):
-        zfs_set_prop(ds, f"mountpoint={mountpoint}")
-    zfs_set_prop(ds, "canmount=on")
+        zfs.set_prop(ds, f"mountpoint={mountpoint}")
+    zfs.set_prop(ds, "canmount=on")
 
 
 def ensure_runtime_dirs(cx):
@@ -176,14 +141,14 @@ def generate_manifest_lines(root: Path):
 
 @contextmanager
 def dataset_writable(dataset):
-    was = zfs_get_readonly(dataset)
+    was = zfs.get_readonly(dataset)
     if was:
-        zfs_set_readonly(dataset, False)
+        zfs.set_readonly(dataset, False)
     try:
         yield
     finally:
         if was:
-            zfs_set_readonly(dataset, True)
+            zfs.set_readonly(dataset, True)
 
 
 def list_files(root):
@@ -339,120 +304,17 @@ class ReplicationStatus(Enum):
 
 
 def _find_incremental_base(src, dst):
-    guid = get_latest_guid(dst)
+    guid = zfs.get_latest_guid(dst)
     if not guid:
         return None
-    for name, g in zfs_snapshot_guids(src):
+    for name, g in zfs.snapshot_guids(src):
         if g == guid:
             return name
     return None
 
 
-def _replicate_full(snapshot, dst):
-    send = ["zfs", "send", "-h", "-R", snapshot]
-    recv = ["zfs", "receive", "-u",
-            "-o", "readonly=on",
-            "-o", "mountpoint=none",
-            dst]
-    simple_pipe(send, recv)
-    zfs_set_prop(dst, "canmount=off", recursive=True)
-
-
-def _replicate_incremental(base, snapshot, dst):
-    send = ["zfs", "send", "-h", "-R", "-I", base, snapshot]
-    recv = ["zfs", "receive", "-u",
-            "-o", "readonly=on",
-            "-o", "mountpoint=none",
-            dst]
-    simple_pipe(send, recv)
-    zfs_set_prop(dst, "canmount=off", recursive=True)
-
-
-def simple_pipe(src_cmd, sink_cmd):
-    source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
-    sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
-    source.stdout.close()
-    sink.communicate()
-    if source.wait() != 0 or sink.returncode != 0:
-        fatal("replication failed")
-
-
-def zfs_list_filesystems(root):
-    result = subprocess.run(
-        ["zfs", "list", "-r", "-t", "filesystem", "-Ho", "name", root],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return [line for line in result.stdout.splitlines() if line]
-
-
-def zfs_list_guids(dataset):
-    result = subprocess.run(
-        ["zfs", "list", "-t", "snapshot", "-Ho", "guid", dataset],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return sorted(result.stdout.splitlines())
-
-
-def zfs_list_snapshots(dataset):
-    cmd = 'zfs list -t snapshot -Ho name -s creation ' + dataset
-    result = subprocess.run(
-        cmd.split(),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return [line for line in result.stdout.strip().splitlines() if line]
-
-
-def zfs_latest_snapshot(dataset):
-    try:
-        snaps = zfs_list_snapshots(dataset)
-    except subprocess.CalledProcessError:
-        return None
-    else:
-        return snaps and snaps[-1] or None
-
-
-def zfs_snapshot_guids(dataset):
-    result = subprocess.run(
-        ["zfs", "list", "-t", "snapshot", "-o", "name,guid", dataset],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    lines = result.stdout.strip().splitlines()
-    return [line.split() for line in lines if line]
-
-
-def get_latest_guid(dataset):
-    result = subprocess.run(
-        ["zfs", "list", "-t", "snapshot", "-Ho", "guid", "-s", "creation", dataset],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    lines = result.stdout.strip().splitlines()
-    return lines[-1] if lines else None
-
-
 def snapshot_timestamp():
     return datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-
-
-def zfs_snapshot(name: str, dataset: str):
-    if not dataset:
-        fatal("dataset required for snapshot")
-    cmd = ["zfs", "snapshot", "-r", f"{dataset}@{name}"]
-    subprocess.run(cmd, check=True)
-
-
-def zfs_hold(tag, snapshot):
-    cmd = ["zfs", "hold", "-r", tag, snapshot]
-    subprocess.run(cmd, check=True)
 
 
 def replicate(src, dst):
@@ -461,29 +323,29 @@ def replicate(src, dst):
 
 
 def replication_status(src, dst):
-    src_guid = get_latest_guid(src)
-    dst_guid = get_latest_guid(dst)
+    src_guid = zfs.get_latest_guid(src)
+    dst_guid = zfs.get_latest_guid(dst)
 
     if not dst_guid:
         return ReplicationStatus.EMPTY, "no snapshots on target"
 
     mapping = DatasetMapping(src, dst)
 
-    for dst_ds in zfs_list_filesystems(dst):
+    for dst_ds in zfs.list_filesystems(dst):
         src_ds = mapping.inverse(dst_ds)
 
-        src_guids = set(zfs_list_guids(src_ds))
-        dst_guids = set(zfs_list_guids(dst_ds))
+        src_guids = set(zfs.list_guids(src_ds))
+        dst_guids = set(zfs.list_guids(dst_ds))
 
         if dst_guids - src_guids:
             return ReplicationStatus.DIVERGED, f"divergence in {dst_ds}"
 
-        if get_latest_guid(src_ds) != get_latest_guid(dst_ds):
+        if zfs.get_latest_guid(src_ds) != zfs.get_latest_guid(dst_ds):
             return ReplicationStatus.BEHIND, f"behind in {dst_ds}"
 
-    for src_ds in zfs_list_filesystems(src):
+    for src_ds in zfs.list_filesystems(src):
         dst_ds = mapping.map(src_ds)
-        if not dataset_exists(dst_ds):
+        if not zfs.dataset_exists(dst_ds):
             return ReplicationStatus.BEHIND, f"missing {dst_ds}"
 
     if src_guid != dst_guid:
@@ -510,56 +372,11 @@ def git_dirty(repo: Path):
     return result.returncode != 0
 
 
-def zfs_latest_snapshot_with_time(dataset):
-    cmd = ["zfs", "list", "-p", "-t", "snapshot", "-o", "name,creation", "-s", "creation", dataset]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    lines = [l for l in result.stdout.splitlines() if l.startswith(dataset + "@")]
-
-    if not lines:
-        return None, None
-
-    name, ts = lines[-1].split()
-
-    try:
-        return name, int(ts)
-    except Exception:
-        return name, None
 
 
 #####################
 #   restore stuff   #
 #####################
-
-
-def zfs_destroy(dataset, recursive=True):
-    cmd = ["zfs", "destroy"]
-    if recursive:
-        cmd.append("-r")
-    cmd.append(dataset)
-    subprocess.run(cmd, check=False)
-
-
-def zfs_snapshot_exists(snap):
-    return subprocess.run(
-        ["zfs", "list", "-t", "snapshot", snap],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    ).returncode == 0
-
-
-def zfs_create_parent(dataset):
-    parent = dataset.rsplit("/", 1)[0]
-    if parent and not dataset_exists(parent):
-        subprocess.run(["zfs", "create", "-p", parent], check=False)
-
-
-def zfs_send_recv(src_snap, dst, recursive=False):
-    send_cmd = ["zfs", "send"]
-    if recursive:
-        send_cmd.append("-R")
-    send_cmd.append(src_snap)
-    recv_cmd = ["zfs", "receive", dst]
-    simple_pipe(send_cmd, recv_cmd)
 
 
 def restore_dataset(src_snap, dst, recursive=False, require_new=True):
@@ -568,10 +385,10 @@ def restore_dataset(src_snap, dst, recursive=False, require_new=True):
     if require_new:
         require_new_dataset(dst)
 
-    zfs_send_recv(src_snap, dst, recursive=recursive)
+    zfs.send_recv(src_snap, dst, recursive=recursive)
 
     snap_name = src_snap.split("@", 1)[1]
-    if not zfs_snapshot_exists(f"{dst}@{snap_name}"):
+    if not zfs.snapshot_exists(f"{dst}@{snap_name}"):
         fatal("restore completed but snapshot missing at destination")
 
 
@@ -588,7 +405,7 @@ def recover_dataset_tree(cx, target, replica, require_new=True):
     apply_dataset_contract(cx)
 
     # ensure datasets are mountable and mounted
-    subprocess.run(["zfs", "mount", "-a"], check=True)
+    zfs.mount()
 
     # Optional: runtime + ownership (debatable)
     #ensure_runtime_dirs(cx)
@@ -639,7 +456,7 @@ def build_recovery_plan(cx, target):
     replica = mapping.map(target)
     require_dataset(replica)
 
-    snap = zfs_latest_snapshot(replica)
+    snap = zfs.latest_snapshot(replica)
     if not snap:
         fatal("no snapshots on replica")
 
@@ -698,7 +515,7 @@ def execute_restore_plan(plan: RestorePlan):
 
 def normalize_system(cx):
     apply_dataset_contract(cx)
-    subprocess.run(["zfs", "mount", "-a"], check=True)
+    zfs.mount()
     ensure_runtime_dirs(cx)
     apply_ownership(cx)
 
@@ -713,8 +530,8 @@ class ReplicationPlan:
 
 
 def build_replication_plan(src, dst):
-    last_src = zfs_latest_snapshot(src)
-    last_dst = zfs_latest_snapshot(dst)
+    last_src = zfs.latest_snapshot(src)
+    last_dst = zfs.latest_snapshot(dst)
 
     if not last_src:
         fatal("no source snapshot")
@@ -734,12 +551,13 @@ def build_replication_plan(src, dst):
 
     return ReplicationPlan(src, dst, last_src, base, "incremental")
 
+
 def execute_replication_plan(plan: ReplicationPlan):
     if plan.mode == "full":
-        return _replicate_full(plan.snapshot, plan.dst)
+        return zfs.replicate_full(plan.snapshot, plan.dst)
 
     if plan.mode == "incremental":
-        return _replicate_incremental(plan.base, plan.snapshot, plan.dst)
+        return zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst)
 
     if plan.mode == "noop":
         return
@@ -766,8 +584,8 @@ def check_replication_status(cx, st: SystemStatus):
     src = cx.root_dataset
     dst = cx.replica_dataset
 
-    src_snap = zfs_latest_snapshot(src)
-    dst_snap = zfs_latest_snapshot(dst)
+    src_snap = zfs.latest_snapshot(src)
+    dst_snap = zfs.latest_snapshot(dst)
 
     src_name = src_snap.split("@", 1)[1] if src_snap else "**MISSING**"
     dst_name = dst_snap.split("@", 1)[1] if dst_snap else "**MISSING**"
@@ -781,7 +599,7 @@ def check_replication_status(cx, st: SystemStatus):
 def check_snapshot_status(cx, st: SystemStatus, max_age=None):
     dataset = cx.pile_dataset
 
-    name, ts = zfs_latest_snapshot_with_time(dataset)
+    name, ts = zfs.latest_snapshot_with_time(dataset)
     if max_age is None:
         max_age = int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600"))
 
@@ -810,7 +628,7 @@ def check_dataset_status(cx, st: SystemStatus):
     ]
 
     for ds in required:
-        if not dataset_exists(ds):
+        if not zfs.dataset_exists(ds):
             st.warn(f"incomplete: missing dataset {ds}")
 
 
@@ -872,11 +690,11 @@ def create_snapshot_with_policy(policy: SnapshotPolicy, dataset: str, ts=None):
     ts = ts or snapshot_timestamp()
     name = policy.build_name(ts)
 
-    zfs_snapshot(name, dataset)
+    zfs.snapshot(name, dataset)
     snap = f"{dataset}@{name}"
 
     if policy.hold:
-        zfs_hold("repl-anchor", snap)
+        zfs.hold("repl-anchor", snap)
 
     return snap
 

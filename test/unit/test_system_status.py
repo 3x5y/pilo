@@ -13,7 +13,7 @@ class TestSystemStatusModel(unittest.TestCase):
         self.assertEqual(st.code, 0)
         self.assertEqual(st.messages, [])
 
-    @patch("pilo.zfs_latest_snapshot")
+    @patch("pilo.zfs.latest_snapshot")
     def test_replication_ok(self, mock_snap):
         mock_snap.side_effect = ["tank/a@r1", "backup/a@r1"]
 
@@ -24,7 +24,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         self.assertIn(("OK", "replication: r1"), st.messages)
 
-    @patch("pilo.zfs_latest_snapshot_with_time")
+    @patch("pilo.zfs.latest_snapshot_with_time")
     @patch("pilo.now_epoch", return_value=1000)
     def test_snapshot_fresh(self, mock_now, mock_snap):
         mock_snap.return_value = ("tank/a@r1", 990)
@@ -36,7 +36,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         self.assertIn(("OK", "snapshot: fresh (10 s)"), st.messages)
 
-    @patch("pilo.dataset_exists", return_value=False)
+    @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_missing_dataset(self, _):
         cx = make_context()
         st = pilo.SystemStatus()
