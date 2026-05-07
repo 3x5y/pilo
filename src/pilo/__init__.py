@@ -1137,3 +1137,93 @@ def execute_ingest_ops(cx, ops):
                 safe_move(cx, op.src, op.dst)
             elif op.action == 'noop':
                 op.src.unlink()
+
+
+@dataclass(frozen=True)
+class PromoteOp:
+    src: Path
+    dst: Path
+    dataset: str
+    action: str
+
+
+def build_promote_plan(cx):
+    out_path = cx.pile_path / "out"
+
+    ops = []
+
+    if not out_path.is_dir():
+        return ops
+
+    # validate top-level dirs
+    for child in out_path.iterdir():
+        if child.name not in ("collection", "filing"):
+            fatal(f"invalid /out/ structure: {name}")
+
+    # collect files
+
+    col_dir = out_path / "collection"
+    fil_dir = out_path / "filing"
+    col_files = sorted(iter_files(col_dir)) if col_dir.is_dir() else []
+    fil_files = sorted(iter_files(fil_dir)) if fil_dir.is_dir() else []
+    if not col_files and not fil_files:
+        fatal("/out/ directory empty")
+
+    # validate files
+
+    def validate_file(cx, src: Path, rel: Path):
+        r = cx.resolve(rel)
+        require_dataset(r.dataset)
+        if r.path.is_file():
+            if not files_equal(src, r.path):
+                fatal(f"destination conflict for {rel}")
+
+
+    for f in col_files:
+        rel = Path("collection") / f.relative_to(col_dir)
+        validate_file(cx, f, rel)
+        r = cx.resolve(rel)
+        action = "noop" if r.path.is_file() else "copy"
+        ops.append(
+            PromoteOp(
+                src=f,
+                dst=rel,
+                dataset=r.dataset,
+                action=action,
+            )
+        )
+
+    for f in fil_files:
+        rel = f.relative_to(fil_dir)
+        if len(rel.parts) < 2:
+            fatal("invalid filing structure")
+        subset = rel.parts[0]
+        subpath = Path(*rel.parts[1:])
+        full_rel = Path("filing") / subset / subpath
+        validate_file(cx, f, full_rel)
+        r = cx.resolve(full_rel)
+        action = "noop" if r.path.is_file() else "copy"
+        ops.append(
+            PromoteOp(
+                src=f,
+                dst=full_rel,
+                dataset=r.dataset,
+                action=action,
+            )
+        )
+
+    return ops
+
+
+def execute_promote_plan(cx, ops):
+    datasets = {cx.pile_dataset}
+
+    for op in ops:
+        datasets.add(op.dataset)
+
+    with writable_datasets(datasets):
+        for op in ops:
+            resolved = cx.resolve(op.dst)
+            if op.action == "copy":
+                cx.copy(op.src, resolved.path)
+            safe_unlink(op.src)
