@@ -76,7 +76,8 @@ HERE=$(readlink -f $(dirname -- "$0"))
 
 destroy_pool $PRI_POOL $PRI_DEV
 destroy_pool $SEC_POOL $SEC_DEV
-find $PILO_PATH -type d -delete
+
+! [ -d $PILO_PATH ] || find $PILO_PATH -type d -delete
 
 init_pool $PRI_POOL $PRI_DEV
 init_pool $SEC_POOL $SEC_DEV
