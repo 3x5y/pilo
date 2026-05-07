@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -121,6 +121,9 @@ test_teardown() {
 }
 
 run_tests() {
+    tmplist=$(mktemp /tmp/test.list.XXXXXXXX)
+    trap "rm -f $tmplist" EXIT
+    find "$@" -type f -name 'test_*.sh' | LC_COLLATE=C sort > $tmplist
     while IFS= read -r test_file
     do
         TEST_NAME=${test_file%.sh}
@@ -136,7 +139,7 @@ run_tests() {
             test_teardown
             [ -z "${TEST_FAIL_FAST:-}" ] || break
         fi
-    done < <( find "$@" -type f -name 'test_*.sh' | LC_COLLATE=C sort )
+    done < $tmplist
 }
 
 cmd_clean() {

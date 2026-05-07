@@ -8,9 +8,8 @@ zfs destroy -r $ADMIN
 zfs destroy -r $PILE
 
 # recover only admin
-pilo recover $ADMIN 2>/dev/null
-
-capture_status pilo status
+#pilo recover $ADMIN >/dev/null
+capture_status pilo recover $ADMIN
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep incomplete
+echo "$OUTPUT" | assert_grep missing.required.dataset
