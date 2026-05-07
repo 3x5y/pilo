@@ -135,7 +135,7 @@ def apply_ownership(cx):
 def generate_manifest_lines(root: Path):
     for path in sorted(iter_files(root)):
         rel = path.relative_to(root)
-        h = hashlib.sha256(path.read_bytes()).hexdigest()
+        h = sha256_file(path)
         yield f"{h}  ./{rel}"
 
 
@@ -786,3 +786,45 @@ def create_snapshot(name, dataset=None):
     dataset = dataset or os.environ["PILO_ROOT"]
     policy = SnapshotPolicy(prefix=name, raw=True)
     return create_snapshot_with_policy(policy, dataset, ts="")
+
+
+def sha256_file(path: Path, chunk_size=1024 * 1024):
+    h = hashlib.sha256()
+
+    with path.open("rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+
+            if not chunk:
+                break
+
+            h.update(chunk)
+
+    return h.hexdigest()
+
+
+def verify_manifest_lines(root: Path, lines):
+    root = Path(root)
+
+    for line in lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            expected, rel = line.split("  ./", 1)
+        except ValueError:
+            return False
+
+        path = root / rel
+
+        if not path.is_file():
+            return False
+
+        actual = sha256_file(path)
+
+        if actual != expected:
+            return False
+
+    return True
