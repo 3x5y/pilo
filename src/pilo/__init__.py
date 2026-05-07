@@ -960,3 +960,37 @@ def validate_rewrite_ops(cx, ops):
         seen_dst.add(op.op.dst)
 
         validate_rewrite_op(cx, op)
+
+
+@dataclass(frozen=True)
+class RewritePlan:
+    ops: list[ResolvedRewriteOp]
+
+
+def build_rewrite_plan(cx, ops):
+    resolved = [
+        resolve_rewrite_op(cx, op)
+        for op in ops
+    ]
+
+    validate_rewrite_ops(cx, resolved)
+
+    return RewritePlan(
+        ops=resolved,
+    )
+
+
+def execute_rewrite_plan(cx, plan: RewritePlan):
+    for op in plan.ops:
+        apply_rewrite_op(cx, op)
+
+
+def apply_rewrite_op(cx, op: ResolvedRewriteOp):
+    src_abs = op.src.path
+    dst_abs = op.dst.path
+
+    with dataset_writable(op.src.dataset):
+        if dst_abs.exists():
+            safe_unlink(src_abs)
+        else:
+            safe_move(cx, src_abs, dst_abs)

@@ -99,15 +99,8 @@ def main():
         pilo.fatal("missing command")
     cmd = cx.args[0].splitlines()
     ops = pilo.parse_rewrite_ops(cmd)
-
-    resolved = [
-        pilo.resolve_rewrite_op(cx, op)
-        for op in ops
-    ]
-
-    pilo.validate_rewrite_ops(cx, resolved)
-
-    apply_ops(cx, ops)
+    plan = pilo.build_rewrite_plan(cx, ops)
+    pilo.execute_rewrite_plan(cx, plan)
     pilo.run(["pilo", "manifest-update"])
 
 
