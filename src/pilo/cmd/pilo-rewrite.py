@@ -59,8 +59,8 @@ def validate_ops(cx, ops):
         seen_src.add(op.src)
         seen_dst.add(op.dst)
 
-        src_domain = pilo.domain(op.src)
-        dst_domain = pilo.domain(op.dst)
+        src_domain = pilo.parse_logical_path(op.src).domain
+        dst_domain = pilo.parse_logical_path(op.dst).domain
 
         if src_domain != dst_domain:
             pilo.fatal("cross-domain move not allowed")

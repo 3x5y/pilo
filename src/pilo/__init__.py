@@ -178,10 +178,71 @@ def domain(rel: Path):
     return "invalid"
 
 
+class StorageDomain(Enum):
+    PILE = "pile"
+    COLLECTION = "collection"
+    FILING = "filing"
+
+
+@dataclass(frozen=True)
+class LogicalPath:
+    domain: StorageDomain
+    relpath: Path
+
+
+@dataclass(frozen=True)
+class ResolvedPath:
+    logical: LogicalPath
+    physical: Path
+    dataset: str
+    @property
+    def path(self):
+        return self.physical
+
+
 @dataclass
 class Resolved:
     path: Path
     dataset: str
+
+
+def parse_logical_path(path: Path) -> LogicalPath:
+    if not path.parts:
+        fatal("empty path")
+
+    if path.is_absolute():
+        fatal("absolute paths not allowed")
+
+    if ".." in path.parts:
+        fatal("parent traversal not allowed")
+
+    top = path.parts[0]
+
+    if top in ("in", "out", "sort"):
+        return LogicalPath(
+            domain=StorageDomain.PILE,
+            relpath=path,
+        )
+
+    if top == "collection":
+        if len(path.parts) < 2:
+            fatal("invalid collection path")
+
+        return LogicalPath(
+            domain=StorageDomain.COLLECTION,
+            relpath=Path(*path.parts[1:]),
+        )
+
+    if top == "filing":
+        if len(path.parts) < 3:
+            fatal("invalid filing path")
+
+        return LogicalPath(
+            domain=StorageDomain.FILING,
+            relpath=Path(*path.parts[1:]),
+        )
+
+    fatal(f"invalid path: {path}")
 
 
 class Context:
@@ -209,30 +270,33 @@ class Context:
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
 
-    def resolve(self, rel: Path) -> Resolved:
-        if not rel.parts:
-            fatal("empty path")
+    def resolve(self, rel: Path) -> ResolvedPath:
+        logical = parse_logical_path(rel)
 
-        top = rel.parts[0]
-        if top in ("in", "out", "sort"):
-            return Resolved(
-                path=self.pile_path / rel,
+        if logical.domain == StorageDomain.PILE:
+            return ResolvedPath(
+                logical=logical,
+                physical=self.pile_path / logical.relpath,
                 dataset=self.pile_dataset,
             )
-        if top == "collection":
-            return Resolved(
-                path=self.static_path / rel,
-                dataset=f"{self.static_dataset}/collection",
+
+        if logical.domain == StorageDomain.COLLECTION:
+            return ResolvedPath(
+                logical=logical,
+                physical=self.collection_path / logical.relpath,
+                dataset=self.collection_dataset,
             )
-        if top == "filing":
-            if len(rel.parts) < 2:
-                fatal("invalid filing path")
-            subset = rel.parts[1]
-            return Resolved(
-                path=self.static_path / rel,
-                dataset=f"{self.static_dataset}/filing/{subset}",
+
+        if logical.domain == StorageDomain.FILING:
+            subset = logical.relpath.parts[0]
+
+            return ResolvedPath(
+                logical=logical,
+                physical=self.filing_path / logical.relpath,
+                dataset=f"{self.filing_dataset}/{subset}",
             )
-        fatal(f"invalid path: {rel}")
+
+        raise AssertionError("unreachable")
 
     def as_user(self, cmd, check=True, **kw):
         if os.geteuid() == 0:
