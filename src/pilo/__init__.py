@@ -162,6 +162,45 @@ def iter_files(root):
             yield p
 
 
+def ensure_parent_dir(cx, path: Path):
+    ensure_dir_owned(cx, path.parent)
+
+
+def ensure_dir_owned(cx, path: Path):
+    path = Path(path)
+
+    missing = []
+
+    cur = path
+
+    while not cur.exists():
+        missing.append(cur)
+        cur = cur.parent
+
+    path.mkdir(parents=True, exist_ok=True)
+
+    for d in reversed(missing):
+        cx.ensure_owned(d)
+
+
+def safe_copy(cx, src: Path, dst: Path):
+    ensure_parent_dir(cx, dst)
+    cx.ensure_owned(dst.parent)
+    shutil.copy2(str(src), str(dst))
+    cx.ensure_owned(dst)
+
+
+def safe_move(cx, src: Path, dst: Path):
+    ensure_parent_dir(cx, dst)
+    cx.ensure_owned(dst.parent)
+    shutil.move(str(src), str(dst))
+    cx.ensure_owned(dst)
+
+
+def safe_unlink(path: Path):
+    path.unlink()
+
+
 def files_equal(a, b):
     return filecmp.cmp(a, b, shallow=False)
 
@@ -312,20 +351,13 @@ class Context:
             shutil.chown(path, self.user, self.user)
 
     def ensure_dir(self, path):
-        if not path.is_dir():
-            #self.as_user(["mkdir", "-p", path])
-            path.mkdir(parents=True, exist_ok=True)
-            self.ensure_owned(path)
+        ensure_dir_owned(self, path)
 
     def move(self, src, dst):
-        self.ensure_dir(dst.parent)
-        shutil.move(str(src), str(dst))
-        self.ensure_owned(dst)
+        safe_move(self, src, dst)
 
     def copy(self, src, dst):
-        self.ensure_dir(dst.parent)
-        shutil.copy2(str(src), str(dst))
-        self.ensure_owned(dst)
+        safe_copy(self, src, dst)
 
     def copy_static(self, src, resolved):
         with dataset_writable(resolved.dataset):
@@ -333,7 +365,7 @@ class Context:
 
     def remove_piled(self, path):
         with dataset_writable(self.pile_dataset):
-            path.unlink()
+            safe_unlink(path)
 
     def ensure_git_repo(self, path: Path):
         git_path = path / ".git"
