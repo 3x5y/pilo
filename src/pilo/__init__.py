@@ -5,6 +5,7 @@ import pwd
 import shutil
 import subprocess
 import sys
+from contextlib import ExitStack
 from datetime import datetime
 from enum import Enum
 
@@ -981,16 +982,34 @@ def build_rewrite_plan(cx, ops):
 
 
 def execute_rewrite_plan(cx, plan: RewritePlan):
-    for op in plan.ops:
-        apply_rewrite_op(cx, op)
+    datasets = [
+        op.src.dataset
+        for op in plan.ops
+    ]
+
+    with writable_datasets(datasets):
+        for op in plan.ops:
+            apply_rewrite_op(cx, op)
 
 
 def apply_rewrite_op(cx, op: ResolvedRewriteOp):
     src_abs = op.src.path
     dst_abs = op.dst.path
 
-    with dataset_writable(op.src.dataset):
-        if dst_abs.exists():
-            safe_unlink(src_abs)
-        else:
-            safe_move(cx, src_abs, dst_abs)
+    if dst_abs.exists():
+        safe_unlink(src_abs)
+    else:
+        safe_move(cx, src_abs, dst_abs)
+
+
+@contextmanager
+def writable_datasets(datasets):
+    seen = []
+    for ds in datasets:
+        if ds not in seen:
+            seen.append(ds)
+
+    with ExitStack() as stack:
+        for ds in seen:
+            stack.enter_context(dataset_writable(ds))
+        yield
