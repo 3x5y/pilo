@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-import shutil
-from pathlib import Path
-
 import pilo
 
 
@@ -12,32 +9,8 @@ def main():
     pilo.require_dataset(cx.pile_dataset)
 
     files = list(pilo.iter_files(cx.intake_path))
-
-    def validate_files():
-        for src in files:
-            rel = src.relative_to(cx.intake_path)
-            dst = cx.pile_path / "in" / rel
-
-            if dst.is_file() and not pilo.files_equal(src, dst):
-                pilo.fatal(f"name collision with different content: '{rel}'")
-
-    def apply_changes():
-        for src in files:
-            rel = src.relative_to(cx.intake_path)
-            dst = cx.pile_path / "in" / rel
-
-            if dst.is_file():
-                if pilo.files_equal(src, dst):
-                    src.unlink()
-                else:
-                    raise Error('validation is broken')
-            else:
-                cx.move(src, dst)
-
-    validate_files()
-
-    with pilo.dataset_writable(cx.pile_dataset):
-        apply_changes()
+    ops = pilo.build_ingest_ops(cx, files)
+    pilo.execute_ingest_ops(cx, ops)
 
     plan = pilo.build_manifest_update_plan(cx, ["pile"])
     pilo.execute_manifest_update_plan(cx, plan)

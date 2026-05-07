@@ -188,14 +188,14 @@ def ensure_dir_owned(cx, path: Path):
 def safe_copy(cx, src: Path, dst: Path):
     ensure_parent_dir(cx, dst)
     cx.ensure_owned(dst.parent)
-    shutil.copy2(str(src), str(dst))
+    shutil.copy2(src, dst)
     cx.ensure_owned(dst)
 
 
 def safe_move(cx, src: Path, dst: Path):
     ensure_parent_dir(cx, dst)
     cx.ensure_owned(dst.parent)
-    shutil.move(str(src), str(dst))
+    shutil.move(src, dst)
     cx.ensure_owned(dst)
 
 
@@ -1105,3 +1105,35 @@ def commit_manifest_if_changed(
         manifest,
         message,
     )
+
+
+@dataclass(frozen=True)
+class IngestOp:
+    src: Path
+    dst: Path
+    action: str
+
+
+def build_ingest_ops(cx, files):
+    ops = []
+    for src in files:
+        rel = src.relative_to(cx.intake_path)
+        dst = cx.pile_path / "in" / rel
+        if dst.exists():
+            if files_equal(src, dst):
+                action = 'noop'
+            else:
+                fatal(f"name collision with different content: '{rel}'")
+        else:
+            action = 'move'
+        ops.append(IngestOp(src, dst, action))
+    return ops
+
+
+def execute_ingest_ops(cx, ops):
+    with dataset_writable(cx.pile_dataset):
+        for op in ops:
+            if op.action == 'move':
+                safe_move(cx, op.src, op.dst)
+            elif op.action == 'noop':
+                op.src.unlink()

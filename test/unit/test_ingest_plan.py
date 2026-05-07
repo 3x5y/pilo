@@ -1,0 +1,202 @@
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import pilo
+import pilotest
+
+
+class TestIngestOps(unittest.TestCase):
+
+    def test_build_ingest_ops_new_file(self):
+        cx = pilotest.make_context()
+
+        with tempfile.TemporaryDirectory() as td:
+            intake = Path(td) / "intake"
+            pile = Path(td) / "pile"
+
+            intake.mkdir()
+            pile.mkdir()
+
+            src = intake / "a.txt"
+            src.write_text("hello")
+
+            cx.intake_path = intake
+            cx.pile_path = pile
+
+            ops = pilo.build_ingest_ops(cx, [src])
+
+            self.assertEqual(len(ops), 1)
+
+            op = ops[0]
+
+            self.assertEqual(op.src, src)
+            self.assertEqual(
+                op.dst,
+                pile / "in" / "a.txt",
+            )
+            self.assertEqual(op.action, "move")
+
+    @patch("pilo.files_equal", return_value=True)
+    def test_build_ingest_ops_identical_file_is_noop(self, _):
+        cx = pilotest.make_context()
+
+        with tempfile.TemporaryDirectory() as td:
+            intake = Path(td) / "intake"
+            pile = Path(td) / "pile"
+
+            intake.mkdir()
+            (pile / "in").mkdir(parents=True)
+
+            src = intake / "a.txt"
+            src.write_text("hello")
+
+            dst = pile / "in" / "a.txt"
+            dst.write_text("hello")
+
+            cx.intake_path = intake
+            cx.pile_path = pile
+
+            ops = pilo.build_ingest_ops(cx, [src])
+
+            self.assertEqual(len(ops), 1)
+            self.assertEqual(ops[0].action, "noop")
+
+    @patch("pilo.files_equal", return_value=False)
+    def test_build_ingest_ops_conflict_fails(self, _):
+        cx = pilotest.make_context()
+
+        with tempfile.TemporaryDirectory() as td:
+            intake = Path(td) / "intake"
+            pile = Path(td) / "pile"
+
+            intake.mkdir()
+            (pile / "in").mkdir(parents=True)
+
+            src = intake / "a.txt"
+            src.write_text("new")
+
+            dst = pile / "in" / "a.txt"
+            dst.write_text("old")
+
+            cx.intake_path = intake
+            cx.pile_path = pile
+
+            with self.assertRaises(SystemExit):
+                pilo.build_ingest_ops(cx, [src])
+
+    @patch("pilo.safe_move")
+    @patch("pilo.dataset_writable")
+    def test_execute_ingest_ops_moves_files(
+        self,
+        mock_writable,
+        mock_move,
+    ):
+        cx = pilotest.make_context()
+
+        mock_writable.return_value.__enter__.return_value = None
+        mock_writable.return_value.__exit__.return_value = None
+
+        ops = [
+            pilo.IngestOp(
+                src=Path("/tmp/in/a.txt"),
+                dst=Path("/tmp/pile/in/a.txt"),
+                action="move",
+            )
+        ]
+
+        pilo.execute_ingest_ops(cx, ops)
+
+        mock_writable.assert_called_once_with(cx.pile_dataset)
+
+        mock_move.assert_called_once_with(
+            cx,
+            Path("/tmp/in/a.txt"),
+            Path("/tmp/pile/in/a.txt"),
+        )
+
+    @patch("pathlib.Path.unlink")
+    @patch("pilo.dataset_writable")
+    def test_execute_ingest_ops_unlinks_noop_files(
+        self,
+        mock_writable,
+        mock_unlink,
+    ):
+        cx = pilotest.make_context()
+
+        mock_writable.return_value.__enter__.return_value = None
+        mock_writable.return_value.__exit__.return_value = None
+
+        src = Path("/tmp/in/a.txt")
+
+        ops = [
+            pilo.IngestOp(
+                src=src,
+                dst=Path("/tmp/pile/in/a.txt"),
+                action="noop",
+            )
+        ]
+
+        pilo.execute_ingest_ops(cx, ops)
+
+        mock_unlink.assert_called_once_with()
+
+    @patch("pilo.safe_move")
+    @patch("pilo.dataset_writable")
+    def test_execute_ingest_ops_batches_writable_context(
+        self,
+        mock_writable,
+        mock_move,
+    ):
+        cx = pilotest.make_context()
+
+        mock_writable.return_value.__enter__.return_value = None
+        mock_writable.return_value.__exit__.return_value = None
+
+        ops = [
+            pilo.IngestOp(
+                src=Path("/tmp/in/a.txt"),
+                dst=Path("/tmp/pile/in/a.txt"),
+                action="move",
+            ),
+            pilo.IngestOp(
+                src=Path("/tmp/in/b.txt"),
+                dst=Path("/tmp/pile/in/b.txt"),
+                action="move",
+            ),
+        ]
+
+        pilo.execute_ingest_ops(cx, ops)
+
+        mock_writable.assert_called_once_with(cx.pile_dataset)
+        self.assertEqual(mock_move.call_count, 2)
+
+    @patch("pilo.execute_manifest_update_plan")
+    @patch("pilo.build_manifest_update_plan")
+    @patch("pilo.execute_ingest_ops")
+    @patch("pilo.build_ingest_ops")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    def test_ingest_command_uses_plans(
+        self,
+        _exists,
+        mock_build_ingest,
+        mock_exec_ingest,
+        mock_build_manifest,
+        mock_exec_manifest,
+    ):
+        cx = pilotest.make_context()
+
+        with patch("pilo.Context", return_value=cx):
+            mod = pilotest.import_command("ingest-pile")
+            mod.main()
+
+        mock_build_ingest.assert_called_once()
+        mock_exec_ingest.assert_called_once()
+
+        mock_build_manifest.assert_called_once_with(
+            cx,
+            ["pile"],
+        )
+
+        mock_exec_manifest.assert_called_once()
