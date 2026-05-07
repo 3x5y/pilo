@@ -1227,3 +1227,46 @@ def execute_promote_plan(cx, ops):
             if op.action == "copy":
                 cx.copy(op.src, resolved.path)
             safe_unlink(op.src)
+
+
+@dataclass(frozen=True)
+class ReplaceOp:
+    src: Path
+    dst: Resolved
+
+
+@dataclass(frozen=True)
+class ReplacePlan:
+    ops: list[ReplaceOp]
+
+
+def build_replace_plan(cx, src, dst_rel):
+    if not src.is_file():
+        fatal(f"source file missing: {src}")
+
+    resolved = cx.resolve(dst_rel)
+
+    if not resolved.path.is_file():
+        fatal(f"target does not exist: {dst_rel}")
+
+    require_dataset(resolved.dataset)
+
+    return ReplacePlan(
+        ops=[
+            ReplaceOp(
+                src=src,
+                dst=resolved,
+            )
+        ]
+    )
+
+
+def execute_replace_plan(cx, plan):
+    datasets = {
+        op.dst.dataset
+        for op in plan.ops
+    }
+
+    with writable_datasets(datasets):
+        for op in plan.ops:
+            cx.copy(op.src, op.dst.path)
