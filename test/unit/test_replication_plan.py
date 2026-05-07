@@ -18,7 +18,7 @@ class TestReplicationPlan(unittest.TestCase):
         self.assertEqual(plan.snapshot, "tank/a@r1")
         self.assertIsNone(plan.base)
 
-    @patch("pilo._find_incremental_base")
+    @patch("pilo.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_incremental(self, mock_latest, mock_base):
         mock_latest.side_effect = ["tank/a@r2", "backup/a@r1"]
@@ -30,7 +30,7 @@ class TestReplicationPlan(unittest.TestCase):
         self.assertEqual(plan.base, "tank/a@r1")
         self.assertEqual(plan.snapshot, "tank/a@r2")
 
-    @patch("pilo._find_incremental_base")
+    @patch("pilo.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_noop_when_up_to_date(self, mock_latest, mock_base):
         mock_latest.side_effect = ["tank/a@r1", "backup/a@r1"]

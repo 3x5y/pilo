@@ -44,34 +44,6 @@ class TestRewritePlan(unittest.TestCase):
                 root / "in/b.txt"
             )
 
-    @patch("pilo.zfs.get_readonly", return_value=False)
-    def test_apply_rewrite_op_moves_file(self, _):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-
-            cx = pilotest.make_context()
-            cx.pile_path = root
-
-            src = root / "in/a.txt"
-            dst = root / "in/b.txt"
-
-            src.parent.mkdir(parents=True)
-
-            src.write_text("hello")
-
-            op = pilo.RewriteOp(
-                kind="mv",
-                src=Path("in/a.txt"),
-                dst=Path("in/b.txt"),
-            )
-
-            resolved = pilo.resolve_rewrite_op(cx, op)
-
-            pilo.apply_rewrite_op(cx, resolved)
-
-            self.assertFalse(src.exists())
-            self.assertEqual(dst.read_text(), "hello")
-
     @patch("pilo.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
@@ -137,32 +109,3 @@ class TestRewritePlan(unittest.TestCase):
 
         mock_build.assert_called_once()
         mock_execute.assert_called_once()
-
-    @patch("pilo.safe_move")
-    @patch("pilo.dataset_writable")
-    def test_apply_rewrite_op_no_longer_opens_context(
-        self,
-        mock_ctx,
-        mock_move,
-    ):
-        cx = pilotest.make_context()
-
-        op = pilo.ResolvedRewriteOp(
-            op=pilo.RewriteOp(
-                kind="mv",
-                src=Path("in/a"),
-                dst=Path("in/b"),
-            ),
-            src=pilo.Resolved(
-                path=Path("/tmp/a"),
-                dataset="tank/pile",
-            ),
-            dst=pilo.Resolved(
-                path=Path("/tmp/b"),
-                dataset="tank/pile",
-            ),
-        )
-
-        pilo.apply_rewrite_op(cx, op)
-
-        mock_ctx.assert_not_called()

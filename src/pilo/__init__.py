@@ -401,7 +401,7 @@ class ReplicationStatus(Enum):
     UNKNOWN = "UNKNOWN"
 
 
-def _find_incremental_base(src, dst):
+def find_incremental_base(src, dst):
     guid = zfs.get_latest_guid(dst)
     if not guid:
         return None
@@ -639,7 +639,7 @@ def build_replication_plan(src, dst):
     if not last_dst:
         return ReplicationPlan( src, dst, last_src, None, "full")
 
-    base = _find_incremental_base(src, dst)
+    base = find_incremental_base(src, dst)
 
     if not base:
         fatal(f"base snapshot missing on source: {base}")
@@ -982,17 +982,6 @@ def build_rewrite_plan(cx, ops):
     )
 
 
-def _execute_rewrite_plan(cx, plan: RewritePlan):
-    datasets = [
-        op.src.dataset
-        for op in plan.ops
-    ]
-
-    with writable_datasets(datasets):
-        for op in plan.ops:
-            apply_rewrite_op(cx, op)
-
-
 def execute_rewrite_plan(cx, plan):
     mutations = []
 
@@ -1019,16 +1008,6 @@ def execute_rewrite_plan(cx, plan):
             )
 
     execute_semantic_mutations(cx, mutations)
-
-
-def apply_rewrite_op(cx, op: ResolvedRewriteOp):
-    src_abs = op.src.path
-    dst_abs = op.dst.path
-
-    if dst_abs.exists():
-        safe_unlink(src_abs)
-    else:
-        safe_move(cx, src_abs, dst_abs)
 
 
 @contextmanager
@@ -1158,15 +1137,6 @@ def build_ingest_ops(cx, files):
     return ops
 
 
-def _execute_ingest_ops(cx, ops):
-    with dataset_writable(cx.pile_dataset):
-        for op in ops:
-            if op.action == 'move':
-                safe_move(cx, op.src, op.dst)
-            elif op.action == 'noop':
-                op.src.unlink()
-
-
 def execute_ingest_ops(cx, ops):
     mutations = []
 
@@ -1270,20 +1240,6 @@ def build_promote_plan(cx):
     return ops
 
 
-def _execute_promote_plan(cx, ops):
-    datasets = {cx.pile_dataset}
-
-    for op in ops:
-        datasets.add(op.dataset)
-
-    with writable_datasets(datasets):
-        for op in ops:
-            resolved = cx.resolve(op.dst)
-            if op.action == "copy":
-                cx.copy(op.src, resolved.path)
-            safe_unlink(op.src)
-
-
 def execute_promote_plan(cx, ops):
     mutations = []
 
@@ -1342,17 +1298,6 @@ def build_replace_plan(cx, src, dst_rel):
             )
         ]
     )
-
-
-def _execute_replace_plan(cx, plan):
-    datasets = {
-        op.dst.dataset
-        for op in plan.ops
-    }
-
-    with writable_datasets(datasets):
-        for op in plan.ops:
-            cx.copy(op.src, op.dst.path)
 
 
 def execute_replace_plan(cx, plan):
