@@ -34,9 +34,9 @@ def update_subset(cx, name, root):
 
 def main():
     cx = pilo.Context()
-    update_subset(cx, "pile", cx.pile_path)
-    update_subset(cx, "collection", cx.static_path / "collection")
-    update_subset(cx, "filing", cx.static_path / "filing")
+    doms = ["pile", "collection", "filing"]
+    plan = pilo.build_manifest_update_plan(cx, doms)
+    pilo.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":

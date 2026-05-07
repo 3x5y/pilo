@@ -23,7 +23,8 @@ def main():
         pilo.fatal(f"target does not exist: {dst_rel}")
 
     cx.copy_static(src, resolved)
-    pilo.run(["pilo", "manifest-update"])
+    plan = pilo.build_manifest_update_plan(cx, ["pile"])
+    pilo.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":

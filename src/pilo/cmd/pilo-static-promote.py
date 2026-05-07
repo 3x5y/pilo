@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
-import shutil
 from pathlib import Path
 
 import pilo
@@ -62,7 +60,9 @@ def main():
     for src, rel in ops:
         apply_file(src, rel)
 
-    subprocess.run(["pilo", "manifest-update"], check=True)
+    doms = ["pile", "collection", "filing"]
+    plan = pilo.build_manifest_update_plan(cx, doms)
+    pilo.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":

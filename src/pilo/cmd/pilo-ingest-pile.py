@@ -39,7 +39,8 @@ def main():
     with pilo.dataset_writable(cx.pile_dataset):
         apply_changes()
 
-    pilo.run(["pilo", "manifest-update"])
+    plan = pilo.build_manifest_update_plan(cx, ["pile"])
+    pilo.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":

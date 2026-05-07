@@ -101,7 +101,9 @@ def main():
     ops = pilo.parse_rewrite_ops(cmd)
     plan = pilo.build_rewrite_plan(cx, ops)
     pilo.execute_rewrite_plan(cx, plan)
-    pilo.run(["pilo", "manifest-update"])
+    doms = ["pile", "collection", "filing"]
+    plan = pilo.build_manifest_update_plan(cx, doms)
+    pilo.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":

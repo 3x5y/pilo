@@ -5,6 +5,7 @@ import pwd
 import shutil
 import subprocess
 import sys
+import tempfile
 from contextlib import ExitStack
 from datetime import datetime
 from enum import Enum
@@ -1013,3 +1014,94 @@ def writable_datasets(datasets):
         for ds in seen:
             stack.enter_context(dataset_writable(ds))
         yield
+
+
+def manifest_subset_root(cx, subset):
+    if subset == "pile":
+        return cx.pile_path
+
+    if subset == "collection":
+        return cx.static_path / "collection"
+
+    if subset == "filing":
+        return cx.static_path / "filing"
+
+    fatal(f"invalid manifest subset: {subset}")
+
+
+@dataclass(frozen=True)
+class ManifestSubset:
+    name: str
+    root: Path
+    manifest: Path
+
+
+@dataclass(frozen=True)
+class ManifestUpdatePlan:
+    subsets: list[ManifestSubset]
+
+
+def build_manifest_update_plan(cx, subsets):
+    resolved = []
+
+    for name in subsets:
+        resolved.append(
+            ManifestSubset(
+                name=name,
+                root=manifest_subset_root(cx, name),
+                manifest=(
+                    cx.admin_path
+                    / "manifest"
+                    / f"{name}.manifest"
+                ),
+            )
+        )
+
+    return ManifestUpdatePlan(
+        subsets=resolved
+    )
+
+
+def execute_manifest_update_plan(cx, plan):
+    for subset in plan.subsets:
+        ensure_parent_dir(cx, subset.manifest)
+        write_manifest(cx, subset.root, subset.manifest)
+
+        commit_manifest_if_changed(
+            cx,
+            subset.manifest,
+            f"{subset.name} manifest update",
+        )
+
+
+def write_manifest(cx, root: Path, manifest: Path):
+    with tempfile.NamedTemporaryFile(
+        "w",
+        delete=False,
+    ) as tmp:
+
+        tmp_path = Path(tmp.name)
+
+        for line in generate_manifest_lines(root):
+            tmp.write(line + "\n")
+
+    ensure_parent_dir(cx, manifest)
+    shutil.move(tmp_path, manifest)
+    cx.ensure_owned(manifest)
+    manifest.chmod(0o644)
+
+
+def commit_manifest_if_changed(
+    cx,
+    manifest,
+    message,
+):
+    repo = cx.admin_path / "manifest"
+
+    cx.ensure_git_repo(repo)
+
+    cx.git_commit_if_changed(
+        repo,
+        manifest,
+        message,
+    )
