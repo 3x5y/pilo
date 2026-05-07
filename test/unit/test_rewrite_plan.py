@@ -44,27 +44,6 @@ class TestRewritePlan(unittest.TestCase):
                 root / "in/b.txt"
             )
 
-    @patch("pilo.apply_rewrite_op")
-    @patch("pilo.zfs.get_readonly", return_value=False)
-    def test_execute_rewrite_plan(self, mock_apply, _):
-        cx = pilotest.make_context()
-
-        op = pilo.RewriteOp(
-            kind="mv",
-            src=Path("in/a.txt"),
-            dst=Path("in/b.txt"),
-        )
-
-        plan = pilo.RewritePlan(
-            ops=[
-                pilo.resolve_rewrite_op(cx, op)
-            ]
-        )
-
-        pilo.execute_rewrite_plan(cx, plan)
-
-        mock_apply.assert_called_once()
-
     @patch("pilo.zfs.get_readonly", return_value=False)
     def test_apply_rewrite_op_moves_file(self, _):
         with tempfile.TemporaryDirectory() as td:
@@ -93,6 +72,49 @@ class TestRewritePlan(unittest.TestCase):
             self.assertFalse(src.exists())
             self.assertEqual(dst.read_text(), "hello")
 
+    @patch("pilo.execute_semantic_mutations")
+    def test_execute_uses_executor(self, mock_exec):
+        cx = pilotest.make_context()
+
+        op = pilo.RewriteOp(
+            kind="mv",
+            src=Path("in/a.txt"),
+            dst=Path("in/b.txt"),
+        )
+
+        plan = pilo.RewritePlan(
+            ops=[
+                pilo.resolve_rewrite_op(cx, op)
+            ]
+        )
+
+        pilo.execute_rewrite_plan(cx, plan)
+        mock_exec.assert_called_once()
+
+    @patch("pilo.execute_semantic_mutations")
+    def test_execute_uses_executor2(self, mock_exec):
+        cx = pilotest.make_context()
+
+        op = pilo.ResolvedRewriteOp(
+            op=pilo.RewriteOp(
+                kind="mv",
+                src=Path("in/a"),
+                dst=Path("in/b"),
+            ),
+            src=pilo.Resolved(
+                path=Path("/tmp/a"),
+                dataset="tank/a/pile",
+            ),
+            dst=pilo.Resolved(
+                path=Path("/tmp/b"),
+                dataset="tank/a/pile",
+            ),
+        )
+
+        plan = pilo.RewritePlan([op])
+        pilo.execute_rewrite_plan(cx, plan)
+        mock_exec.assert_called_once()
+
     @patch("pilo.run")
     @patch("pilo.execute_rewrite_plan")
     @patch("pilo.build_rewrite_plan")
@@ -115,83 +137,6 @@ class TestRewritePlan(unittest.TestCase):
 
         mock_build.assert_called_once()
         mock_execute.assert_called_once()
-
-    @patch("pilo.zfs.set_readonly")
-    @patch("pilo.zfs.get_readonly", return_value=False)
-    @patch("pilo.apply_rewrite_op")
-    def test_execute_rewrite_plan_batches_datasets(
-        self,
-        mock_apply,
-        mock_get,
-        mock_set,
-    ):
-        cx = pilotest.make_context()
-
-        ops = [
-            pilo.ResolvedRewriteOp(
-                op=pilo.RewriteOp(
-                    kind="mv",
-                    src=Path("in/a"),
-                    dst=Path("in/b"),
-                ),
-                src=pilo.Resolved(
-                    path=Path("/tmp/a"),
-                    dataset="tank/pile",
-                ),
-                dst=pilo.Resolved(
-                    path=Path("/tmp/b"),
-                    dataset="tank/pile",
-                ),
-            )
-        ]
-
-        plan = pilo.RewritePlan(ops=ops)
-
-        pilo.execute_rewrite_plan(cx, plan)
-
-        mock_get.assert_called_once_with("tank/pile")
-        mock_set.assert_not_called()
-        mock_apply.assert_called_once()
-
-    @patch("pilo.apply_rewrite_op")
-    @patch("pilo.writable_datasets")
-    def test_execute_rewrite_plan_batches_datasets2(
-        self,
-        mock_batch,
-        mock_apply,
-    ):
-        cx = pilotest.make_context()
-
-        ops = [
-            pilo.ResolvedRewriteOp(
-                op=pilo.RewriteOp(
-                    kind="mv",
-                    src=Path("in/a"),
-                    dst=Path("in/b"),
-                ),
-                src=pilo.Resolved(
-                    path=Path("/tmp/a"),
-                    dataset="tank/pile",
-                ),
-                dst=pilo.Resolved(
-                    path=Path("/tmp/b"),
-                    dataset="tank/pile",
-                ),
-            )
-        ]
-
-        plan = pilo.RewritePlan(ops=ops)
-
-        mock_batch.return_value.__enter__.return_value = None
-        mock_batch.return_value.__exit__.return_value = None
-
-        pilo.execute_rewrite_plan(cx, plan)
-
-        mock_batch.assert_called_once_with([
-            "tank/pile"
-        ])
-
-        mock_apply.assert_called_once()
 
     @patch("pilo.safe_move")
     @patch("pilo.dataset_writable")

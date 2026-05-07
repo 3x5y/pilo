@@ -982,7 +982,7 @@ def build_rewrite_plan(cx, ops):
     )
 
 
-def execute_rewrite_plan(cx, plan: RewritePlan):
+def _execute_rewrite_plan(cx, plan: RewritePlan):
     datasets = [
         op.src.dataset
         for op in plan.ops
@@ -991,6 +991,34 @@ def execute_rewrite_plan(cx, plan: RewritePlan):
     with writable_datasets(datasets):
         for op in plan.ops:
             apply_rewrite_op(cx, op)
+
+
+def execute_rewrite_plan(cx, plan):
+    mutations = []
+
+    for op in plan.ops:
+        dst_exists = op.dst.path.exists()
+
+        if dst_exists:
+            mutations.append(
+                SemanticMutation(
+                    action="unlink",
+                    src=op.src.path,
+                    dst=None,
+                    dataset=op.src.dataset,
+                )
+            )
+        else:
+            mutations.append(
+                SemanticMutation(
+                    action="move",
+                    src=op.src.path,
+                    dst=op.dst.path,
+                    dataset=op.src.dataset,
+                )
+            )
+
+    execute_semantic_mutations(cx, mutations)
 
 
 def apply_rewrite_op(cx, op: ResolvedRewriteOp):
@@ -1130,13 +1158,40 @@ def build_ingest_ops(cx, files):
     return ops
 
 
-def execute_ingest_ops(cx, ops):
+def _execute_ingest_ops(cx, ops):
     with dataset_writable(cx.pile_dataset):
         for op in ops:
             if op.action == 'move':
                 safe_move(cx, op.src, op.dst)
             elif op.action == 'noop':
                 op.src.unlink()
+
+
+def execute_ingest_ops(cx, ops):
+    mutations = []
+
+    for op in ops:
+        if op.action == "move":
+            mutations.append(
+                SemanticMutation(
+                    action="move",
+                    src=op.src,
+                    dst=op.dst,
+                    dataset=cx.pile_dataset,
+                )
+            )
+
+        elif op.action == "noop":
+            mutations.append(
+                SemanticMutation(
+                    action="unlink",
+                    src=op.src,
+                    dst=None,
+                    dataset=cx.pile_dataset,
+                )
+            )
+
+    execute_semantic_mutations(cx, mutations)
 
 
 @dataclass(frozen=True)
@@ -1215,7 +1270,7 @@ def build_promote_plan(cx):
     return ops
 
 
-def execute_promote_plan(cx, ops):
+def _execute_promote_plan(cx, ops):
     datasets = {cx.pile_dataset}
 
     for op in ops:
@@ -1227,6 +1282,34 @@ def execute_promote_plan(cx, ops):
             if op.action == "copy":
                 cx.copy(op.src, resolved.path)
             safe_unlink(op.src)
+
+
+def execute_promote_plan(cx, ops):
+    mutations = []
+
+    for op in ops:
+        resolved = cx.resolve(op.dst)
+
+        if op.action == "copy":
+            mutations.append(
+                SemanticMutation(
+                    action="copy",
+                    src=op.src,
+                    dst=resolved.path,
+                    dataset=op.dataset,
+                )
+            )
+
+        mutations.append(
+            SemanticMutation(
+                action="unlink",
+                src=op.src,
+                dst=None,
+                dataset=cx.pile_dataset,
+            )
+        )
+
+    execute_semantic_mutations(cx, mutations)
 
 
 @dataclass(frozen=True)
@@ -1261,7 +1344,7 @@ def build_replace_plan(cx, src, dst_rel):
     )
 
 
-def execute_replace_plan(cx, plan):
+def _execute_replace_plan(cx, plan):
     datasets = {
         op.dst.dataset
         for op in plan.ops
@@ -1270,3 +1353,54 @@ def execute_replace_plan(cx, plan):
     with writable_datasets(datasets):
         for op in plan.ops:
             cx.copy(op.src, op.dst.path)
+
+
+def execute_replace_plan(cx, plan):
+    mutations = []
+
+    for op in plan.ops:
+        mutations.append(
+            SemanticMutation(
+                action="copy",
+                src=op.src,
+                dst=op.dst.path,
+                dataset=op.dst.dataset,
+            )
+        )
+
+    execute_semantic_mutations(cx, mutations)
+
+
+@dataclass(frozen=True)
+class SemanticMutation:
+    action: str
+    src: Path | None
+    dst: Path | None
+    dataset: str
+
+
+def apply_semantic_mutation(cx, mut: SemanticMutation):
+    if mut.action == "move":
+        safe_move(cx, mut.src, mut.dst)
+        return
+
+    if mut.action == "copy":
+        safe_copy(cx, mut.src, mut.dst)
+        return
+
+    if mut.action == "unlink":
+        safe_unlink(mut.src)
+        return
+
+    fatal(f"unsupported mutation action: {mut.action}")
+
+
+def execute_semantic_mutations(cx, mutations):
+    datasets = {
+        m.dataset
+        for m in mutations
+    }
+
+    with writable_datasets(datasets):
+        for mut in mutations:
+            apply_semantic_mutation(cx, mut)

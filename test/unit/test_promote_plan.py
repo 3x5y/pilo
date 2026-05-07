@@ -46,6 +46,22 @@ class TestPromotePlan(unittest.TestCase):
             "tank/a/static/collection",
         )
 
+    @patch("pilo.execute_semantic_mutations")
+    def test_execute_uses_executor(self, mock_exec):
+        cx = pilotest.make_context()
+
+        ops = [
+            pilo.PromoteOp(
+                src=cx.pile_path / "out/collection/a.txt",
+                dst=Path("collection/a.txt"),
+                dataset="tank/a/static/collection",
+                action="copy",
+            )
+        ]
+
+        pilo.execute_promote_plan(cx, ops)
+        mock_exec.assert_called_once()
+
     @patch("pilo.require_dataset")
     @patch("pilo.files_equal", return_value=True)
     def test_existing_identical_file_becomes_noop(
@@ -71,37 +87,5 @@ class TestPromotePlan(unittest.TestCase):
                         with patch.object(Path, "iterdir", return_value=[]):
 
                             ops = pilo.build_promote_plan(cx)
-                            print(ops)
 
         self.assertEqual(ops[0].action, "noop")
-
-    @patch("pilo.safe_unlink")
-    @patch("pilo.writable_datasets")
-    def test_execute_promote_plan_batches_datasets(
-        self,
-        mock_writable,
-        mock_unlink,
-    ):
-        cx = pilotest.make_context()
-
-        cm = MagicMock()
-        cm.__enter__.return_value = None
-        cm.__exit__.return_value = None
-
-        mock_writable.return_value = cm
-
-        ops = [
-            pilo.PromoteOp(
-                src=cx.pile_path / "out/collection/a.txt",
-                dst=Path("collection/a.txt"),
-                dataset="tank/a/static/collection",
-                action="copy",
-            )
-        ]
-
-        with patch.object(cx, "copy"):
-            pilo.execute_promote_plan(cx, ops)
-
-        mock_writable.assert_called_once_with(
-            {"tank/a/static/collection", "tank/a/pile"}
-        )

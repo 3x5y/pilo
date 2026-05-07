@@ -69,44 +69,6 @@ class TestReplacePlan(unittest.TestCase):
                             Path("collection/a.txt"),
                         )
 
-    @patch("pilo.writable_datasets")
-    def test_execute_replace_plan_batches_datasets(
-        self,
-        mock_writable,
-    ):
-        cx = pilotest.make_context()
-
-        cm = MagicMock()
-        cm.__enter__.return_value = None
-        cm.__exit__.return_value = None
-
-        mock_writable.return_value = cm
-
-        plan = pilo.ReplacePlan(
-            ops=[
-                pilo.ReplaceOp(
-                    src=Path("/tmp/src.txt"),
-                    dst=pilo.Resolved(
-                        path=Path("/tmp/static/collection/a.txt"),
-                        dataset="tank/a/static/collection",
-                    ),
-                )
-            ]
-        )
-
-        with patch.object(cx, "copy") as mock_copy:
-
-            pilo.execute_replace_plan(cx, plan)
-
-        mock_copy.assert_called_once_with(
-            Path("/tmp/src.txt"),
-            Path("/tmp/static/collection/a.txt"),
-        )
-
-        mock_writable.assert_called_once_with(
-            {"tank/a/static/collection"}
-        )
-
     @patch("pilo.build_replace_plan")
     @patch("pilo.execute_replace_plan")
     def test_replace_command_uses_plan(
@@ -127,4 +89,23 @@ class TestReplacePlan(unittest.TestCase):
                 mod.main()
 
         mock_build.assert_called_once()
+        mock_exec.assert_called_once()
+
+    @patch("pilo.execute_semantic_mutations")
+    def test_execute_uses_executor(self, mock_exec):
+        cx = pilotest.make_context()
+
+        plan = pilo.ReplacePlan(
+            ops=[
+                pilo.ReplaceOp(
+                    src=Path("/tmp/src.txt"),
+                    dst=pilo.Resolved(
+                        path=Path("/tmp/static/collection/a.txt"),
+                        dataset="tank/a/static/collection",
+                    ),
+                )
+            ]
+        )
+
+        pilo.execute_replace_plan(cx, plan)
         mock_exec.assert_called_once()

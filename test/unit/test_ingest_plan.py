@@ -172,6 +172,22 @@ class TestIngestOps(unittest.TestCase):
         mock_writable.assert_called_once_with(cx.pile_dataset)
         self.assertEqual(mock_move.call_count, 2)
 
+    @patch("pilo.execute_semantic_mutations")
+    def test_execute_uses_executor(self, mock_exec):
+        cx = pilotest.make_context()
+
+        ops = [
+            pilo.IngestOp(
+                src=Path("/tmp/a"),
+                dst=Path("/tmp/b"),
+                action="move",
+            )
+        ]
+
+        pilo.execute_ingest_ops(cx, ops)
+
+        mock_exec.assert_called_once()
+
     @patch("pilo.execute_manifest_update_plan")
     @patch("pilo.build_manifest_update_plan")
     @patch("pilo.execute_ingest_ops")

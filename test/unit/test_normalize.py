@@ -33,7 +33,7 @@ class TestNormalize(unittest.TestCase):
     @patch("pilo.ensure_runtime_dirs")
     @patch("pilo.subprocess.run")
     @patch("pilo.apply_dataset_contract")
-    def _test_normalize_ensures_runtime_dirs(
+    def test_normalize_ensures_runtime_dirs(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
 
