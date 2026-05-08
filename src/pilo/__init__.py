@@ -27,6 +27,7 @@ from .util import *
 from .validation import *
 from .front.ingest import *
 from .front.promote import *
+from .front.replace import *
 from .front.rewrite import *
 
 
@@ -357,40 +358,6 @@ def create_snapshot(name, dataset=None):
 
 def validate_relative_path(path: Path):
     require_relative_path(path)
-
-
-@dataclass(frozen=True)
-class ReplaceOp:
-    src: Path
-    dst: Resolved
-
-
-@dataclass(frozen=True)
-class ReplacePlan:
-    ops: list[ReplaceOp]
-
-
-def build_replace_plan(cx, src, dst_rel):
-    require_file(src)
-    resolved = cx.resolve(dst_rel)
-    require_file(resolved.path)
-    require_dataset(resolved.dataset)
-    op = ReplaceOp(src=src, dst=resolved)
-    return ReplacePlan(ops=[op])
-
-
-def execute_replace_plan(cx, plan):
-    muts = replace_plan_mutations(plan)
-    execute_semantic_mutations(cx, muts)
-
-
-def replace_plan_mutations(plan):
-    def build(op):
-        return SemanticMutation(action="copy",
-                                src=op.src,
-                                dst=op.dst.path,
-                                dataset=op.dst.dataset)
-    return [build(op) for op in plan.ops]
 
 
 @dataclass(frozen=True)

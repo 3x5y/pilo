@@ -9,7 +9,7 @@ import pilotest
 
 class TestReplacePlan(unittest.TestCase):
 
-    @patch("pilo.require_dataset")
+    @patch("pilo.validation.require_dataset")
     def test_build_replace_plan(self, *_):
         cx = pilotest.make_context()
 
@@ -118,7 +118,7 @@ class TestReplacePlan(unittest.TestCase):
         mock_build.assert_called_once()
         mock_exec.assert_called_once()
 
-    @patch("pilo.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
