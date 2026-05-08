@@ -30,7 +30,7 @@ class TestSnapshotPolicy(unittest.TestCase):
         mock_snap.assert_called_once_with("r-TS", "tank/a")
         self.assertEqual(snap, "tank/a@r-TS")
 
-    @patch("pilo.create_snapshot_with_policy")
+    @patch("pilo.back.snapshot.create_snapshot_with_policy")
     def test_prefixed_uses_policy(self, mock_create):
         mock_create.return_value = "tank/a@r-TS"
 
@@ -39,7 +39,7 @@ class TestSnapshotPolicy(unittest.TestCase):
         self.assertEqual(snap, "tank/a@r-TS")
         mock_create.assert_called_once()
 
-    @patch("pilo.create_snapshot_with_policy")
+    @patch("pilo.back.snapshot.create_snapshot_with_policy")
     def test_rotation_anchor_sets_hold(self, mock_create):
         mock_create.return_value = "tank/a@rotation-TS"
 
@@ -48,7 +48,7 @@ class TestSnapshotPolicy(unittest.TestCase):
         policy = mock_create.call_args[0][0]
         self.assertTrue(policy.hold)
 
-    @patch("pilo.create_snapshot_with_policy")
+    @patch("pilo.back.snapshot.create_snapshot_with_policy")
     def test_create_snapshot_uses_policy(self, mock_create):
         mock_create.return_value = "tank/a@foo"
 
