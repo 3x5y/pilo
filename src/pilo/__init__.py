@@ -16,103 +16,12 @@ from pathlib import Path
 
 from . import zfs
 
-
-class PiloException(Exception):
-    pass
-
-
-class PiloError(PiloException):
-    pass
-
-
-class FatalError(PiloError):
-    pass
-
-
-def fatal(msg):
-    raise FatalError(msg)
-
-
-def run_main(f):
-    try:
-        f()
-    except FatalError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        sys.exit(1)
+from .error import *
+from .validation import *
 
 
 def run(cmd, check=True):
     return subprocess.run(cmd, check=check)
-
-
-def require_dataset(dataset):
-    if not zfs.dataset_exists(dataset):
-        fatal(f"missing required dataset: {dataset}")
-
-
-def require_new_dataset(dataset):
-    if zfs.dataset_exists(dataset):
-        fatal(f"destination exists: {dataset}")
-
-
-def require_child_dataset(dataset, root):
-    if not dataset.startswith(root):
-        fatal(f"dataset outside root: {dataset}")
-
-
-def require_snapshot(snapshot):
-    if not zfs.snapshot_exists(snapshot):
-        fatal(f"missing snapshot: {snapshot}")
-
-
-def require_snapshot_of_dataset(snap, dataset):
-    require_snapshot(snap)
-    if not snap.startswith(dataset + "@"):
-        fatal(f"snapshot {snap} does not belong to {dataset}")
-
-
-def require_within_dataset(target, root):
-    if not target == root and not target.startswith(root + "/"):
-        fatal(f"{target} outside {root}")
-
-
-def require_file(path):
-    if not path.is_file():
-        fatal(f"file does not exist: {path}")
-
-
-def require_no_conflict(src, dst):
-    if dst.is_file() and not files_equal(src, dst):
-        fatal(f"destination conflict: {dst}")
-
-
-def require_relative_path(path: Path):
-    if path.is_absolute():
-        fatal("absolute paths not allowed")
-    if ".." in path.parts:
-        fatal("parent traversal not allowed")
-
-
-def require_same_domain(src, dst):
-    src_domain = domain(src)
-    dst_domain = domain(dst)
-
-    if src_domain != dst_domain:
-        fatal("cross-domain move not allowed")
-
-
-class validate:
-    @staticmethod
-    def dataset_exists(ds):
-        require_dataset(ds)
-
-    @staticmethod
-    def snapshot_exists(snap):
-        require_snapshot(snap)
-
-    @staticmethod
-    def new_dataset(ds):
-        require_new_dataset(ds)
 
 
 #####################
@@ -1192,7 +1101,7 @@ def build_promote_plan(cx):
     # validate top-level dirs
     for child in out_path.iterdir():
         if child.name not in ("collection", "filing"):
-            fatal(f"invalid /out/ structure: {name}")
+            fatal(f"invalid /out/ structure: {child.name}")
 
     # collect files
 
