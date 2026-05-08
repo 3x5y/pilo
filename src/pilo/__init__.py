@@ -27,6 +27,7 @@ from .util import *
 from .validation import *
 from .front.ingest import *
 from .front.promote import *
+from .front.prune import *
 from .front.replace import *
 from .front.rewrite import *
 
@@ -358,56 +359,3 @@ def create_snapshot(name, dataset=None):
 
 def validate_relative_path(path: Path):
     require_relative_path(path)
-
-
-@dataclass(frozen=True)
-class PruneOp:
-    path: Path
-    dataset: str
-
-
-@dataclass(frozen=True)
-class PrunePlan:
-    ops: list[PruneOp]
-
-
-def build_prune_plan(root, dataset):
-    keep = (
-        root / "in",
-        root / "out",
-        root / "sort",
-    )
-
-    ops = []
-    would_remove = set()
-
-    def would_be_empty(path):
-        for x in path.iterdir():
-            if x not in would_remove:
-                return False
-        return True
-
-    for path in sorted(root.rglob("*"), reverse=True):
-        if path in keep:
-            continue
-
-        if path.is_dir() and would_be_empty(path):
-            would_remove.add(path)
-            op = PruneOp(path=path, dataset=dataset)
-            ops.append(op)
-
-    return PrunePlan(ops=ops)
-
-
-def prune_mutations(plan):
-    def build(op):
-        return SemanticMutation(action="rmdir",
-                                src=op.path,
-                                dst=None,
-                                dataset=op.dataset)
-    return [build(op) for op in plan.ops]
-
-
-def execute_prune_plan(cx, ops):
-    mut = prune_mutations(ops)
-    execute_semantic_mutations(cx, mut)
