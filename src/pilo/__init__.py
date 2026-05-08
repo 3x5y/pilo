@@ -1483,3 +1483,57 @@ def prune_mutations(plan):
 def execute_prune_plan(cx, ops):
     mut = prune_mutations(ops)
     execute_semantic_mutations(cx, mut)
+
+
+@dataclass(frozen=True)
+class ManifestVerifyOp:
+    subset: str
+    root: Path
+    manifest: Path
+
+
+def manifest_subset_root(cx, subset):
+    if subset == "pile":
+        return cx.pile_path
+
+    if subset in ("collection", "filing"):
+        return cx.static_path / subset
+
+    fatal(f"unsupported subset: {subset}")
+
+
+def build_manifest_verify_plan(cx, subsets):
+    ops = []
+
+    for subset in subsets:
+        ops.append(
+            ManifestVerifyOp(
+                subset=subset,
+                root=manifest_subset_root(cx, subset),
+                manifest=(
+                    cx.admin_path
+                    / "manifest"
+                    / f"{subset}.manifest"
+                ),
+            )
+        )
+
+    return ops
+
+
+def verify_manifest_op(op):
+    if (not op.manifest.is_file()
+            or op.manifest.stat().st_size == 0):
+        return
+
+    cmd = ["sha256sum", "--quiet", "--strict", "-c",
+           op.manifest]
+    try:
+        subprocess.run(cmd, cwd=str(op.root), check=True)
+    except subprocess.CalledProcessError:
+        fatal(f"manifest verification failed: {op.subset}")
+
+
+def execute_manifest_verify_plan(ops):
+    for op in ops:
+        verify_manifest_op(op)
