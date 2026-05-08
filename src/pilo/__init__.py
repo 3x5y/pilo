@@ -214,6 +214,10 @@ def safe_unlink(path: Path):
     path.unlink()
 
 
+def safe_rmdir(path: Path):
+    path.rmdir()
+
+
 def files_equal(a, b):
     return filecmp.cmp(a, b, shallow=False)
 
@@ -1378,6 +1382,10 @@ def apply_semantic_mutation(cx, mut: SemanticMutation):
         safe_unlink(mut.src)
         return
 
+    if mut.action == "rmdir":
+        safe_rmdir(mut.src)
+        return
+
     fatal(f"unsupported mutation action: {mut.action}")
 
 
@@ -1413,3 +1421,65 @@ def mutation_manifest_domains(mutations):
 def build_manifest_plan_for_mutations(cx, mutations):
     domains = sorted(mutation_manifest_domains(mutations))
     return build_manifest_update_plan(cx, domains)
+
+
+@dataclass(frozen=True)
+class PruneOp:
+    path: Path
+    dataset: str
+
+
+@dataclass(frozen=True)
+class PrunePlan:
+    ops: list[PruneOp]
+
+
+def build_prune_plan(root, dataset):
+    keep = (
+        root / "in",
+        root / "out",
+        root / "sort",
+    )
+
+    ops = []
+    would_remove = set()
+
+    def would_be_empty(path):
+        for x in path.iterdir():
+            if x not in would_remove:
+                return False
+        return True
+
+    for path in sorted(root.rglob("*"), reverse=True):
+        if path in keep:
+            continue
+
+        if path.is_dir() and would_be_empty(path):
+            would_remove.add(path)
+            ops.append(
+                PruneOp(
+                    path=path,
+                    dataset=dataset,
+                )
+            )
+
+    return PrunePlan(ops=ops)
+
+
+def prune_mutations(plan):
+    muts = []
+    for op in plan.ops:
+        muts.append(
+            SemanticMutation(
+                action="rmdir",
+                src=op.path,
+                dst=None,
+                dataset=op.dataset,
+            )
+        )
+    return muts
+
+
+def execute_prune_plan(cx, ops):
+    mut = prune_mutations(ops)
+    execute_semantic_mutations(cx, mut)
