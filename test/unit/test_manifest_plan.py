@@ -42,8 +42,10 @@ class TestManifestPlan(unittest.TestCase):
 
     @patch("pilo.write_manifest")
     @patch("pilo.commit_manifest_if_changed")
+    @patch("pilo.ensure_parent_dir")
     def test_execute_manifest_update_plan(
         self,
+        mock_dir,
         mock_commit,
         mock_write,
     ):

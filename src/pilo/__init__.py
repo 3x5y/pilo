@@ -808,6 +808,11 @@ def check_pile_status(cx, st: SystemStatus):
             st.warn("pile", f"{f} is older than threshold")
 
 
+def check_manifest_status(cx, st):
+    for subset in ("pile", "collection", "filing"):
+        collect_manifest_status(cx, st, subset)
+
+
 def collect_system_status(cx, check=None):
     st = SystemStatus()
 
@@ -817,6 +822,7 @@ def collect_system_status(cx, check=None):
         "snapshot": check_snapshot_status,
         "replication": check_replication_status,
         "datasets": check_dataset_status,
+        "manifest": check_manifest_status,
     }
 
     for name, fn in checks.items():
@@ -1451,6 +1457,5 @@ def collect_manifest_status(cx, st, subset):
         cmd = ["sha256sum", "--quiet", "--strict", "-c", manifest]
         subprocess.run(cmd, cwd=str(base_dir), check=True)
         st.ok("manifest", f"{subset} verified")
-
     except subprocess.CalledProcessError:
         st.warn("manifest", f"{subset} verification failed")

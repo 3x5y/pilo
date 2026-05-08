@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import pilo
-from pilotest import make_context
+import pilotest
 
 
 class TestSystemStatusModel(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestSystemStatusModel(unittest.TestCase):
     def test_replication_ok(self, mock_snap):
         mock_snap.side_effect = ["tank/a@r1", "backup/a@r1"]
 
-        cx = make_context()
+        cx = pilotest.make_context()
         st = pilo.SystemStatus()
 
         pilo.check_replication_status(cx, st)
@@ -48,7 +48,7 @@ class TestSystemStatusModel(unittest.TestCase):
     def test_snapshot_fresh(self, mock_now, mock_snap):
         mock_snap.return_value = ("tank/a@r1", 990)
 
-        cx = make_context()
+        cx = pilotest.make_context()
         st = pilo.SystemStatus()
 
         pilo.check_snapshot_status(cx, st, max_age=20)
@@ -64,7 +64,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_missing_dataset(self, _):
-        cx = make_context()
+        cx = pilotest.make_context()
         st = pilo.SystemStatus()
 
         pilo.check_dataset_status(cx, st)
@@ -73,22 +73,22 @@ class TestSystemStatusModel(unittest.TestCase):
 
     @patch("pilo.git_dirty", return_value=True)
     def test_dirty_repo(self, _):
-        cx = make_context()
-        st = pilo.SystemStatus()
+        with pilotest.make_tmp_context() as cx:
+            st = pilo.SystemStatus()
 
-        # simulate one repo
-        (cx.admin_path / "repo" / ".git").mkdir(parents=True, exist_ok=True)
+            # simulate one repo
+            (cx.admin_path / "repo" / ".git").mkdir(parents=True, exist_ok=True)
 
-        pilo.check_transient_status(cx, st)
+            pilo.check_transient_status(cx, st)
 
-        self.assertTrue(any(m.category == "transient" for m in st.messages))
+            self.assertTrue(any(m.category == "transient" for m in st.messages))
 
     @patch("pilo.check_replication_status")
     @patch("pilo.check_snapshot_status")
     @patch("pilo.check_dataset_status")
     @patch("pilo.check_transient_status")
     def test_collect_calls_all(self, t, d, s, r):
-        cx = make_context()
+        cx = pilotest.make_context()
 
         st = pilo.collect_system_status(cx)
 
@@ -112,9 +112,8 @@ class TestSystemStatusModel(unittest.TestCase):
             "WARN: snapshot: stale",
         )
 
-    @patch("subprocess.run")
-    def test_manifest_status_missing_manifest_is_ok(self, _):
-        cx = make_context()
+    def test_manifest_status_missing_manifest_is_ok(self):
+        cx = pilotest.make_context()
         st = pilo.SystemStatus()
 
         pilo.collect_manifest_status(cx, st, "pile")
@@ -123,20 +122,20 @@ class TestSystemStatusModel(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_manifest_status_ok(self, mock_run):
-        cx = make_context()
-        st = pilo.SystemStatus()
+        with pilotest.make_tmp_context() as cx:
+            st = pilo.SystemStatus()
 
-        manifest = cx.admin_path / "manifest" / "pile.manifest"
+            manifest = cx.admin_path / "manifest" / "pile.manifest"
 
-        manifest.parent.mkdir(parents=True, exist_ok=True)
-        manifest.write_text("abc\n")
+            manifest.parent.mkdir(parents=True, exist_ok=True)
+            manifest.write_text("abc\n")
 
-        pilo.collect_manifest_status(cx, st, "pile")
+            pilo.collect_manifest_status(cx, st, "pile")
 
-        sm = pilo.StatusMessage(level="OK",
-                                category="manifest",
-                                message="pile verified")
-        self.assertIn(sm, st.messages)
+            sm = pilo.StatusMessage(level="OK",
+                                    category="manifest",
+                                    message="pile verified")
+            self.assertIn(sm, st.messages)
 
     @patch("subprocess.run")
     def test_manifest_status_failure(self, mock_run):
@@ -145,17 +144,46 @@ class TestSystemStatusModel(unittest.TestCase):
             ["sha256sum"],
         )
 
-        cx = make_context()
-        st = pilo.SystemStatus()
+        with pilotest.make_tmp_context() as cx:
+            st = pilo.SystemStatus()
 
-        manifest = cx.admin_path / "manifest" / "pile.manifest"
-        manifest.parent.mkdir(parents=True, exist_ok=True)
-        manifest.write_text("abc\n")
+            manifest = cx.admin_path / "manifest" / "pile.manifest"
+            manifest.parent.mkdir(parents=True, exist_ok=True)
+            manifest.write_text("abc\n")
 
-        pilo.collect_manifest_status(cx, st, "pile")
+            pilo.collect_manifest_status(cx, st, "pile")
 
-        self.assertEqual(st.code, 1)
-        sm = pilo.StatusMessage(level="WARN",
-                                category="manifest",
-                                message="pile verification failed")
-        self.assertIn(sm, st.messages)
+            self.assertEqual(st.code, 1)
+            sm = pilo.StatusMessage(level="WARN",
+                                    category="manifest",
+                                    message="pile verification failed")
+            self.assertIn(sm, st.messages)
+
+    @patch("pilo.collect_manifest_status")
+    @patch("pilo.check_replication_status")
+    @patch("pilo.check_snapshot_status")
+    @patch("pilo.check_dataset_status")
+    @patch("pilo.check_transient_status")
+    def test_collect_calls_manifest(
+        self,
+        mock_transient,
+        mock_dataset,
+        mock_snapshot,
+        mock_replication,
+        mock_manifest,
+    ):
+        cx = pilotest.make_context()
+
+        pilo.collect_system_status(cx)
+
+        mock_manifest.assert_any_call(cx, unittest.mock.ANY, "pile")
+        mock_manifest.assert_any_call(cx, unittest.mock.ANY, "collection")
+        mock_manifest.assert_any_call(cx, unittest.mock.ANY, "filing")
+
+    @patch("pilo.collect_manifest_status")
+    def test_collect_manifest_only(self, mock_manifest):
+        cx = pilotest.make_context()
+
+        pilo.collect_system_status(cx, check="manifest")
+
+        self.assertEqual(mock_manifest.call_count, 3)

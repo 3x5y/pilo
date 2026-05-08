@@ -2,6 +2,7 @@ from contextlib import contextmanager, redirect_stderr, redirect_stdout
 import importlib
 from io import StringIO
 from pathlib import Path
+import tempfile
 import unittest
 
 import pilo
@@ -54,3 +55,21 @@ def make_context():
         "PILO_STATIC_PATH": "/tmp/static",
         "PILO_USER": "root",
     })
+
+@contextmanager
+def make_tmp_context():
+    with tempfile.TemporaryDirectory() as td:
+        yield pilo.Context(environ={
+            "PILO_ROOT": "tank/a",
+            "PILO_REPLICA_ROOT": "backup/a",
+            "PILO_ADMIN_DATASET": "tank/a/admin",
+            "PILO_INTAKE_DATASET": "tank/a/intake",
+            "PILO_PILE_DATASET": "tank/a/pile",
+            "PILO_STATIC_DATASET": "tank/a/static",
+            "PILO_PATH": td,
+            "PILO_ADMIN_PATH": f"{td}/admin",
+            "PILO_INTAKE_PATH": f"{td}/intake",
+            "PILO_PILE_PATH": f"{td}/pile",
+            "PILO_STATIC_PATH": f"{td}/static",
+            "PILO_USER": "root",
+        })
