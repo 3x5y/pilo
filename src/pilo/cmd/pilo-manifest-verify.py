@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
+import sys
+
 import pilo
 
 
 def main():
     cx = pilo.Context()
-    domains = ["pile", "collection", "filing"]
-    plan = pilo.build_manifest_verify_plan(cx, domains)
-    pilo.execute_manifest_verify_plan(plan)
+    st = pilo.SystemStatus()
+    pilo.check_manifest_status(cx, st)
+    for line in pilo.render_system_status(st):
+        print(line)
+    sys.exit(st.code)
 
 
 if __name__ == "__main__":

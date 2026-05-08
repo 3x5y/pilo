@@ -178,3 +178,78 @@ class TestManifest(unittest.TestCase):
 
                 with pilotest.assert_fatal(self):
                     pilo.verify_manifest_op(op)
+
+    @patch("sys.exit")
+    @patch("pilo.render_system_status")
+    @patch("pilo.check_manifest_status")
+    def test_manifest_verify_uses_status_system(
+        self,
+        mock_check,
+        mock_render,
+        mock_exit,
+    ):
+        cx = pilotest.make_context()
+
+        with patch("pilo.Context", return_value=cx):
+            mod = pilotest.import_command(
+                "manifest-verify"
+            )
+
+            mod.main()
+
+        mock_check.assert_called_once()
+        mock_render.assert_called_once()
+        mock_exit.assert_called_once()
+
+    @patch("sys.exit")
+    @patch("pilo.render_system_status")
+    def test_manifest_verify_returns_status_code(
+        self,
+        mock_render,
+        mock_exit,
+    ):
+        cx = pilotest.make_context()
+
+        st = pilo.SystemStatus()
+        st.code = 1
+
+        with patch("pilo.Context", return_value=cx):
+            with patch(
+                "pilo.check_manifest_status",
+                side_effect=lambda cx, s: setattr(s, "code", 1),
+            ):
+                mod = pilotest.import_command(
+                    "manifest-verify"
+                )
+
+                mod.main()
+
+        mock_exit.assert_called_once_with(1)
+
+    @patch("builtins.print")
+    @patch("sys.exit")
+    @patch(
+        "pilo.render_system_status",
+        return_value=[
+            "OK: manifest: pile verified"
+        ],
+    )
+    def test_manifest_verify_renders_messages(
+        self,
+        mock_render,
+        mock_exit,
+        mock_print,
+    ):
+        cx = pilotest.make_context()
+
+        with patch("pilo.Context", return_value=cx):
+            with patch("pilo.check_manifest_status"):
+                mod = pilotest.import_command(
+                    "manifest-verify"
+                )
+
+                mod.main()
+
+        mock_print.assert_called_once_with(
+            "OK: manifest: pile verified"
+        )

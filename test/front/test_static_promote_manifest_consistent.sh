@@ -13,4 +13,4 @@ pilo static-promote
 # static manifest valid
 assert_manifest_valid collection /$COLLECTION
 # use system command which ignores empty manifests
-pilo manifest-verify || fail pile manifest invalid
+pilo manifest-verify >/dev/null || fail pile manifest invalid
