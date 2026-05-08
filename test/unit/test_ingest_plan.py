@@ -83,7 +83,7 @@ class TestIngestOps(unittest.TestCase):
             cx.intake_path = intake
             cx.pile_path = pile
 
-            with self.assertRaises(SystemExit):
+            with pilotest.assert_fatal(self):
                 pilo.build_ingest_ops(cx, [src])
 
     @patch("pilo.safe_move")

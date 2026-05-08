@@ -31,15 +31,15 @@ class TestLogicalPaths(unittest.TestCase):
         )
 
     def test_reject_empty_path(self):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.parse_logical_path(Path())
 
     def test_reject_invalid_domain(self):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.parse_logical_path(Path("random/file.txt"))
 
     def test_reject_parent_traversal(self):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.parse_logical_path(Path("../secret"))
 
     def test_resolve_pile_path(self):

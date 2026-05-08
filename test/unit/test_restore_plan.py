@@ -23,7 +23,7 @@ class TestRestorePlan(unittest.TestCase):
 
     @patch("pilo.zfs.snapshot_exists", return_value=False)
     def test_restore_plan_requires_snapshot(self, _):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.build_restore_plan(
                 "tank/a", "tank/b", "nope", False
             )
@@ -31,7 +31,7 @@ class TestRestorePlan(unittest.TestCase):
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_snapshot_must_match_source(self, mock_exists, _):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.build_restore_plan(
                 "tank/a",
                 "tank/b",
@@ -42,7 +42,7 @@ class TestRestorePlan(unittest.TestCase):
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_restore_plan_requires_new_dst(self, mock_exists, _):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.build_restore_plan(
                 "tank/a", "tank/b", "r-1", False
             )

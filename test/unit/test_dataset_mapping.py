@@ -1,6 +1,7 @@
 import unittest
 
 from pilo import DatasetMapping
+import pilotest
 
 
 class TestDatasetMapping(unittest.TestCase):
@@ -22,7 +23,7 @@ class TestDatasetMapping(unittest.TestCase):
 
     def test_validate_within_src_fail(self):
         m = DatasetMapping("tank/a", "backup/a")
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             m.validate_within_src("tank/b/foo")
 
     def test_mapping_roundtrip(self):

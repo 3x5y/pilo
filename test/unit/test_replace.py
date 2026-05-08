@@ -40,7 +40,7 @@ class TestReplacePlan(unittest.TestCase):
         cx = pilotest.make_context()
 
         with patch.object(Path, "is_file", return_value=False):
-            with self.assertRaises(SystemExit):
+            with pilotest.assert_fatal(self):
 
                 pilo.build_replace_plan(
                     cx,
@@ -62,7 +62,7 @@ class TestReplacePlan(unittest.TestCase):
             with patch.object(cx, "resolve", return_value=resolved):
                 with patch.object(Path, "is_file", side_effect=[True, False]):
 
-                    with self.assertRaises(SystemExit):
+                    with pilotest.assert_fatal(self):
                         pilo.build_replace_plan(
                             cx,
                             Path("/tmp/src.txt"),

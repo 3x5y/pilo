@@ -15,7 +15,9 @@ def main():
     plan = pilo.build_recovery_plan(cx, target)
     pilo.execute_recovery_plan(plan, cx)
 
-    subprocess.run(["pilo", "status"], check=False)
+    st = pilo.collect_system_status(cx)
+    for level, msg in st.messages:
+        print(f"[{level}] {msg}")
 
 
 if __name__ == "__main__":

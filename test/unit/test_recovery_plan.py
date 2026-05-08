@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import pilo
-from pilotest import make_context, import_command
+import pilotest
 
 
 class TestRecoveryPlan(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestRecoveryPlan(unittest.TestCase):
                 return False
             return False
         mock_exists.side_effect = side_effect
-        cx = make_context()
+        cx = pilotest.make_context()
 
         plan = pilo.build_recovery_plan(cx, "tank/a")
 
@@ -32,17 +32,17 @@ class TestRecoveryPlan(unittest.TestCase):
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_build_plan_requires_replica(self, _):
-        cx = make_context()
+        cx = pilotest.make_context()
 
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.build_recovery_plan(cx, "tank/a")
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.latest_snapshot", return_value="wrong@foo")
     def test_snapshot_must_match_replica(self, mock_snap, _):
-        cx = make_context()
+        cx = pilotest.make_context()
 
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.build_recovery_plan(cx, "tank/a")
 
 
@@ -61,7 +61,7 @@ class TestRecoveryPlan(unittest.TestCase):
             return False
         mock_exists.side_effect = side_effect
 
-        cx = make_context()
+        cx = pilotest.make_context()
 
         plan = pilo.build_recovery_plan(cx, "tank/a/foo")
 
@@ -76,9 +76,9 @@ class TestRecoveryPlan(unittest.TestCase):
             return ds == "tank/a"
         mock_exists.side_effect = side_effect
 
-        cx = make_context()
+        cx = pilotest.make_context()
 
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.build_recovery_plan(cx, "tank/a")
 
     @patch("pilo.apply_ownership")
@@ -94,7 +94,7 @@ class TestRecoveryPlan(unittest.TestCase):
             recursive=True,
         )
 
-        cx = make_context()
+        cx = pilotest.make_context()
         pilo.execute_recovery_plan(plan, cx)
 
         mock_restore.assert_called_once_with(
@@ -109,7 +109,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.restore_dataset")
     def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
                                            mock_owner, mock_run):
-        cx = make_context()
+        cx = pilotest.make_context()
 
         plan = pilo.RecoveryPlan(
             target="tank/a",
@@ -129,7 +129,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.restore_dataset")
     def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
                                           mock_run, mock_owner):
-        cx = make_context()
+        cx = pilotest.make_context()
 
         plan = pilo.RecoveryPlan(
             target="tank/a",
@@ -152,7 +152,7 @@ class TestRecoveryPlan(unittest.TestCase):
         self, mock_restore, mock_contract, mock_run, mock_dirs,
         mock_owner,
     ):
-        cx = make_context()
+        cx = pilotest.make_context()
 
         plan = pilo.RecoveryPlan(
             target="tank/a",
@@ -173,7 +173,7 @@ class TestRecoveryPlan(unittest.TestCase):
     def test_execute_plan_applies_ownership(
         self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner
     ):
-        cx = make_context()
+        cx = pilotest.make_context()
 
         plan = pilo.RecoveryPlan(
             target="tank/a",
@@ -189,7 +189,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.execute_recovery_plan")
     @patch("pilo.build_recovery_plan")
     def test_recover_uses_plan(self, mock_build, mock_exec):
-        cx = make_context()
+        cx = pilotest.make_context()
         mock_build.return_value = pilo.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
@@ -197,10 +197,11 @@ class TestRecoveryPlan(unittest.TestCase):
             recursive=True,
         )
 
-        with patch("pilo.Context", return_value=cx):
-            with patch.object(cx, "args", ["tank/a"]):
-                mod = import_command('recover')
-                mod.main()
+        with pilotest.suppress_stdout():
+            with patch("pilo.Context", return_value=cx):
+                with patch.object(cx, "args", ["tank/a"]):
+                    mod = pilotest.import_command('recover')
+                    mod.main()
 
         mock_build.assert_called_once_with(cx, "tank/a")
         mock_exec.assert_called_once()

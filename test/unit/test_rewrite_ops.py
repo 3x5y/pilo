@@ -22,19 +22,19 @@ class TestRewriteOperationModel(unittest.TestCase):
         self.assertEqual(op.dst, Path("in/b.txt"))
 
     def test_parse_rejects_unknown_op(self):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.parse_rewrite_ops([
                 "cp\tin/a\tin/b"
             ])
 
     def test_parse_rejects_absolute_src(self):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.parse_rewrite_ops([
                 "mv\t/etc/passwd\tin/x"
             ])
 
     def test_parse_rejects_parent_escape(self):
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.parse_rewrite_ops([
                 "mv\t../x\tin/y"
             ])
@@ -69,7 +69,7 @@ class TestRewriteOperationModel(unittest.TestCase):
             dst=Path("collection/a.txt"),
         )
 
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.validate_rewrite_op(
                 cx,
                 pilo.resolve_rewrite_op(cx, op),
@@ -96,7 +96,7 @@ class TestRewriteOperationModel(unittest.TestCase):
             for op in ops
         ]
 
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.validate_rewrite_ops(cx, resolved)
 
     def test_validate_rewrite_ops_rejects_duplicate_dst(self):
@@ -120,7 +120,7 @@ class TestRewriteOperationModel(unittest.TestCase):
             for op in ops
         ]
 
-        with self.assertRaises(SystemExit):
+        with pilotest.assert_fatal(self):
             pilo.validate_rewrite_ops(cx, resolved)
 
     def test_validate_rewrite_op_requires_source(self):
@@ -137,7 +137,7 @@ class TestRewriteOperationModel(unittest.TestCase):
 
             resolved = pilo.resolve_rewrite_op(cx, op)
 
-            with self.assertRaises(SystemExit):
+            with pilotest.assert_fatal(self):
                 pilo.validate_rewrite_op(cx, resolved)
 
     def test_validate_rewrite_op_rejects_conflicting_destination(self):
@@ -163,7 +163,7 @@ class TestRewriteOperationModel(unittest.TestCase):
 
             resolved = pilo.resolve_rewrite_op(cx, op)
 
-            with self.assertRaises(SystemExit):
+            with pilotest.assert_fatal(self):
                 pilo.validate_rewrite_op(cx, resolved)
 
     def test_validate_rewrite_op_allows_identical_destination(self):

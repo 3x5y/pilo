@@ -1,8 +1,32 @@
-
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 import importlib
+from io import StringIO
 from pathlib import Path
+import unittest
 
 import pilo
+
+
+@contextmanager
+def assert_fatal(testcase):
+    stderr = StringIO()
+    with redirect_stderr(stderr):
+        with testcase.assertRaises(pilo.FatalError) as cx:
+            yield cx
+
+
+@contextmanager
+def suppress_stderr():
+    stream = StringIO()
+    with redirect_stderr(stream):
+        yield stream
+
+
+@contextmanager
+def suppress_stdout():
+    stream = StringIO()
+    with redirect_stdout(stream):
+        yield stream
 
 
 def import_command(name):
