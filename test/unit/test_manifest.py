@@ -138,7 +138,7 @@ class TestManifest(unittest.TestCase):
 
         mock_run.assert_called_once()
 
-    @patch("pilo.verify_manifest_op")
+    @patch("pilo.manifest.verify_manifest_op")
     def test_execute_manifest_verify_plan(
         self,
         mock_verify,

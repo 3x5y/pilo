@@ -86,7 +86,7 @@ class TestIngestOps(unittest.TestCase):
             with pilotest.assert_fatal(self):
                 pilo.build_ingest_ops(cx, [src])
 
-    @patch("pilo.safe_move")
+    @patch("pilo.fs.safe_move")
     @patch("pilo.fs.dataset_writable")
     def test_execute_ingest_ops_moves_files(
         self,
@@ -144,7 +144,7 @@ class TestIngestOps(unittest.TestCase):
 
         mock_unlink.assert_called_once_with()
 
-    @patch("pilo.safe_move")
+    @patch("pilo.fs.safe_move")
     @patch("pilo.fs.dataset_writable")
     def test_execute_ingest_ops_batches_writable_context(
         self,

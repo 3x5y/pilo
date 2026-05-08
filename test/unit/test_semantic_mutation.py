@@ -22,7 +22,7 @@ class TestSemanticMutation(unittest.TestCase):
         self.assertEqual(mut.dst, Path("/tmp/b"))
         self.assertEqual(mut.dataset, "tank/a/pile")
 
-    @patch("pilo.safe_move")
+    @patch("pilo.fs.safe_move")
     def test_apply_move_mutation(self, mock_move):
         cx = pilotest.make_context()
 
@@ -41,7 +41,7 @@ class TestSemanticMutation(unittest.TestCase):
             Path("/tmp/b"),
         )
 
-    @patch("pilo.safe_unlink")
+    @patch("pilo.fs.safe_unlink")
     def test_apply_unlink_mutation(self, mock_unlink):
         cx = pilotest.make_context()
 
@@ -58,7 +58,7 @@ class TestSemanticMutation(unittest.TestCase):
 
         mock_unlink.assert_called_once()
 
-    @patch("pilo.safe_copy")
+    @patch("pilo.fs.safe_copy")
     def test_apply_copy_mutation(self, mock_copy):
         cx = pilotest.make_context()
 
@@ -77,8 +77,8 @@ class TestSemanticMutation(unittest.TestCase):
             Path("/tmp/b"),
         )
 
-    @patch("pilo.writable_datasets")
-    @patch("pilo.apply_semantic_mutation")
+    @patch("pilo.fs.writable_datasets")
+    @patch("pilo.mutation.apply_semantic_mutation")
     def test_execute_semantic_mutations(
         self,
         mock_apply,
@@ -142,8 +142,8 @@ class TestSemanticMutation(unittest.TestCase):
             ),
         ]
 
-        with patch("pilo.apply_semantic_mutation", side_effect=fake_apply):
-            with patch("pilo.writable_datasets") as mock_writable:
+        with patch("pilo.mutation.apply_semantic_mutation", side_effect=fake_apply):
+            with patch("pilo.fs.writable_datasets") as mock_writable:
 
                 cm = MagicMock()
                 cm.__enter__.return_value = None
@@ -183,11 +183,11 @@ class TestSemanticMutation(unittest.TestCase):
         ]
 
         with patch(
-            "pilo.writable_datasets",
+            "pilo.fs.writable_datasets",
             return_value=FakeContext(),
         ):
             with patch(
-                "pilo.apply_semantic_mutation",
+                "pilo.mutation.apply_semantic_mutation",
                 side_effect=fake_apply,
             ):
                 pilo.execute_semantic_mutations(cx, muts)

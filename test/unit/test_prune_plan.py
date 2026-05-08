@@ -70,7 +70,7 @@ class TestPrunePlan(unittest.TestCase):
         self.assertEqual(muts[0].action, "rmdir")
         self.assertEqual(muts[0].src, Path("/tmp/pile/x"))
 
-    @patch("pilo.safe_rmdir")
+    @patch("pilo.fs.safe_rmdir")
     def test_apply_rmdir_mutation(self, mock_rmdir):
         cx = pilotest.make_context()
         mut = pilo.SemanticMutation(

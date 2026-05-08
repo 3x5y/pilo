@@ -19,12 +19,12 @@ from . import zfs
 from .context import *
 from .error import *
 from .fs import *
+from .manifest import *
+from .mutation import *
 from .paths import *
+from .status import *
+from .util import *
 from .validation import *
-
-
-def run(cmd, check=True):
-    return subprocess.run(cmd, check=check)
 
 
 #####################
@@ -95,13 +95,6 @@ def apply_ownership(cx):
 #####################
 
 
-def generate_manifest_lines(root: Path):
-    for path in sorted(iter_files(root)):
-        rel = path.relative_to(root)
-        h = sha256_file(path)
-        yield f"{h}  ./{rel}"
-
-
 #####################
 # replication stuff #
 #####################
@@ -113,20 +106,6 @@ class ReplicationStatus(Enum):
     BEHIND = "BEHIND"
     DIVERGED = "DIVERGED"
     UNKNOWN = "UNKNOWN"
-
-
-def find_incremental_base(src, dst):
-    guid = zfs.get_latest_guid(dst)
-    if not guid:
-        return None
-    for name, g in zfs.snapshot_guids(src):
-        if g == guid:
-            return name
-    return None
-
-
-def snapshot_timestamp():
-    return datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
 
 def replicate(src, dst):
@@ -164,26 +143,6 @@ def replication_status(src, dst):
         return ReplicationStatus.UNKNOWN, "root GUID mismatch"
 
     return ReplicationStatus.OK, None
-
-
-################
-# status stuff #
-################
-
-
-def now_epoch():
-    return int(datetime.now().timestamp())
-
-
-def git_dirty(repo: Path):
-    result = subprocess.run(
-        ["git", "-C", str(repo), "diff", "--quiet"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return result.returncode != 0
-
-
 
 
 #####################
@@ -343,137 +302,6 @@ def execute_replication_plan(plan: ReplicationPlan):
 
 
 @dataclass(frozen=True)
-class StatusMessage:
-    level: str
-    category: str
-    message: str
-
-
-@dataclass
-class SystemStatus:
-    messages: list[StatusMessage] = None
-    code: int = 0
-
-    def __post_init__(self):
-        if self.messages is None:
-            self.messages = []
-
-    def warn(self, category, msg):
-        sm = StatusMessage("WARN", category, msg)
-        self.messages.append(sm)
-        self.code = 1
-
-    def ok(self, category, msg):
-        sm = StatusMessage("OK", category, msg)
-        self.messages.append(sm)
-
-
-def render_status_message(msg):
-    return f"{msg.level}: {msg.category}: {msg.message}"
-
-
-def render_system_status(st):
-    return [render_status_message(m) for m in st.messages]
-
-
-def check_replication_status(cx, st: SystemStatus):
-    src = cx.root_dataset
-    dst = cx.replica_dataset
-
-    src_snap = zfs.latest_snapshot(src)
-    dst_snap = zfs.latest_snapshot(dst)
-
-    src_name = src_snap.split("@", 1)[1] if src_snap else "**MISSING**"
-    dst_name = dst_snap.split("@", 1)[1] if dst_snap else "**MISSING**"
-
-    if src_name != dst_name:
-        st.warn("replication", f"latest={src_name} replicated={dst_name}")
-    else:
-        st.ok("replication", src_name)
-
-
-def check_snapshot_status(cx, st: SystemStatus, max_age=None):
-    dataset = cx.pile_dataset
-
-    name, ts = zfs.latest_snapshot_with_time(dataset)
-    if max_age is None:
-        max_age = int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600"))
-
-    if not name:
-        st.warn("snapshot", f"none for {dataset}")
-        return
-
-    if ts is None:
-        st.warn("snapshot", "could not parse timestamp")
-        return
-
-    age = now_epoch() - ts
-
-    if age > max_age:
-        st.warn("snapshot", f"stale ({age} s)")
-    else:
-        st.ok("snapshot", f"fresh ({age} s)")
-
-
-def check_dataset_status(cx, st: SystemStatus):
-    required = [
-        cx.admin_dataset,
-        cx.intake_dataset,
-        cx.pile_dataset,
-        f"{cx.static_dataset}/collection",
-    ]
-
-    for ds in required:
-        if not zfs.dataset_exists(ds):
-            st.warn("incomplete", f"missing dataset {ds}")
-
-
-def check_transient_status(cx, st: SystemStatus):
-    for git_dir in cx.admin_path.rglob(".git"):
-        repo = git_dir.parent
-        if git_dirty(repo):
-            st.warn("transient", f"repo {repo} has uncommitted changes")
-
-
-def check_pile_status(cx, st: SystemStatus):
-    pile = cx.pile_path
-    if not pile.exists():
-        return
-
-    now = now_epoch()
-    max_age = int(os.environ.get("CONFIG_PILE_MAX_AGE", "86400"))
-
-    for f in iter_files(pile):
-        age = now - int(f.stat().st_mtime)
-        if age > max_age:
-            st.warn("pile", f"{f} is older than threshold")
-
-
-def check_manifest_status(cx, st):
-    for subset in ("pile", "collection", "filing"):
-        collect_manifest_status(cx, st, subset)
-
-
-def collect_system_status(cx, check=None):
-    st = SystemStatus()
-
-    checks = {
-        "transient": check_transient_status,
-        "pile": check_pile_status,
-        "snapshot": check_snapshot_status,
-        "replication": check_replication_status,
-        "datasets": check_dataset_status,
-        "manifest": check_manifest_status,
-    }
-
-    for name, fn in checks.items():
-        if check is None or check == name:
-            fn(cx, st)
-
-    return st
-
-
-@dataclass(frozen=True)
 class SnapshotPolicy:
     prefix: str
     hold: bool = False
@@ -522,33 +350,6 @@ def create_snapshot(name, dataset=None):
     dataset = dataset or os.environ["PILO_ROOT"]
     policy = SnapshotPolicy(prefix=name, raw=True)
     return create_snapshot_with_policy(policy, dataset, ts="")
-
-
-def verify_manifest_lines(root: Path, lines):
-    root = Path(root)
-
-    for line in lines:
-        line = line.strip()
-
-        if not line:
-            continue
-
-        try:
-            expected, rel = line.split("  ./", 1)
-        except ValueError:
-            return False
-
-        path = root / rel
-
-        if not path.is_file():
-            return False
-
-        actual = sha256_file(path)
-
-        if actual != expected:
-            return False
-
-    return True
 
 
 @dataclass(frozen=True)
@@ -669,64 +470,6 @@ def rewrite_plan_mutations(plan):
                 )
             )
     return mutations
-
-
-def manifest_subset_root(cx, subset):
-    if subset == "pile":
-        return cx.pile_path
-    if subset == "collection":
-        return cx.static_path / "collection"
-    if subset == "filing":
-        return cx.static_path / "filing"
-    fatal(f"invalid manifest subset: {subset}")
-
-
-@dataclass(frozen=True)
-class ManifestSubset:
-    name: str
-    root: Path
-    manifest: Path
-
-
-@dataclass(frozen=True)
-class ManifestUpdatePlan:
-    subsets: list[ManifestSubset]
-
-
-def build_manifest_update_plan(cx, subsets):
-    def build(name):
-        manifest = cx.admin_path / "manifest" / f"{name}.manifest"
-        root = manifest_subset_root(cx, name)
-        return ManifestSubset(name=name, root=root, manifest=manifest)
-
-    resolved = [build(name) for name in subsets]
-    return ManifestUpdatePlan(subsets=resolved)
-
-
-def execute_manifest_update_plan(cx, plan):
-    for subset in plan.subsets:
-        ensure_parent_dir(cx, subset.manifest)
-        write_manifest(cx, subset.root, subset.manifest)
-        msg = f"{subset.name} manifest update"
-        commit_manifest_if_changed(cx, subset.manifest, msg)
-
-
-def write_manifest(cx, root: Path, manifest: Path):
-    with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-        for line in generate_manifest_lines(root):
-            tmp.write(line + "\n")
-
-    ensure_parent_dir(cx, manifest)
-    shutil.move(tmp_path, manifest)
-    cx.ensure_owned(manifest)
-    manifest.chmod(0o644)
-
-
-def commit_manifest_if_changed(cx, manifest, message):
-    repo = cx.admin_path / "manifest"
-    cx.ensure_git_repo(repo)
-    cx.git_commit_if_changed(repo, manifest, message)
 
 
 @dataclass(frozen=True)
@@ -916,55 +659,6 @@ def replace_plan_mutations(plan):
 
 
 @dataclass(frozen=True)
-class SemanticMutation:
-    action: str
-    src: Path | None
-    dst: Path | None
-    dataset: str
-
-
-def apply_semantic_mutation(cx, mut: SemanticMutation):
-    if mut.action == "move":
-        safe_move(cx, mut.src, mut.dst)
-        return
-    if mut.action == "copy":
-        safe_copy(cx, mut.src, mut.dst)
-        return
-    if mut.action == "unlink":
-        safe_unlink(mut.src)
-        return
-    if mut.action == "rmdir":
-        safe_rmdir(mut.src)
-        return
-    fatal(f"unsupported mutation action: {mut.action}")
-
-
-def execute_semantic_mutations(cx, mutations):
-    datasets = {m.dataset for m in mutations}
-    with writable_datasets(datasets):
-        for mut in mutations:
-            apply_semantic_mutation(cx, mut)
-
-
-def mutation_manifest_domains(mutations):
-    domains = set()
-    for mut in mutations:
-        ds = mut.dataset
-        if ds.endswith("/pile"):
-            domains.add("pile")
-        elif "/static/collection" in ds:
-            domains.add("collection")
-        elif "/static/filing" in ds:
-            domains.add("filing")
-    return domains
-
-
-def build_manifest_plan_for_mutations(cx, mutations):
-    domains = sorted(mutation_manifest_domains(mutations))
-    return build_manifest_update_plan(cx, domains)
-
-
-@dataclass(frozen=True)
 class PruneOp:
     path: Path
     dataset: str
@@ -1015,64 +709,3 @@ def prune_mutations(plan):
 def execute_prune_plan(cx, ops):
     mut = prune_mutations(ops)
     execute_semantic_mutations(cx, mut)
-
-
-@dataclass(frozen=True)
-class ManifestVerifyOp:
-    subset: str
-    root: Path
-    manifest: Path
-
-
-def manifest_subset_root(cx, subset):
-    if subset == "pile":
-        return cx.pile_path
-    if subset in ("collection", "filing"):
-        return cx.static_path / subset
-    fatal(f"unsupported subset: {subset}")
-
-
-def build_manifest_verify_plan(cx, subsets):
-    def build(subset):
-        manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
-        return ManifestVerifyOp(subset=subset,
-                                root=manifest_subset_root(cx, subset),
-                                manifest=manifest)
-    return [build(subset) for subset in subsets]
-
-
-def verify_manifest_op(op):
-    m = op.manifest
-    if not m.is_file() or m.stat().st_size == 0:
-        return
-    cmd = ["sha256sum", "--quiet", "--strict", "-c", m]
-    try:
-        subprocess.run(cmd, cwd=op.root, check=True)
-    except subprocess.CalledProcessError:
-        fatal(f"manifest verification failed: {op.subset}")
-
-
-def execute_manifest_verify_plan(ops):
-    for op in ops:
-        verify_manifest_op(op)
-
-
-def collect_manifest_status(cx, st, subset):
-    if subset == 'pile':
-        base_dir = cx.pile_path
-    elif subset in ('collection', 'filing'):
-        base_dir = cx.static_path / subset
-    else:
-        raise Exception(f"Unsupported subset '{subset}'")
-
-    manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
-
-    if (not manifest.is_file() or manifest.stat().st_size == 0):
-        return
-
-    try:
-        cmd = ["sha256sum", "--quiet", "--strict", "-c", manifest]
-        subprocess.run(cmd, cwd=str(base_dir), check=True)
-        st.ok("manifest", f"{subset} verified")
-    except subprocess.CalledProcessError:
-        st.warn("manifest", f"{subset} verification failed")

@@ -44,7 +44,7 @@ class TestSystemStatusModel(unittest.TestCase):
         )
 
     @patch("pilo.zfs.latest_snapshot_with_time")
-    @patch("pilo.now_epoch", return_value=1000)
+    @patch("pilo.util.now_epoch", return_value=1000)
     def test_snapshot_fresh(self, mock_now, mock_snap):
         mock_snap.return_value = ("tank/a@r1", 990)
 
@@ -83,10 +83,10 @@ class TestSystemStatusModel(unittest.TestCase):
 
             self.assertTrue(any(m.category == "transient" for m in st.messages))
 
-    @patch("pilo.check_replication_status")
-    @patch("pilo.check_snapshot_status")
-    @patch("pilo.check_dataset_status")
-    @patch("pilo.check_transient_status")
+    @patch("pilo.status.check_replication_status")
+    @patch("pilo.status.check_snapshot_status")
+    @patch("pilo.status.check_dataset_status")
+    @patch("pilo.status.check_transient_status")
     def test_collect_calls_all(self, t, d, s, r):
         cx = pilotest.make_context()
 
@@ -159,18 +159,14 @@ class TestSystemStatusModel(unittest.TestCase):
                                     message="pile verification failed")
             self.assertIn(sm, st.messages)
 
-    @patch("pilo.collect_manifest_status")
-    @patch("pilo.check_replication_status")
-    @patch("pilo.check_snapshot_status")
-    @patch("pilo.check_dataset_status")
-    @patch("pilo.check_transient_status")
+    @patch("pilo.status.check_replication_status")
+    @patch("pilo.status.check_snapshot_status")
+    @patch("pilo.status.check_dataset_status")
+    @patch("pilo.status.check_transient_status")
+    @patch("pilo.status.collect_manifest_status")
     def test_collect_calls_manifest(
         self,
-        mock_transient,
-        mock_dataset,
-        mock_snapshot,
-        mock_replication,
-        mock_manifest,
+        mock_manifest, *_
     ):
         cx = pilotest.make_context()
 
@@ -180,7 +176,7 @@ class TestSystemStatusModel(unittest.TestCase):
         mock_manifest.assert_any_call(cx, unittest.mock.ANY, "collection")
         mock_manifest.assert_any_call(cx, unittest.mock.ANY, "filing")
 
-    @patch("pilo.collect_manifest_status")
+    @patch("pilo.status.collect_manifest_status")
     def test_collect_manifest_only(self, mock_manifest):
         cx = pilotest.make_context()
 
