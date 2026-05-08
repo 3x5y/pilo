@@ -26,6 +26,7 @@ from .status import *
 from .util import *
 from .validation import *
 from .front.ingest import *
+from .front.manifest_verify import *
 from .front.promote import *
 from .front.prune import *
 from .front.replace import *

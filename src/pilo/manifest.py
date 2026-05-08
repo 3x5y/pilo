@@ -20,13 +20,6 @@ class ManifestUpdatePlan:
     subsets: list[ManifestSubset]
 
 
-@dataclass(frozen=True)
-class ManifestVerifyOp:
-    subset: str
-    root: Path
-    manifest: Path
-
-
 def manifest_subset_root(cx, subset):
     if subset == "pile":
         return cx.pile_path
@@ -87,31 +80,6 @@ def execute_manifest_update_plan(cx, plan):
         write_manifest(cx, subset.root, subset.manifest)
         msg = f"{subset.name} manifest update"
         commit_manifest_if_changed(cx, subset.manifest, msg)
-
-
-def build_manifest_verify_plan(cx, subsets):
-    def build(subset):
-        manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
-        return ManifestVerifyOp(subset=subset,
-                                root=manifest_subset_root(cx, subset),
-                                manifest=manifest)
-    return [build(subset) for subset in subsets]
-
-
-def verify_manifest_op(op):
-    m = op.manifest
-    if not m.is_file() or m.stat().st_size == 0:
-        return
-    cmd = ["sha256sum", "--quiet", "--strict", "-c", m]
-    try:
-        subprocess.run(cmd, cwd=op.root, check=True)
-    except subprocess.CalledProcessError:
-        error.fatal(f"manifest verification failed: {op.subset}")
-
-
-def execute_manifest_verify_plan(ops):
-    for op in ops:
-        verify_manifest_op(op)
 
 
 def write_manifest(cx, root: Path, manifest: Path):
