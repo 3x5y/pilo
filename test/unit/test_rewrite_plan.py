@@ -63,6 +63,36 @@ class TestRewritePlan(unittest.TestCase):
         pilo.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
+    def test_rewrite_plan_mutations(self):
+        plan = pilo.RewritePlan(
+            ops=[
+                pilo.ResolvedRewriteOp(
+                    op=pilo.RewriteOp(
+                        kind="mv",
+                        src=Path("in/a"),
+                        dst=Path("in/b"),
+                    ),
+                    src=pilo.Resolved(
+                        path=Path("/tmp/a"),
+                        dataset="tank/a/pile",
+                    ),
+                    dst=pilo.Resolved(
+                        path=Path("/tmp/b"),
+                        dataset="tank/a/pile",
+                    ),
+                )
+            ]
+        )
+
+        muts = pilo.rewrite_plan_mutations(plan)
+
+        self.assertEqual(len(muts), 1)
+        mut = muts[0]
+        self.assertEqual(mut.action, "move")
+        self.assertEqual(mut.src, Path("/tmp/a"))
+        self.assertEqual(mut.dst, Path("/tmp/b"))
+        self.assertEqual(mut.dataset, "tank/a/pile")
+
     @patch("pilo.execute_semantic_mutations")
     def test_execute_uses_executor2(self, mock_exec):
         cx = pilotest.make_context()
@@ -87,14 +117,14 @@ class TestRewritePlan(unittest.TestCase):
         pilo.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.run")
+    @patch("pilo.build_manifest_update_plan")
     @patch("pilo.execute_rewrite_plan")
     @patch("pilo.build_rewrite_plan")
     def test_rewrite_command_uses_plan(
         self,
         mock_build,
         mock_execute,
-        mock_run,
+        mock_manifest,
     ):
         cx = pilotest.make_context()
 
@@ -109,3 +139,4 @@ class TestRewritePlan(unittest.TestCase):
 
         mock_build.assert_called_once()
         mock_execute.assert_called_once()
+        mock_manifest.assert_called_once()

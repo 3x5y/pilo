@@ -95,3 +95,95 @@ class TestManifestPlan(unittest.TestCase):
 
         mock_repo.assert_called_once()
         mock_commit.assert_called_once()
+
+    def test_mutation_manifest_domains_for_pile(self):
+        muts = [
+            pilo.SemanticMutation(
+                action="move",
+                src=Path("/tmp/a"),
+                dst=Path("/tmp/b"),
+                dataset="tank/a/pile",
+            )
+        ]
+
+        doms = pilo.mutation_manifest_domains(muts)
+
+        self.assertEqual(doms, {"pile"})
+
+    def test_mutation_manifest_domains_for_collection(self):
+        muts = [
+            pilo.SemanticMutation(
+                action="copy",
+                src=Path("/tmp/a"),
+                dst=Path("/tmp/b"),
+                dataset="tank/a/static/collection",
+            )
+        ]
+
+        doms = pilo.mutation_manifest_domains(muts)
+
+        self.assertEqual(doms, {"collection"})
+
+    def test_mutation_manifest_domains_for_filing(self):
+        muts = [
+            pilo.SemanticMutation(
+                action="copy",
+                src=Path("/tmp/a"),
+                dst=Path("/tmp/b"),
+                dataset="tank/a/static/filing/docs",
+            )
+        ]
+
+        doms = pilo.mutation_manifest_domains(muts)
+
+        self.assertEqual(doms, {"filing"})
+
+    def test_mutation_manifest_domains_deduplicates(self):
+        muts = [
+            pilo.SemanticMutation(
+                action="move",
+                src=Path("/tmp/a"),
+                dst=Path("/tmp/b"),
+                dataset="tank/a/pile",
+            ),
+            pilo.SemanticMutation(
+                action="unlink",
+                src=Path("/tmp/c"),
+                dst=None,
+                dataset="tank/a/pile",
+            ),
+        ]
+
+        doms = pilo.mutation_manifest_domains(muts)
+
+        self.assertEqual(doms, {"pile"})
+
+    def test_build_manifest_plan_for_mutations(self):
+        cx = pilotest.make_context()
+
+        muts = [
+            pilo.SemanticMutation(
+                action="move",
+                src=Path("/tmp/a"),
+                dst=Path("/tmp/b"),
+                dataset="tank/a/pile",
+            ),
+            pilo.SemanticMutation(
+                action="copy",
+                src=Path("/tmp/c"),
+                dst=Path("/tmp/d"),
+                dataset="tank/a/static/collection",
+            ),
+        ]
+
+        plan = pilo.build_manifest_plan_for_mutations(
+            cx,
+            muts,
+        )
+
+        names = [u.name for u in plan.subsets]
+
+        self.assertEqual(
+            sorted(names),
+            ["collection", "pile"],
+        )

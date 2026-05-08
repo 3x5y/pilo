@@ -980,21 +980,24 @@ def build_rewrite_plan(cx, ops):
         resolve_rewrite_op(cx, op)
         for op in ops
     ]
-
     validate_rewrite_ops(cx, resolved)
-
-    return RewritePlan(
-        ops=resolved,
-    )
+    return RewritePlan(ops=resolved)
 
 
 def execute_rewrite_plan(cx, plan):
+    muts = rewrite_plan_mutations(plan)
+    execute_semantic_mutations(cx, muts)
+
+
+def rewrite_plan_mutations(plan):
     mutations = []
 
     for op in plan.ops:
         dst_exists = op.dst.path.exists()
 
         if dst_exists:
+            # currently unused, throw error
+            1/0
             mutations.append(
                 SemanticMutation(
                     action="unlink",
@@ -1012,8 +1015,7 @@ def execute_rewrite_plan(cx, plan):
                     dataset=op.src.dataset,
                 )
             )
-
-    execute_semantic_mutations(cx, mutations)
+    return mutations
 
 
 @contextmanager
@@ -1124,6 +1126,7 @@ def commit_manifest_if_changed(
 class IngestOp:
     src: Path
     dst: Path
+    dataset: str
     action: str
 
 
@@ -1139,43 +1142,58 @@ def build_ingest_ops(cx, files):
                 fatal(f"name collision with different content: '{rel}'")
         else:
             action = 'move'
-        ops.append(IngestOp(src, dst, action))
+        ops.append(IngestOp(
+            src=src,
+            dst=dst,
+            dataset=cx.pile_dataset,
+            action=action
+        ))
     return ops
 
 
 def execute_ingest_ops(cx, ops):
-    mutations = []
+    muts = ingest_plan_mutations(ops)
+    execute_semantic_mutations(cx, muts)
+
+
+def ingest_plan_mutations(ops):
+    muts = []
 
     for op in ops:
         if op.action == "move":
-            mutations.append(
+            muts.append(
                 SemanticMutation(
                     action="move",
                     src=op.src,
                     dst=op.dst,
-                    dataset=cx.pile_dataset,
+                    dataset=op.dataset,
                 )
             )
 
         elif op.action == "noop":
-            mutations.append(
+            muts.append(
                 SemanticMutation(
                     action="unlink",
                     src=op.src,
                     dst=None,
-                    dataset=cx.pile_dataset,
+                    dataset=op.dataset,
                 )
             )
 
-    execute_semantic_mutations(cx, mutations)
+    return muts
 
 
 @dataclass(frozen=True)
 class PromoteOp:
-    src: Path
-    dst: Path
-    dataset: str
     action: str
+    src: Path
+    dst: Path | None
+    dataset: str
+
+
+@dataclass(frozen=True)
+class PromotePlan:
+    ops: list[PromoteOp]
 
 
 def build_promote_plan(cx):
@@ -1184,7 +1202,8 @@ def build_promote_plan(cx):
     ops = []
 
     if not out_path.is_dir():
-        return ops
+        return None
+        #return RewritePlan(ops=ops)
 
     # validate top-level dirs
     for child in out_path.iterdir():
@@ -1214,13 +1233,21 @@ def build_promote_plan(cx):
         rel = Path("collection") / f.relative_to(col_dir)
         validate_file(cx, f, rel)
         r = cx.resolve(rel)
-        action = "noop" if r.path.is_file() else "copy"
+        if not r.path.is_file():
+            ops.append(
+                PromoteOp(
+                    action="copy",
+                    src=f,
+                    dst=r.path,
+                    dataset=r.dataset,
+                )
+            )
         ops.append(
             PromoteOp(
+                action="unlink",
                 src=f,
-                dst=rel,
-                dataset=r.dataset,
-                action=action,
+                dst=None,
+                dataset=cx.pile_dataset,
             )
         )
 
@@ -1233,46 +1260,44 @@ def build_promote_plan(cx):
         full_rel = Path("filing") / subset / subpath
         validate_file(cx, f, full_rel)
         r = cx.resolve(full_rel)
-        action = "noop" if r.path.is_file() else "copy"
-        ops.append(
-            PromoteOp(
-                src=f,
-                dst=full_rel,
-                dataset=r.dataset,
-                action=action,
-            )
-        )
-
-    return ops
-
-
-def execute_promote_plan(cx, ops):
-    mutations = []
-
-    for op in ops:
-        resolved = cx.resolve(op.dst)
-
-        if op.action == "copy":
-            mutations.append(
-                SemanticMutation(
+        if not r.path.is_file():
+            ops.append(
+                PromoteOp(
                     action="copy",
-                    src=op.src,
-                    dst=resolved.path,
-                    dataset=op.dataset,
+                    src=f,
+                    dst=r.path,
+                    dataset=r.dataset,
                 )
             )
-
-        mutations.append(
-            SemanticMutation(
+        ops.append(
+            PromoteOp(
                 action="unlink",
-                src=op.src,
+                src=f,
                 dst=None,
                 dataset=cx.pile_dataset,
             )
         )
 
-    execute_semantic_mutations(cx, mutations)
+    return RewritePlan(ops=ops)
 
+
+def execute_promote_plan(cx, plan):
+    muts = promote_plan_mutations(plan.ops)
+    execute_semantic_mutations(cx, muts)
+
+
+def promote_plan_mutations(ops):
+    muts = []
+    for op in ops:
+        muts.append(
+            SemanticMutation(
+                action=op.action,
+                src=op.src,
+                dst=op.dst,
+                dataset=op.dataset,
+            )
+        )
+    return muts
 
 @dataclass(frozen=True)
 class ReplaceOp:
@@ -1307,10 +1332,15 @@ def build_replace_plan(cx, src, dst_rel):
 
 
 def execute_replace_plan(cx, plan):
-    mutations = []
+    muts = replace_plan_mutations(plan)
+    execute_semantic_mutations(cx, muts)
+
+
+def replace_plan_mutations(plan):
+    muts = []
 
     for op in plan.ops:
-        mutations.append(
+        muts.append(
             SemanticMutation(
                 action="copy",
                 src=op.src,
@@ -1319,7 +1349,7 @@ def execute_replace_plan(cx, plan):
             )
         )
 
-    execute_semantic_mutations(cx, mutations)
+    return muts
 
 
 @dataclass(frozen=True)
@@ -1355,3 +1385,26 @@ def execute_semantic_mutations(cx, mutations):
     with writable_datasets(datasets):
         for mut in mutations:
             apply_semantic_mutation(cx, mut)
+
+
+def mutation_manifest_domains(mutations):
+    domains = set()
+
+    for mut in mutations:
+        ds = mut.dataset
+
+        if ds.endswith("/pile"):
+            domains.add("pile")
+
+        elif "/static/collection" in ds:
+            domains.add("collection")
+
+        elif "/static/filing" in ds:
+            domains.add("filing")
+
+    return domains
+
+
+def build_manifest_plan_for_mutations(cx, mutations):
+    domains = sorted(mutation_manifest_domains(mutations))
+    return build_manifest_update_plan(cx, domains)

@@ -7,10 +7,10 @@ import pilo
 
 def main():
     cx = pilo.Context()
-    ops = pilo.build_promote_plan(cx)
-    if not ops:
+    plan = pilo.build_promote_plan(cx)
+    if not plan:
         return
-    pilo.execute_promote_plan(cx, ops)
+    pilo.execute_promote_plan(cx, plan)
 
     doms = ["pile", "collection", "filing"]
     plan = pilo.build_manifest_update_plan(cx, doms)

@@ -103,6 +103,7 @@ class TestIngestOps(unittest.TestCase):
                 src=Path("/tmp/in/a.txt"),
                 dst=Path("/tmp/pile/in/a.txt"),
                 action="move",
+                dataset=cx.pile_dataset,
             )
         ]
 
@@ -135,6 +136,7 @@ class TestIngestOps(unittest.TestCase):
                 src=src,
                 dst=Path("/tmp/pile/in/a.txt"),
                 action="noop",
+                dataset=cx.pile_dataset,
             )
         ]
 
@@ -159,11 +161,13 @@ class TestIngestOps(unittest.TestCase):
                 src=Path("/tmp/in/a.txt"),
                 dst=Path("/tmp/pile/in/a.txt"),
                 action="move",
+                dataset=cx.pile_dataset,
             ),
             pilo.IngestOp(
                 src=Path("/tmp/in/b.txt"),
                 dst=Path("/tmp/pile/in/b.txt"),
                 action="move",
+                dataset=cx.pile_dataset,
             ),
         ]
 
@@ -171,6 +175,30 @@ class TestIngestOps(unittest.TestCase):
 
         mock_writable.assert_called_once_with(cx.pile_dataset)
         self.assertEqual(mock_move.call_count, 2)
+
+    def test_ingest_mutations(self):
+        cx = pilotest.make_context()
+        ops = [
+            pilo.IngestOp(
+                src=Path("/tmp/in/a"),
+                dst=Path("/tmp/pile/in/a"),
+                action="move",
+                dataset=cx.pile_dataset,
+            ),
+            pilo.IngestOp(
+                src=Path("/tmp/in/b"),
+                dst=Path("/tmp/pile/in/b"),
+                action="noop",
+                dataset=cx.pile_dataset,
+            ),
+        ]
+
+        muts = pilo.ingest_plan_mutations(ops)
+
+        self.assertEqual(len(muts), 2)
+
+        self.assertEqual(muts[0].action, "move")
+        self.assertEqual(muts[1].action, "unlink")
 
     @patch("pilo.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
@@ -181,6 +209,7 @@ class TestIngestOps(unittest.TestCase):
                 src=Path("/tmp/a"),
                 dst=Path("/tmp/b"),
                 action="move",
+                dataset=cx.pile_dataset,
             )
         ]
 

@@ -69,6 +69,31 @@ class TestReplacePlan(unittest.TestCase):
                             Path("collection/a.txt"),
                         )
 
+    def test_replace_plan_mutations(self):
+        plan = pilo.ReplacePlan(
+            ops=[
+                pilo.ReplaceOp(
+                    src=Path("/tmp/src"),
+                    dst=pilo.Resolved(
+                        path=Path("/tmp/dst"),
+                        dataset="tank/a/static/collection",
+                    ),
+                )
+            ]
+        )
+
+        muts = pilo.replace_plan_mutations(plan)
+
+        self.assertEqual(len(muts), 1)
+        mut = muts[0]
+        self.assertEqual(mut.action, "copy")
+        self.assertEqual(mut.src, Path("/tmp/src"))
+        self.assertEqual(mut.dst, Path("/tmp/dst"))
+        self.assertEqual(
+            mut.dataset,
+            "tank/a/static/collection",
+        )
+
     @patch("pilo.build_replace_plan")
     @patch("pilo.execute_replace_plan")
     def test_replace_command_uses_plan(
@@ -109,3 +134,21 @@ class TestReplacePlan(unittest.TestCase):
 
         pilo.execute_replace_plan(cx, plan)
         mock_exec.assert_called_once()
+        args = mock_exec.call_args[0]
+
+        self.assertEqual(args[0], cx)
+
+        muts = args[1]
+        self.assertEqual(len(muts), 1)
+
+        mut = muts[0]
+        self.assertEqual(mut.action, "copy")
+        self.assertEqual(mut.src, Path("/tmp/src.txt"))
+        self.assertEqual(
+            mut.dst,
+            Path("/tmp/static/collection/a.txt"),
+        )
+        self.assertEqual(
+            mut.dataset,
+            "tank/a/static/collection",
+        )
