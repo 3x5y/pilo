@@ -25,6 +25,7 @@ from .paths import *
 from .status import *
 from .util import *
 from .validation import *
+from .front.rewrite import *
 
 
 #####################
@@ -352,124 +353,8 @@ def create_snapshot(name, dataset=None):
     return create_snapshot_with_policy(policy, dataset, ts="")
 
 
-@dataclass(frozen=True)
-class RewriteOp:
-    kind: str
-    src: Path
-    dst: Path
-
-
 def validate_relative_path(path: Path):
     require_relative_path(path)
-
-
-def parse_rewrite_ops(lines):
-    ops = []
-
-    for line in lines:
-        line = line.strip()
-
-        if not line:
-            continue
-
-        parts = line.split("\t")
-
-        if len(parts) != 3:
-            fatal(f"invalid command: {line}")
-
-        kind, src, dst = parts
-
-        if kind != "mv":
-            fatal(f"unsupported operation: '{kind}'")
-
-        src_p = Path(src)
-        dst_p = Path(dst)
-
-        validate_relative_path(src_p)
-        validate_relative_path(dst_p)
-
-        op = RewriteOp( kind=kind, src=src_p, dst=dst_p)
-        ops.append(op)
-
-    return ops
-
-
-@dataclass(frozen=True)
-class ResolvedRewriteOp:
-    op: RewriteOp
-    src: Resolved
-    dst: Resolved
-
-
-def resolve_rewrite_op(cx, op: RewriteOp):
-    src = cx.resolve(op.src)
-    dst = cx.resolve(op.dst)
-    return ResolvedRewriteOp(src=src, dst=dst, op=op)
-
-
-def validate_rewrite_op(cx, op: ResolvedRewriteOp):
-    require_same_domain(op.op.src, op.op.dst)
-    require_file(op.src.path)
-    require_no_conflict(op.src.path, op.dst.path)
-
-
-def validate_rewrite_ops(cx, ops):
-    seen_src = set()
-    seen_dst = set()
-
-    for op in ops:
-        if op.op.src in seen_src:
-            fatal(f"duplicate source in script: {op.op.src}")
-        if op.op.dst in seen_dst:
-            fatal(f"destination conflict in script: {op.op.dst}")
-        seen_src.add(op.op.src)
-        seen_dst.add(op.op.dst)
-        validate_rewrite_op(cx, op)
-
-
-@dataclass(frozen=True)
-class RewritePlan:
-    ops: list[ResolvedRewriteOp]
-
-
-def build_rewrite_plan(cx, ops):
-    resolved = [resolve_rewrite_op(cx, op) for op in ops]
-    validate_rewrite_ops(cx, resolved)
-    return RewritePlan(ops=resolved)
-
-
-def execute_rewrite_plan(cx, plan):
-    muts = rewrite_plan_mutations(plan)
-    execute_semantic_mutations(cx, muts)
-
-
-def rewrite_plan_mutations(plan):
-    mutations = []
-
-    for op in plan.ops:
-        dst_exists = op.dst.path.exists()
-
-        if dst_exists:
-            # currently unimplemented; throw error
-            1/0
-            mutations.append(
-                SemanticMutation(
-                    action="unlink",
-                    src=op.src.path,
-                    dst=None,
-                    dataset=op.src.dataset,
-                )
-            )
-        else:
-            mutations.append(
-                SemanticMutation(
-                    action="move",
-                    src=op.src.path,
-                    dst=op.dst.path,
-                    dataset=op.src.dataset,
-                )
-            )
-    return mutations
 
 
 @dataclass(frozen=True)

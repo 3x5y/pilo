@@ -44,7 +44,7 @@ class TestRewritePlan(unittest.TestCase):
                 root / "in/b.txt"
             )
 
-    @patch("pilo.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -93,7 +93,7 @@ class TestRewritePlan(unittest.TestCase):
         self.assertEqual(mut.dst, Path("/tmp/b"))
         self.assertEqual(mut.dataset, "tank/a/pile")
 
-    @patch("pilo.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor2(self, mock_exec):
         cx = pilotest.make_context()
 
