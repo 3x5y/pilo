@@ -1,3 +1,4 @@
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -110,3 +111,51 @@ class TestSystemStatusModel(unittest.TestCase):
             rendered,
             "WARN: snapshot: stale",
         )
+
+    @patch("subprocess.run")
+    def test_manifest_status_missing_manifest_is_ok(self, _):
+        cx = make_context()
+        st = pilo.SystemStatus()
+
+        pilo.collect_manifest_status(cx, st, "pile")
+
+        self.assertEqual(st.code, 0)
+
+    @patch("subprocess.run")
+    def test_manifest_status_ok(self, mock_run):
+        cx = make_context()
+        st = pilo.SystemStatus()
+
+        manifest = cx.admin_path / "manifest" / "pile.manifest"
+
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text("abc\n")
+
+        pilo.collect_manifest_status(cx, st, "pile")
+
+        sm = pilo.StatusMessage(level="OK",
+                                category="manifest",
+                                message="pile verified")
+        self.assertIn(sm, st.messages)
+
+    @patch("subprocess.run")
+    def test_manifest_status_failure(self, mock_run):
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1,
+            ["sha256sum"],
+        )
+
+        cx = make_context()
+        st = pilo.SystemStatus()
+
+        manifest = cx.admin_path / "manifest" / "pile.manifest"
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text("abc\n")
+
+        pilo.collect_manifest_status(cx, st, "pile")
+
+        self.assertEqual(st.code, 1)
+        sm = pilo.StatusMessage(level="WARN",
+                                category="manifest",
+                                message="pile verification failed")
+        self.assertIn(sm, st.messages)
