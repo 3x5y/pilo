@@ -47,7 +47,7 @@ class TestRestorePlan(unittest.TestCase):
                 "tank/a", "tank/b", "r-1", False
             )
 
-    @patch("pilo.restore_dataset")
+    @patch("pilo.back.restore.restore_dataset")
     def test_execute_restore_plan(self, mock_restore):
         plan = pilo.RestorePlan(
             src_snapshot="tank/a@r-1",

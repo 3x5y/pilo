@@ -27,6 +27,7 @@ from .util import *
 from .validation import *
 
 from .back.replication import *
+from .back.restore import *
 from .back.snapshot import *
 
 from .front.ingest import *
@@ -115,19 +116,6 @@ def apply_ownership(cx):
 #####################
 
 
-def restore_dataset(src_snap, dst, recursive=False, require_new=True):
-    require_snapshot(src_snap)
-
-    if require_new:
-        require_new_dataset(dst)
-
-    zfs.send_recv(src_snap, dst, recursive=recursive)
-
-    snap_name = src_snap.split("@", 1)[1]
-    if not zfs.snapshot_exists(f"{dst}@{snap_name}"):
-        fatal("restore completed but snapshot missing at destination")
-
-
 def restore_from_snapshot(src, dst, snap, recursive):
     src_snap = f"{src}@{snap}"
     restore_dataset(src_snap, dst, recursive=recursive)
@@ -185,35 +173,6 @@ def execute_recovery_plan(plan: RecoveryPlan, cx):
         recursive=plan.recursive,
     )
     normalize_system(cx)
-
-
-@dataclass(frozen=True)
-class RestorePlan:
-    src_snapshot: str
-    dst: str
-    recursive: bool
-
-
-def build_restore_plan(src, dst, snap, recursive):
-    if "@" in snap:
-        fatal("snapshot must not include dataset")
-    src_snap = f"{src}@{snap}"
-    require_snapshot(src_snap)
-    require_snapshot_of_dataset(src_snap, src)
-    require_new_dataset(dst)
-    return RestorePlan(
-        src_snapshot=src_snap,
-        dst=dst,
-        recursive=recursive,
-    )
-
-
-def execute_restore_plan(plan: RestorePlan):
-    restore_dataset(
-        plan.src_snapshot,
-        plan.dst,
-        recursive=plan.recursive,
-    )
 
 
 def normalize_system(cx):
