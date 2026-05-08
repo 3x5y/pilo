@@ -3,7 +3,7 @@
 import subprocess
 import sys
 
-from pilo import fatal, Context
+import pilo
 
 
 def verify_manifest(cx, subset):
@@ -32,11 +32,11 @@ def verify_manifest(cx, subset):
 
 
 def main():
-    cx = Context()
+    cx = pilo.Context()
     verify_manifest(cx, "pile")
     verify_manifest(cx, "collection")
     verify_manifest(cx, "filing")
 
 
 if __name__ == "__main__":
-    main()
+    pilo.run_main(main)

@@ -3,25 +3,24 @@
 import shutil
 from pathlib import Path
 
-from pilo import fatal, require_dataset, Context
-
+import pilo
 
 def main():
-    cx = Context()
+    cx = pilo.Context()
 
     if not cx.args:
-        fatal("missing argument: source file")
+        pilo.fatal("missing argument: source file")
 
     src = Path(cx.args[0])
 
     if not src.exists():
-        fatal(f"source file missing: {src}")
+        pilo.fatal(f"source file missing: {src}")
 
-    require_dataset(cx.intake_dataset)
+    pilo.require_dataset(cx.intake_dataset)
 
     dst = cx.intake_path / src.name
     if dst.exists():
-        fatal(f"destination already exists: {dst}")
+        pilo.fatal(f"destination already exists: {dst}")
 
     try:
         if src.is_dir():
@@ -29,8 +28,8 @@ def main():
         else:
             shutil.copy2(src, dst)
     except Exception as e:
-        fatal(str(e))
+        pilo.fatal(str(e))
 
 
 if __name__ == "__main__":
-    main()
+    pilo.run_main(main)

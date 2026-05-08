@@ -17,15 +17,20 @@ from pathlib import Path
 from . import zfs
 
 
-class FatalError(SystemExit):
-    def __init__(self, msg):
-        super().__init__(1)
-        self.msg = msg
+class FatalError(Exception):
+    pass
 
 
 def fatal(msg):
-    print(f"ERROR: {msg}", file=sys.stderr)
     raise FatalError(msg)
+
+
+def run_main(f):
+    try:
+        f()
+    except FatalError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def run(cmd, check=True):
