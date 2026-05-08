@@ -12,7 +12,7 @@ mkintake different $file
 capture_status pilo ingest-pile
 
 assert_command_fail expected checksum conflict
-echo "$OUTPUT" | assert_grep "collision"
+echo "$OUTPUT" | assert_grep "destination conflict"
 # manifest still valid
 assert_manifest_valid pile /$PILE
 # canonical unchanged

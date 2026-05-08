@@ -1,3 +1,5 @@
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -75,3 +77,47 @@ class TestValidation(unittest.TestCase):
     def test_restore_requires_snapshot(self, _):
         with pilotest.assert_fatal(self):
             pilo.restore_dataset("tank/a@r1", "tank/b")
+
+    def test_require_file_accepts_existing_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "a.txt"
+            path.write_text("x")
+
+            pilo.require_file(path)
+
+    def test_require_file_rejects_missing_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "missing.txt"
+
+            with pilotest.assert_fatal(self):
+                pilo.require_file(path)
+
+    def test_require_no_conflict_accepts_missing_target(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "src.txt"
+            dst = Path(td) / "dst.txt"
+
+            src.write_text("x")
+
+            pilo.require_no_conflict(src, dst)
+
+    def test_require_no_conflict_accepts_identical_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "src.txt"
+            dst = Path(td) / "dst.txt"
+
+            src.write_text("same")
+            dst.write_text("same")
+
+            pilo.require_no_conflict(src, dst)
+
+    def test_require_no_conflict_rejects_different_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "src.txt"
+            dst = Path(td) / "dst.txt"
+
+            src.write_text("a")
+            dst.write_text("b")
+
+            with pilotest.assert_fatal(self):
+                pilo.require_no_conflict(src, dst)

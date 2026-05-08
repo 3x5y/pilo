@@ -17,7 +17,15 @@ from pathlib import Path
 from . import zfs
 
 
-class FatalError(Exception):
+class PiloException(Exception):
+    pass
+
+
+class PiloError(PiloException):
+    pass
+
+
+class FatalError(PiloError):
     pass
 
 
@@ -47,6 +55,11 @@ def require_new_dataset(dataset):
         fatal(f"destination exists: {dataset}")
 
 
+def require_child_dataset(dataset, root):
+    if not dataset.startswith(root):
+        fatal(f"dataset outside root: {dataset}")
+
+
 def require_snapshot(snapshot):
     if not zfs.snapshot_exists(snapshot):
         fatal(f"missing snapshot: {snapshot}")
@@ -61,6 +74,31 @@ def require_snapshot_of_dataset(snap, dataset):
 def require_within_dataset(target, root):
     if not target == root and not target.startswith(root + "/"):
         fatal(f"{target} outside {root}")
+
+
+def require_file(path):
+    if not path.is_file():
+        fatal(f"file does not exist: {path}")
+
+
+def require_no_conflict(src, dst):
+    if dst.is_file() and not files_equal(src, dst):
+        fatal(f"destination conflict: {dst}")
+
+
+def require_relative_path(path: Path):
+    if path.is_absolute():
+        fatal("absolute paths not allowed")
+    if ".." in path.parts:
+        fatal("parent traversal not allowed")
+
+
+def require_same_domain(src, dst):
+    src_domain = domain(src)
+    dst_domain = domain(dst)
+
+    if src_domain != dst_domain:
+        fatal("cross-domain move not allowed")
 
 
 class validate:
@@ -266,11 +304,7 @@ def parse_logical_path(path: Path) -> LogicalPath:
     if not path.parts:
         fatal("empty path")
 
-    if path.is_absolute():
-        fatal("absolute paths not allowed")
-
-    if ".." in path.parts:
-        fatal("parent traversal not allowed")
+    require_relative_path(path)
 
     top = path.parts[0]
 
@@ -513,13 +547,10 @@ def restore_from_snapshot(src, dst, snap, recursive):
 def recover_dataset_tree(cx, target, replica, require_new=True):
     plan = build_recovery_plan(cx, target)
     execute_recovery_plan(plan)
-
     # normalise dataset properties
     apply_dataset_contract(cx)
-
     # ensure datasets are mountable and mounted
     zfs.mount()
-
     # Optional: runtime + ownership (debatable)
     #ensure_runtime_dirs(cx)
     #apply_ownership(cx)
@@ -531,8 +562,7 @@ class DatasetMapping:
     dst_root: str
 
     def _suffix(self, dataset: str, root: str) -> str:
-        if not dataset.startswith(root):
-            fatal(f"dataset outside root: {dataset}")
+        require_child_dataset(dataset, root)
         return dataset[len(root):].lstrip("/")
 
     def map(self, dataset: str) -> str:
@@ -544,12 +574,10 @@ class DatasetMapping:
         return f"{self.src_root}/{suffix}" if suffix else self.src_root
 
     def validate_within_src(self, dataset: str):
-        if not dataset.startswith(self.src_root):
-            fatal(f"target outside source root: {dataset}")
+        require_child_dataset(dataset, self.src_root)
 
     def validate_within_dst(self, dataset: str):
-        if not dataset.startswith(self.dst_root):
-            fatal(f"target outside destination root: {dataset}")
+        require_child_dataset(dataset, self.dst_root)
 
 
 @dataclass(frozen=True)
@@ -563,7 +591,7 @@ class RecoveryPlan:
 def build_recovery_plan(cx, target):
     mapping = DatasetMapping(cx.root_dataset, cx.replica_dataset)
 
-    #mapping.validate_within_src(target)
+    mapping.validate_within_src(target)
     require_within_dataset(target, cx.root_dataset)
 
     replica = mapping.map(target)
@@ -604,13 +632,10 @@ class RestorePlan:
 def build_restore_plan(src, dst, snap, recursive):
     if "@" in snap:
         fatal("snapshot must not include dataset")
-
     src_snap = f"{src}@{snap}"
-
     require_snapshot(src_snap)
     require_snapshot_of_dataset(src_snap, src)
     require_new_dataset(dst)
-
     return RestorePlan(
         src_snapshot=src_snap,
         dst=dst,
@@ -650,7 +675,7 @@ def build_replication_plan(src, dst):
         fatal("no source snapshot")
 
     # if strict (need to change test mocks)
-    #require_dataset(src)
+    require_dataset(src)
     if not last_dst:
         return ReplicationPlan( src, dst, last_src, None, "full")
 
@@ -820,14 +845,12 @@ def create_prefixed_snapshot(prefix, dataset=None):
 
 def create_anchor(anchor_type, dataset=None):
     dataset = dataset or os.environ["PILO_ROOT"]
-
     if anchor_type == "daily":
         policy = SnapshotPolicy(prefix="daily", hold=False)
     elif anchor_type == "rotation":
         policy = SnapshotPolicy(prefix="rotation", hold=True)
     else:
         fatal("invalid anchor type")
-
     return create_snapshot_with_policy(policy, dataset)
 
 
@@ -839,16 +862,12 @@ def create_snapshot(name, dataset=None):
 
 def sha256_file(path: Path, chunk_size=1024 * 1024):
     h = hashlib.sha256()
-
     with path.open("rb") as f:
         while True:
             chunk = f.read(chunk_size)
-
             if not chunk:
                 break
-
             h.update(chunk)
-
     return h.hexdigest()
 
 
@@ -887,11 +906,8 @@ class RewriteOp:
 
 
 def validate_relative_path(path: Path):
-    if path.is_absolute():
-        fatal("absolute paths not allowed")
+    require_relative_path(path)
 
-    if ".." in path.parts:
-        fatal("parent traversal not allowed")
 
 def parse_rewrite_ops(lines):
     ops = []
@@ -918,13 +934,8 @@ def parse_rewrite_ops(lines):
         validate_relative_path(src_p)
         validate_relative_path(dst_p)
 
-        ops.append(
-            RewriteOp(
-                kind=kind,
-                src=src_p,
-                dst=dst_p,
-            )
-        )
+        op = RewriteOp( kind=kind, src=src_p, dst=dst_p)
+        ops.append(op)
 
     return ops
 
@@ -937,28 +948,15 @@ class ResolvedRewriteOp:
 
 
 def resolve_rewrite_op(cx, op: RewriteOp):
-    return ResolvedRewriteOp(
-        op=op,
-        src=cx.resolve(op.src),
-        dst=cx.resolve(op.dst),
-    )
+    src = cx.resolve(op.src)
+    dst = cx.resolve(op.dst)
+    return ResolvedRewriteOp(src=src, dst=dst, op=op)
 
 
 def validate_rewrite_op(cx, op: ResolvedRewriteOp):
-    src_domain = domain(op.op.src)
-    dst_domain = domain(op.op.dst)
-
-    if src_domain != dst_domain:
-        fatal("cross-domain move not allowed")
-
-    src_abs = op.src.path
-    dst_abs = op.dst.path
-
-    if not src_abs.is_file():
-        fatal(f"source missing: {op.src}")
-
-    if dst_abs.is_file() and not files_equal(src_abs, dst_abs):
-        fatal(f"destination conflict: {op.dst}")
+    require_same_domain(op.op.src, op.op.dst)
+    require_file(op.src.path)
+    require_no_conflict(op.src.path, op.dst.path)
 
 
 def validate_rewrite_ops(cx, ops):
@@ -966,16 +964,12 @@ def validate_rewrite_ops(cx, ops):
     seen_dst = set()
 
     for op in ops:
-
         if op.op.src in seen_src:
             fatal(f"duplicate source in script: {op.op.src}")
-
         if op.op.dst in seen_dst:
             fatal(f"destination conflict in script: {op.op.dst}")
-
         seen_src.add(op.op.src)
         seen_dst.add(op.op.dst)
-
         validate_rewrite_op(cx, op)
 
 
@@ -985,10 +979,7 @@ class RewritePlan:
 
 
 def build_rewrite_plan(cx, ops):
-    resolved = [
-        resolve_rewrite_op(cx, op)
-        for op in ops
-    ]
+    resolved = [resolve_rewrite_op(cx, op) for op in ops]
     validate_rewrite_ops(cx, resolved)
     return RewritePlan(ops=resolved)
 
@@ -1005,7 +996,7 @@ def rewrite_plan_mutations(plan):
         dst_exists = op.dst.path.exists()
 
         if dst_exists:
-            # currently unused, throw error
+            # currently unimplemented; throw error
             1/0
             mutations.append(
                 SemanticMutation(
@@ -1043,13 +1034,10 @@ def writable_datasets(datasets):
 def manifest_subset_root(cx, subset):
     if subset == "pile":
         return cx.pile_path
-
     if subset == "collection":
         return cx.static_path / "collection"
-
     if subset == "filing":
         return cx.static_path / "filing"
-
     fatal(f"invalid manifest subset: {subset}")
 
 
@@ -1066,46 +1054,26 @@ class ManifestUpdatePlan:
 
 
 def build_manifest_update_plan(cx, subsets):
-    resolved = []
+    def build(name):
+        manifest = cx.admin_path / "manifest" / f"{name}.manifest"
+        root = manifest_subset_root(cx, name)
+        return ManifestSubset(name=name, root=root, manifest=manifest)
 
-    for name in subsets:
-        resolved.append(
-            ManifestSubset(
-                name=name,
-                root=manifest_subset_root(cx, name),
-                manifest=(
-                    cx.admin_path
-                    / "manifest"
-                    / f"{name}.manifest"
-                ),
-            )
-        )
-
-    return ManifestUpdatePlan(
-        subsets=resolved
-    )
+    resolved = [build(name) for name in subsets]
+    return ManifestUpdatePlan(subsets=resolved)
 
 
 def execute_manifest_update_plan(cx, plan):
     for subset in plan.subsets:
         ensure_parent_dir(cx, subset.manifest)
         write_manifest(cx, subset.root, subset.manifest)
-
-        commit_manifest_if_changed(
-            cx,
-            subset.manifest,
-            f"{subset.name} manifest update",
-        )
+        msg = f"{subset.name} manifest update"
+        commit_manifest_if_changed(cx, subset.manifest, msg)
 
 
 def write_manifest(cx, root: Path, manifest: Path):
-    with tempfile.NamedTemporaryFile(
-        "w",
-        delete=False,
-    ) as tmp:
-
+    with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
         tmp_path = Path(tmp.name)
-
         for line in generate_manifest_lines(root):
             tmp.write(line + "\n")
 
@@ -1115,20 +1083,10 @@ def write_manifest(cx, root: Path, manifest: Path):
     manifest.chmod(0o644)
 
 
-def commit_manifest_if_changed(
-    cx,
-    manifest,
-    message,
-):
+def commit_manifest_if_changed(cx, manifest, message):
     repo = cx.admin_path / "manifest"
-
     cx.ensure_git_repo(repo)
-
-    cx.git_commit_if_changed(
-        repo,
-        manifest,
-        message,
-    )
+    cx.git_commit_if_changed(repo, manifest, message)
 
 
 @dataclass(frozen=True)
@@ -1144,11 +1102,9 @@ def build_ingest_ops(cx, files):
     for src in files:
         rel = src.relative_to(cx.intake_path)
         dst = cx.pile_path / "in" / rel
+        require_no_conflict(src, dst)
         if dst.exists():
-            if files_equal(src, dst):
-                action = 'noop'
-            else:
-                fatal(f"name collision with different content: '{rel}'")
+            action = 'noop'
         else:
             action = 'move'
         ops.append(IngestOp(
@@ -1167,7 +1123,6 @@ def execute_ingest_ops(cx, ops):
 
 def ingest_plan_mutations(ops):
     muts = []
-
     for op in ops:
         if op.action == "move":
             muts.append(
@@ -1178,7 +1133,6 @@ def ingest_plan_mutations(ops):
                     dataset=op.dataset,
                 )
             )
-
         elif op.action == "noop":
             muts.append(
                 SemanticMutation(
@@ -1188,7 +1142,6 @@ def ingest_plan_mutations(ops):
                     dataset=op.dataset,
                 )
             )
-
     return muts
 
 
@@ -1212,7 +1165,6 @@ def build_promote_plan(cx):
 
     if not out_path.is_dir():
         return None
-        #return RewritePlan(ops=ops)
 
     # validate top-level dirs
     for child in out_path.iterdir():
@@ -1233,32 +1185,23 @@ def build_promote_plan(cx):
     def validate_file(cx, src: Path, rel: Path):
         r = cx.resolve(rel)
         require_dataset(r.dataset)
-        if r.path.is_file():
-            if not files_equal(src, r.path):
-                fatal(f"destination conflict for {rel}")
-
+        require_no_conflict(src, r.path)
 
     for f in col_files:
         rel = Path("collection") / f.relative_to(col_dir)
         validate_file(cx, f, rel)
         r = cx.resolve(rel)
         if not r.path.is_file():
-            ops.append(
-                PromoteOp(
-                    action="copy",
-                    src=f,
-                    dst=r.path,
-                    dataset=r.dataset,
-                )
-            )
-        ops.append(
-            PromoteOp(
-                action="unlink",
-                src=f,
-                dst=None,
-                dataset=cx.pile_dataset,
-            )
-        )
+            op = PromoteOp(action="copy",
+                           src=f,
+                           dst=r.path,
+                           dataset=r.dataset)
+            ops.append(op)
+        op = PromoteOp(action="unlink",
+                       src=f,
+                       dst=None,
+                       dataset=cx.pile_dataset)
+        ops.append(op)
 
     for f in fil_files:
         rel = f.relative_to(fil_dir)
@@ -1270,22 +1213,16 @@ def build_promote_plan(cx):
         validate_file(cx, f, full_rel)
         r = cx.resolve(full_rel)
         if not r.path.is_file():
-            ops.append(
-                PromoteOp(
-                    action="copy",
-                    src=f,
-                    dst=r.path,
-                    dataset=r.dataset,
-                )
-            )
-        ops.append(
-            PromoteOp(
-                action="unlink",
-                src=f,
-                dst=None,
-                dataset=cx.pile_dataset,
-            )
-        )
+            op = PromoteOp(action="copy",
+                           src=f,
+                           dst=r.path,
+                           dataset=r.dataset)
+            ops.append(op)
+        op = PromoteOp(action="unlink",
+                       src=f,
+                       dst=None,
+                       dataset=cx.pile_dataset)
+        ops.append(op)
 
     return RewritePlan(ops=ops)
 
@@ -1296,17 +1233,13 @@ def execute_promote_plan(cx, plan):
 
 
 def promote_plan_mutations(ops):
-    muts = []
-    for op in ops:
-        muts.append(
-            SemanticMutation(
-                action=op.action,
-                src=op.src,
-                dst=op.dst,
-                dataset=op.dataset,
-            )
-        )
-    return muts
+    def build(op):
+        return SemanticMutation(action=op.action,
+                                src=op.src,
+                                dst=op.dst,
+                                dataset=op.dataset)
+    return [build(op) for op in ops]
+
 
 @dataclass(frozen=True)
 class ReplaceOp:
@@ -1320,24 +1253,12 @@ class ReplacePlan:
 
 
 def build_replace_plan(cx, src, dst_rel):
-    if not src.is_file():
-        fatal(f"source file missing: {src}")
-
+    require_file(src)
     resolved = cx.resolve(dst_rel)
-
-    if not resolved.path.is_file():
-        fatal(f"target does not exist: {dst_rel}")
-
+    require_file(resolved.path)
     require_dataset(resolved.dataset)
-
-    return ReplacePlan(
-        ops=[
-            ReplaceOp(
-                src=src,
-                dst=resolved,
-            )
-        ]
-    )
+    op = ReplaceOp(src=src, dst=resolved)
+    return ReplacePlan(ops=[op])
 
 
 def execute_replace_plan(cx, plan):
@@ -1346,19 +1267,12 @@ def execute_replace_plan(cx, plan):
 
 
 def replace_plan_mutations(plan):
-    muts = []
-
-    for op in plan.ops:
-        muts.append(
-            SemanticMutation(
-                action="copy",
-                src=op.src,
-                dst=op.dst.path,
-                dataset=op.dst.dataset,
-            )
-        )
-
-    return muts
+    def build(op):
+        return SemanticMutation(action="copy",
+                                src=op.src,
+                                dst=op.dst.path,
+                                dataset=op.dst.dataset)
+    return [build(op) for op in plan.ops]
 
 
 @dataclass(frozen=True)
@@ -1373,28 +1287,20 @@ def apply_semantic_mutation(cx, mut: SemanticMutation):
     if mut.action == "move":
         safe_move(cx, mut.src, mut.dst)
         return
-
     if mut.action == "copy":
         safe_copy(cx, mut.src, mut.dst)
         return
-
     if mut.action == "unlink":
         safe_unlink(mut.src)
         return
-
     if mut.action == "rmdir":
         safe_rmdir(mut.src)
         return
-
     fatal(f"unsupported mutation action: {mut.action}")
 
 
 def execute_semantic_mutations(cx, mutations):
-    datasets = {
-        m.dataset
-        for m in mutations
-    }
-
+    datasets = {m.dataset for m in mutations}
     with writable_datasets(datasets):
         for mut in mutations:
             apply_semantic_mutation(cx, mut)
@@ -1402,19 +1308,14 @@ def execute_semantic_mutations(cx, mutations):
 
 def mutation_manifest_domains(mutations):
     domains = set()
-
     for mut in mutations:
         ds = mut.dataset
-
         if ds.endswith("/pile"):
             domains.add("pile")
-
         elif "/static/collection" in ds:
             domains.add("collection")
-
         elif "/static/filing" in ds:
             domains.add("filing")
-
     return domains
 
 
@@ -1456,28 +1357,19 @@ def build_prune_plan(root, dataset):
 
         if path.is_dir() and would_be_empty(path):
             would_remove.add(path)
-            ops.append(
-                PruneOp(
-                    path=path,
-                    dataset=dataset,
-                )
-            )
+            op = PruneOp(path=path, dataset=dataset)
+            ops.append(op)
 
     return PrunePlan(ops=ops)
 
 
 def prune_mutations(plan):
-    muts = []
-    for op in plan.ops:
-        muts.append(
-            SemanticMutation(
-                action="rmdir",
-                src=op.path,
-                dst=None,
-                dataset=op.dataset,
-            )
-        )
-    return muts
+    def build(op):
+        return SemanticMutation(action="rmdir",
+                                src=op.path,
+                                dst=None,
+                                dataset=op.dataset)
+    return [build(op) for op in plan.ops]
 
 
 def execute_prune_plan(cx, ops):
@@ -1495,41 +1387,27 @@ class ManifestVerifyOp:
 def manifest_subset_root(cx, subset):
     if subset == "pile":
         return cx.pile_path
-
     if subset in ("collection", "filing"):
         return cx.static_path / subset
-
     fatal(f"unsupported subset: {subset}")
 
 
 def build_manifest_verify_plan(cx, subsets):
-    ops = []
-
-    for subset in subsets:
-        ops.append(
-            ManifestVerifyOp(
-                subset=subset,
-                root=manifest_subset_root(cx, subset),
-                manifest=(
-                    cx.admin_path
-                    / "manifest"
-                    / f"{subset}.manifest"
-                ),
-            )
-        )
-
-    return ops
+    def build(subset):
+        manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
+        return ManifestVerifyOp(subset=subset,
+                                root=manifest_subset_root(cx, subset),
+                                manifest=manifest)
+    return [build(subset) for subset in subsets]
 
 
 def verify_manifest_op(op):
-    if (not op.manifest.is_file()
-            or op.manifest.stat().st_size == 0):
+    m = op.manifest
+    if not m.is_file() or m.stat().st_size == 0:
         return
-
-    cmd = ["sha256sum", "--quiet", "--strict", "-c",
-           op.manifest]
+    cmd = ["sha256sum", "--quiet", "--strict", "-c", m]
     try:
-        subprocess.run(cmd, cwd=str(op.root), check=True)
+        subprocess.run(cmd, cwd=op.root, check=True)
     except subprocess.CalledProcessError:
         fatal(f"manifest verification failed: {op.subset}")
 

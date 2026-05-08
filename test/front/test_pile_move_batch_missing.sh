@@ -11,7 +11,7 @@ mv	in/missing.txt	sort/missing.txt
 "
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep "ERROR: source missing"
+echo "$OUTPUT" | assert_grep "ERROR: file does not exist"
 
 # nothing should have moved
 assert_file_exists /$PILE/in/a.txt
