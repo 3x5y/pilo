@@ -13,6 +13,17 @@ class TestSystemStatusModel(unittest.TestCase):
         self.assertEqual(st.code, 0)
         self.assertEqual(st.messages, [])
 
+    def test_status_message_model(self):
+        msg = pilo.StatusMessage(
+            level="WARN",
+            category="snapshot",
+            message="stale",
+        )
+
+        self.assertEqual(msg.level, "WARN")
+        self.assertEqual(msg.category, "snapshot")
+        self.assertEqual(msg.message, "stale")
+
     @patch("pilo.zfs.latest_snapshot")
     def test_replication_ok(self, mock_snap):
         mock_snap.side_effect = ["tank/a@r1", "backup/a@r1"]
@@ -25,7 +36,8 @@ class TestSystemStatusModel(unittest.TestCase):
         self.assertIn(
             pilo.StatusMessage(
                 level="OK",
-                message="replication: r1",
+                category="replication",
+                message="r1",
             ),
             st.messages,
         )
@@ -43,7 +55,8 @@ class TestSystemStatusModel(unittest.TestCase):
         self.assertIn(
                 pilo.StatusMessage(
                     level="OK",
-                    message="snapshot: fresh (10 s)",
+                    category="snapshot",
+                    message="fresh (10 s)",
                     ),
                 st.messages,
                 )
@@ -55,7 +68,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         pilo.check_dataset_status(cx, st)
 
-        self.assertTrue(any("missing dataset" in m.message for m in st.messages))
+        self.assertTrue(any(m.category == "incomplete" for m in st.messages))
 
     @patch("pilo.git_dirty", return_value=True)
     def test_dirty_repo(self, _):
@@ -67,7 +80,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         pilo.check_transient_status(cx, st)
 
-        self.assertTrue(any("transient" in m.message for m in st.messages))
+        self.assertTrue(any(m.category == "transient" for m in st.messages))
 
     @patch("pilo.check_replication_status")
     @patch("pilo.check_snapshot_status")
@@ -83,3 +96,17 @@ class TestSystemStatusModel(unittest.TestCase):
         s.assert_called_once()
         d.assert_called_once()
         t.assert_called_once()
+
+    def test_render_status_message(self):
+        msg = pilo.StatusMessage(
+            level="WARN",
+            category="snapshot",
+            message="stale",
+        )
+
+        rendered = pilo.render_status_message(msg)
+
+        self.assertEqual(
+            rendered,
+            "WARN: snapshot: stale",
+        )

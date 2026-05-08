@@ -704,6 +704,7 @@ def execute_replication_plan(plan: ReplicationPlan):
 @dataclass(frozen=True)
 class StatusMessage:
     level: str
+    category: str
     message: str
 
 
@@ -716,14 +717,22 @@ class SystemStatus:
         if self.messages is None:
             self.messages = []
 
-    def warn(self, msg):
-        sm = StatusMessage(level="WARN", message=msg)
+    def warn(self, category, msg):
+        sm = StatusMessage("WARN", category, msg)
         self.messages.append(sm)
         self.code = 1
 
-    def ok(self, msg):
-        sm = StatusMessage(level="OK", message=msg)
+    def ok(self, category, msg):
+        sm = StatusMessage("OK", category, msg)
         self.messages.append(sm)
+
+
+def render_status_message(msg):
+    return f"{msg.level}: {msg.category}: {msg.message}"
+
+
+def render_system_status(st):
+    return [render_status_message(m) for m in st.messages]
 
 
 def check_replication_status(cx, st: SystemStatus):
@@ -737,9 +746,9 @@ def check_replication_status(cx, st: SystemStatus):
     dst_name = dst_snap.split("@", 1)[1] if dst_snap else "**MISSING**"
 
     if src_name != dst_name:
-        st.warn(f"replication: latest={src_name} replicated={dst_name}")
+        st.warn("replication", "latest={src_name} replicated={dst_name}")
     else:
-        st.ok(f"replication: {src_name}")
+        st.ok("replication", src_name)
 
 
 def check_snapshot_status(cx, st: SystemStatus, max_age=None):
@@ -750,19 +759,19 @@ def check_snapshot_status(cx, st: SystemStatus, max_age=None):
         max_age = int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600"))
 
     if not name:
-        st.warn(f"snapshot: none for {dataset}")
+        st.warn("snapshot", f"none for {dataset}")
         return
 
     if ts is None:
-        st.warn("snapshot: could not parse timestamp")
+        st.warn("snapshot", "could not parse timestamp")
         return
 
     age = now_epoch() - ts
 
     if age > max_age:
-        st.warn(f"snapshot: stale ({age} s)")
+        st.warn("snapshot", f"stale ({age} s)")
     else:
-        st.ok(f"snapshot: fresh ({age} s)")
+        st.ok("snapshot", f"fresh ({age} s)")
 
 
 def check_dataset_status(cx, st: SystemStatus):
@@ -775,14 +784,14 @@ def check_dataset_status(cx, st: SystemStatus):
 
     for ds in required:
         if not zfs.dataset_exists(ds):
-            st.warn(f"incomplete: missing dataset {ds}")
+            st.warn("incomplete", f"missing dataset {ds}")
 
 
 def check_transient_status(cx, st: SystemStatus):
     for git_dir in cx.admin_path.rglob(".git"):
         repo = git_dir.parent
         if git_dirty(repo):
-            st.warn(f"transient: repo {repo} has uncommitted changes")
+            st.warn("transient", f"repo {repo} has uncommitted changes")
 
 
 def check_pile_status(cx, st: SystemStatus):
@@ -796,7 +805,7 @@ def check_pile_status(cx, st: SystemStatus):
     for f in iter_files(pile):
         age = now - int(f.stat().st_mtime)
         if age > max_age:
-            st.warn(f"pile: {f} is older than threshold")
+            st.warn("pile", f"{f} is older than threshold")
 
 
 def collect_system_status(cx, check=None):
