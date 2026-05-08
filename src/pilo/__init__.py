@@ -25,6 +25,7 @@ from .paths import *
 from .status import *
 from .util import *
 from .validation import *
+from .front.ingest import *
 from .front.rewrite import *
 
 
@@ -355,62 +356,6 @@ def create_snapshot(name, dataset=None):
 
 def validate_relative_path(path: Path):
     require_relative_path(path)
-
-
-@dataclass(frozen=True)
-class IngestOp:
-    src: Path
-    dst: Path
-    dataset: str
-    action: str
-
-
-def build_ingest_ops(cx, files):
-    ops = []
-    for src in files:
-        rel = src.relative_to(cx.intake_path)
-        dst = cx.pile_path / "in" / rel
-        require_no_conflict(src, dst)
-        if dst.exists():
-            action = 'noop'
-        else:
-            action = 'move'
-        ops.append(IngestOp(
-            src=src,
-            dst=dst,
-            dataset=cx.pile_dataset,
-            action=action
-        ))
-    return ops
-
-
-def execute_ingest_ops(cx, ops):
-    muts = ingest_plan_mutations(ops)
-    execute_semantic_mutations(cx, muts)
-
-
-def ingest_plan_mutations(ops):
-    muts = []
-    for op in ops:
-        if op.action == "move":
-            muts.append(
-                SemanticMutation(
-                    action="move",
-                    src=op.src,
-                    dst=op.dst,
-                    dataset=op.dataset,
-                )
-            )
-        elif op.action == "noop":
-            muts.append(
-                SemanticMutation(
-                    action="unlink",
-                    src=op.src,
-                    dst=None,
-                    dataset=op.dataset,
-                )
-            )
-    return muts
 
 
 @dataclass(frozen=True)

@@ -200,7 +200,7 @@ class TestIngestOps(unittest.TestCase):
         self.assertEqual(muts[0].action, "move")
         self.assertEqual(muts[1].action, "unlink")
 
-    @patch("pilo.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
