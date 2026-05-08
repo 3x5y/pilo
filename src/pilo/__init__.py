@@ -16,7 +16,10 @@ from pathlib import Path
 
 from . import zfs
 
+from .context import *
 from .error import *
+from .fs import *
+from .paths import *
 from .validation import *
 
 
@@ -97,253 +100,6 @@ def generate_manifest_lines(root: Path):
         rel = path.relative_to(root)
         h = sha256_file(path)
         yield f"{h}  ./{rel}"
-
-
-@contextmanager
-def dataset_writable(dataset):
-    was = zfs.get_readonly(dataset)
-    if was:
-        zfs.set_readonly(dataset, False)
-    try:
-        yield
-    finally:
-        if was:
-            zfs.set_readonly(dataset, True)
-
-
-def list_files(root):
-    return sorted(iter_files(root))
-
-
-def iter_files(root):
-    root = Path(root)
-    for p in root.rglob("*"):
-        if p.is_file():
-            yield p
-
-
-def ensure_parent_dir(cx, path: Path):
-    ensure_dir_owned(cx, path.parent)
-
-
-def ensure_dir_owned(cx, path: Path):
-    path = Path(path)
-
-    missing = []
-
-    cur = path
-
-    while not cur.exists():
-        missing.append(cur)
-        cur = cur.parent
-
-    path.mkdir(parents=True, exist_ok=True)
-
-    for d in reversed(missing):
-        cx.ensure_owned(d)
-
-
-def safe_copy(cx, src: Path, dst: Path):
-    ensure_parent_dir(cx, dst)
-    cx.ensure_owned(dst.parent)
-    shutil.copy2(src, dst)
-    cx.ensure_owned(dst)
-
-
-def safe_move(cx, src: Path, dst: Path):
-    ensure_parent_dir(cx, dst)
-    cx.ensure_owned(dst.parent)
-    shutil.move(src, dst)
-    cx.ensure_owned(dst)
-
-
-def safe_unlink(path: Path):
-    path.unlink()
-
-
-def safe_rmdir(path: Path):
-    path.rmdir()
-
-
-def files_equal(a, b):
-    return filecmp.cmp(a, b, shallow=False)
-
-
-def domain(rel: Path):
-    parts = rel.parts
-    if not parts:
-        return "invalid"
-
-    if parts[0] in ("in", "out", "sort"):
-        return "pile"
-    if parts[0] in ("collection", "filing"):
-        return "static"
-    return "invalid"
-
-
-class StorageDomain(Enum):
-    PILE = "pile"
-    COLLECTION = "collection"
-    FILING = "filing"
-
-
-@dataclass(frozen=True)
-class LogicalPath:
-    domain: StorageDomain
-    relpath: Path
-
-
-@dataclass(frozen=True)
-class ResolvedPath:
-    logical: LogicalPath
-    physical: Path
-    dataset: str
-    @property
-    def path(self):
-        return self.physical
-
-
-@dataclass
-class Resolved:
-    path: Path
-    dataset: str
-
-
-def parse_logical_path(path: Path) -> LogicalPath:
-    if not path.parts:
-        fatal("empty path")
-
-    require_relative_path(path)
-
-    top = path.parts[0]
-
-    if top in ("in", "out", "sort"):
-        return LogicalPath(
-            domain=StorageDomain.PILE,
-            relpath=path,
-        )
-
-    if top == "collection":
-        if len(path.parts) < 2:
-            fatal("invalid collection path")
-
-        return LogicalPath(
-            domain=StorageDomain.COLLECTION,
-            relpath=Path(*path.parts[1:]),
-        )
-
-    if top == "filing":
-        if len(path.parts) < 3:
-            fatal("invalid filing path")
-
-        return LogicalPath(
-            domain=StorageDomain.FILING,
-            relpath=Path(*path.parts[1:]),
-        )
-
-    fatal(f"invalid path: {path}")
-
-
-class Context:
-    def __init__(self, environ=os.environ, args=sys.argv):
-        self.root_dataset = environ["PILO_ROOT"]
-        self.replica_dataset = environ["PILO_REPLICA_ROOT"]
-        self.admin_dataset = environ["PILO_ADMIN_DATASET"]
-        self.intake_dataset = environ["PILO_INTAKE_DATASET"]
-        self.pile_dataset = environ["PILO_PILE_DATASET"]
-        self.static_dataset = environ["PILO_STATIC_DATASET"]
-        self.collection_dataset = f"{self.static_dataset}/collection"
-        self.filing_dataset = f"{self.static_dataset}/filing"
-
-        self.path = Path(environ["PILO_PATH"])
-        self.admin_path = Path(environ["PILO_ADMIN_PATH"])
-        self.intake_path = Path(environ["PILO_INTAKE_PATH"])
-        self.pile_path = Path(environ["PILO_PILE_PATH"])
-        self.static_path = Path(environ["PILO_STATIC_PATH"])
-        #self.collection_path = Path(environ["PILO_COLLECTION_PATH"])
-        #self.filing_path = Path(environ["PILO_FILING_PATH"])
-        self.collection_path = self.static_path / 'collection'
-        self.filing_path = self.static_path / 'filing'
-
-        self.user = environ["PILO_USER"]
-        self.user_id = pwd.getpwnam(self.user).pw_uid
-        self.args = args and args[1:] or []
-
-    def resolve(self, rel: Path) -> ResolvedPath:
-        logical = parse_logical_path(rel)
-
-        if logical.domain == StorageDomain.PILE:
-            return ResolvedPath(
-                logical=logical,
-                physical=self.pile_path / logical.relpath,
-                dataset=self.pile_dataset,
-            )
-
-        if logical.domain == StorageDomain.COLLECTION:
-            return ResolvedPath(
-                logical=logical,
-                physical=self.collection_path / logical.relpath,
-                dataset=self.collection_dataset,
-            )
-
-        if logical.domain == StorageDomain.FILING:
-            subset = logical.relpath.parts[0]
-
-            return ResolvedPath(
-                logical=logical,
-                physical=self.filing_path / logical.relpath,
-                dataset=f"{self.filing_dataset}/{subset}",
-            )
-
-        raise AssertionError("unreachable")
-
-    def as_user(self, cmd, check=True, **kw):
-        if os.geteuid() == 0:
-            return subprocess.run(["sudo", "-u", self.user] + cmd,
-                                  check=check,
-                                  **kw)
-        else:
-            return subprocess.run(cmd, check=check, **kw)
-
-    def ensure_owned(self, path):
-        stat = os.stat(path)
-        if not stat.st_uid == stat.st_gid == self.user_id:
-            shutil.chown(path, self.user, self.user)
-
-    def ensure_dir(self, path):
-        ensure_dir_owned(self, path)
-
-    def move(self, src, dst):
-        safe_move(self, src, dst)
-
-    def copy(self, src, dst):
-        safe_copy(self, src, dst)
-
-    def copy_static(self, src, resolved):
-        with dataset_writable(resolved.dataset):
-            self.copy(src, resolved.path)
-
-    def remove_piled(self, path):
-        with dataset_writable(self.pile_dataset):
-            safe_unlink(path)
-
-    def ensure_git_repo(self, path: Path):
-        git_path = path / ".git"
-        if not git_path.is_dir():
-            self.ensure_dir(path)
-            cmd = ["git", "-c", "init.defaultBranch=master", "init", str(path)]
-            self.as_user(cmd, capture_output=True)
-
-    def git_commit_if_changed(self, repo: Path, file: Path, message: str):
-        cmd = ["git", "-C", str(repo), "add", str(file)]
-        self.as_user(cmd)
-
-        cmd = ["git", "-C", str(repo), "diff", "--quiet", "--cached"]
-        result = self.as_user(cmd, check=False)
-
-        if result.returncode != 0:
-            cmd = [ "git", "-C", str(repo), "commit", "-m", message]
-            self.as_user(cmd, capture_output=True)
 
 
 #####################
@@ -463,30 +219,6 @@ def recover_dataset_tree(cx, target, replica, require_new=True):
     # Optional: runtime + ownership (debatable)
     #ensure_runtime_dirs(cx)
     #apply_ownership(cx)
-
-
-@dataclass(frozen=True)
-class DatasetMapping:
-    src_root: str
-    dst_root: str
-
-    def _suffix(self, dataset: str, root: str) -> str:
-        require_child_dataset(dataset, root)
-        return dataset[len(root):].lstrip("/")
-
-    def map(self, dataset: str) -> str:
-        suffix = self._suffix(dataset, self.src_root)
-        return f"{self.dst_root}/{suffix}" if suffix else self.dst_root
-
-    def inverse(self, dataset: str) -> str:
-        suffix = self._suffix(dataset, self.dst_root)
-        return f"{self.src_root}/{suffix}" if suffix else self.src_root
-
-    def validate_within_src(self, dataset: str):
-        require_child_dataset(dataset, self.src_root)
-
-    def validate_within_dst(self, dataset: str):
-        require_child_dataset(dataset, self.dst_root)
 
 
 @dataclass(frozen=True)
@@ -792,17 +524,6 @@ def create_snapshot(name, dataset=None):
     return create_snapshot_with_policy(policy, dataset, ts="")
 
 
-def sha256_file(path: Path, chunk_size=1024 * 1024):
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
-
-
 def verify_manifest_lines(root: Path, lines):
     root = Path(root)
 
@@ -948,19 +669,6 @@ def rewrite_plan_mutations(plan):
                 )
             )
     return mutations
-
-
-@contextmanager
-def writable_datasets(datasets):
-    seen = []
-    for ds in datasets:
-        if ds not in seen:
-            seen.append(ds)
-
-    with ExitStack() as stack:
-        for ds in seen:
-            stack.enter_context(dataset_writable(ds))
-        yield
 
 
 def manifest_subset_root(cx, subset):
