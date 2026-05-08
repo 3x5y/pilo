@@ -20,8 +20,8 @@ class TestPromotePlan(unittest.TestCase):
         self.assertEqual(op.action, "copy")
         self.assertEqual(op.dataset, "tank/a/static/collection")
 
-    @patch("pilo.require_dataset")
-    @patch("pilo.files_equal", return_value=True)
+    @patch("pilo.validation.require_dataset")
+    @patch("pilo.fs.files_equal", return_value=True)
     def test_build_promote_plan(self, mock_equal, mock_require):
         cx = pilotest.make_context()
 
@@ -30,7 +30,7 @@ class TestPromotePlan(unittest.TestCase):
         def iter_files():
             yield src
 
-        with patch("pilo.iter_files", return_value=iter_files()):
+        with patch("pilo.fs.iter_files", return_value=iter_files()):
             with patch.object(Path, "is_dir", return_value=True):
                 with patch.object(Path, "iterdir", return_value=[]):
                     plan = pilo.build_promote_plan(cx)
@@ -67,7 +67,7 @@ class TestPromotePlan(unittest.TestCase):
         self.assertEqual(muts[0].action, "copy")
         self.assertEqual(muts[1].action, "unlink")
 
-    @patch("pilo.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -85,7 +85,7 @@ class TestPromotePlan(unittest.TestCase):
         pilo.execute_promote_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.require_dataset")
+    @patch("pilo.validation.require_dataset")
     @patch("pilo.files_equal", return_value=True)
     def test_existing_identical_file_becomes_noop(
         self,
@@ -106,7 +106,7 @@ class TestPromotePlan(unittest.TestCase):
 
         with patch.object(cx, "resolve", return_value=resolved):
             with patch.object(Path, "is_file", return_value=True):
-                with patch("pilo.iter_files", return_value=iter_files()):
+                with patch("pilo.fs.iter_files", return_value=iter_files()):
                     with patch.object(Path, "is_dir", return_value=True):
                         with patch.object(Path, "iterdir", return_value=[]):
                             plan = pilo.build_promote_plan(cx)
