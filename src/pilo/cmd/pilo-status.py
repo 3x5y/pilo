@@ -9,7 +9,7 @@ def main():
     st = pilo.collect_system_status(cx, check=check)
 
     for sm in st.messages:
-        print(f"[{sm.level}] {sm.message}")
+        print(pilo.render_status_message(sm))
 
     exit(st.code)
 

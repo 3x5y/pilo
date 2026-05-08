@@ -746,7 +746,7 @@ def check_replication_status(cx, st: SystemStatus):
     dst_name = dst_snap.split("@", 1)[1] if dst_snap else "**MISSING**"
 
     if src_name != dst_name:
-        st.warn("replication", "latest={src_name} replicated={dst_name}")
+        st.warn("replication", f"latest={src_name} replicated={dst_name}")
     else:
         st.ok("replication", src_name)
 

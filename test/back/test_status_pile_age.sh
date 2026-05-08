@@ -12,4 +12,4 @@ capture_status pilo status pile
 
 assert_command_fail status returned zero
 echo "$OUTPUT" | assert_grep pile:
-echo "$OUTPUT" | assert_grep old_file.txt
+echo "$OUTPUT" | assert_grep old_file.txt.is.older
