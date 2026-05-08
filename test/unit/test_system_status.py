@@ -22,7 +22,13 @@ class TestSystemStatusModel(unittest.TestCase):
 
         pilo.check_replication_status(cx, st)
 
-        self.assertIn(("OK", "replication: r1"), st.messages)
+        self.assertIn(
+            pilo.StatusMessage(
+                level="OK",
+                message="replication: r1",
+            ),
+            st.messages,
+        )
 
     @patch("pilo.zfs.latest_snapshot_with_time")
     @patch("pilo.now_epoch", return_value=1000)
@@ -34,7 +40,13 @@ class TestSystemStatusModel(unittest.TestCase):
 
         pilo.check_snapshot_status(cx, st, max_age=20)
 
-        self.assertIn(("OK", "snapshot: fresh (10 s)"), st.messages)
+        self.assertIn(
+                pilo.StatusMessage(
+                    level="OK",
+                    message="snapshot: fresh (10 s)",
+                    ),
+                st.messages,
+                )
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_missing_dataset(self, _):
@@ -43,7 +55,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         pilo.check_dataset_status(cx, st)
 
-        self.assertTrue(any("missing dataset" in msg for _, msg in st.messages))
+        self.assertTrue(any("missing dataset" in m.message for m in st.messages))
 
     @patch("pilo.git_dirty", return_value=True)
     def test_dirty_repo(self, _):
@@ -55,7 +67,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         pilo.check_transient_status(cx, st)
 
-        self.assertTrue(any("transient" in msg for _, msg in st.messages))
+        self.assertTrue(any("transient" in m.message for m in st.messages))
 
     @patch("pilo.check_replication_status")
     @patch("pilo.check_snapshot_status")

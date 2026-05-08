@@ -8,8 +8,8 @@ def main():
     check = cx.args[0] if cx.args else None
     st = pilo.collect_system_status(cx, check=check)
 
-    for level, msg in st.messages:
-        print(f"[{level}] {msg}")
+    for sm in st.messages:
+        print(f"[{sm.level}] {sm.message}")
 
     exit(st.code)
 

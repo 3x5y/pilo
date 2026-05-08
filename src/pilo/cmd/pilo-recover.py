@@ -16,8 +16,8 @@ def main():
     pilo.execute_recovery_plan(plan, cx)
 
     st = pilo.collect_system_status(cx)
-    for level, msg in st.messages:
-        print(f"[{level}] {msg}")
+    for sm in st.messages:
+        print(f"[{sm.level}] {sm.message}")
 
 
 if __name__ == "__main__":

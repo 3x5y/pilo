@@ -701,9 +701,15 @@ def execute_replication_plan(plan: ReplicationPlan):
         return
 
 
+@dataclass(frozen=True)
+class StatusMessage:
+    level: str
+    message: str
+
+
 @dataclass
 class SystemStatus:
-    messages: list[str] = None
+    messages: list[StatusMessage] = None
     code: int = 0
 
     def __post_init__(self):
@@ -711,11 +717,13 @@ class SystemStatus:
             self.messages = []
 
     def warn(self, msg):
-        self.messages.append(("WARN", msg))
+        sm = StatusMessage(level="WARN", message=msg)
+        self.messages.append(sm)
         self.code = 1
 
     def ok(self, msg):
-        self.messages.append(("OK", msg))
+        sm = StatusMessage(level="OK", message=msg)
+        self.messages.append(sm)
 
 
 def check_replication_status(cx, st: SystemStatus):
