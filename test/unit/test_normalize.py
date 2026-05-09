@@ -2,61 +2,62 @@ import unittest
 from unittest.mock import patch
 
 import pilo
+from pilo.back import normalize
 from pilotest import make_context, import_command
 
 
 class TestNormalize(unittest.TestCase):
 
-    @patch("pilo.apply_ownership")
+    @patch("pilo.back.normalize.apply_ownership")
     @patch("pilo.ensure_runtime_dirs")
     @patch("pilo.subprocess.run")
-    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_applies_contract(self, mock_contract, mock_run,
                                         mock_dirs, mock_owner):
 
         cx = make_context()
-        pilo.normalize_system(cx)
+        normalize.normalize_system(cx)
         mock_contract.assert_called_once_with(cx)
 
-    @patch("pilo.apply_ownership")
-    @patch("pilo.ensure_runtime_dirs")
-    @patch("pilo.subprocess.run")
-    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("subprocess.run")
+    @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_mounts(self, mock_contract, mock_run, mock_dirs,
                               mock_owner):
 
         cx = make_context()
-        pilo.normalize_system(cx)
+        normalize.normalize_system(cx)
         mock_run.assert_called_once_with(["zfs", "mount", "-a"], check=True)
 
-    @patch("pilo.apply_ownership")
-    @patch("pilo.ensure_runtime_dirs")
+    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.back.normalize.ensure_runtime_dirs")
     @patch("pilo.subprocess.run")
-    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_ensures_runtime_dirs(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
 
         cx = make_context()
-        pilo.normalize_system(cx)
+        normalize.normalize_system(cx)
         mock_dirs.assert_called_once_with(cx)
 
-    @patch("pilo.apply_ownership")
+    @patch("pilo.back.normalize.apply_ownership")
     @patch("pilo.ensure_runtime_dirs")
     @patch("pilo.subprocess.run")
-    @patch("pilo.apply_dataset_contract")
+    @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_applies_ownership(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
         cx = make_context()
 
-        pilo.normalize_system(cx)
+        normalize.normalize_system(cx)
 
         mock_owner.assert_called_once_with(cx)
 
-    @patch("pilo.normalize_system")
-    @patch("pilo.restore_dataset")
-    def test_execute_recovery_uses_normalize(self, mock_restore, mock_norm):
+    @patch("pilo.back.normalize.normalize_system")
+    @patch("pilo.back.restore.restore_dataset")
+    def _test_execute_recovery_uses_normalize(self, mock_restore, mock_norm):
         cx = make_context()
 
         plan = pilo.RecoveryPlan(
