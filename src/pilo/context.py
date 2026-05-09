@@ -4,6 +4,7 @@ import os
 import pwd
 import sys
 
+from . import error
 from . import paths
 from . import validation
 
@@ -58,7 +59,10 @@ class Context:
         self.args = args and args[1:] or []
 
     def resolve(self, rel: Path) -> paths.ResolvedPath:
-        logical = paths.parse_logical_path(rel)
+        try:
+            logical = paths.parse_logical_path(rel)
+        except paths.PathParseError as e:
+            error.fatal(str(e))
 
         if logical.domain == paths.StorageDomain.PILE:
             return paths.ResolvedPath(

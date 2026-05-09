@@ -3,19 +3,10 @@ from enum import Enum
 from pathlib import Path
 
 from . import error
-from . import validation
 
 
-def domain(rel: Path):
-    parts = rel.parts
-    if not parts:
-        return "invalid"
-
-    if parts[0] in ("in", "out", "sort"):
-        return "pile"
-    if parts[0] in ("collection", "filing"):
-        return "static"
-    return "invalid"
+class PathParseError(ValueError):
+    pass
 
 
 class StorageDomain(Enum):
@@ -46,11 +37,38 @@ class Resolved:
     dataset: str
 
 
-def parse_logical_path(path: Path) -> LogicalPath:
-    if not path.parts:
-        error.fatal("empty path")
+def domain(rel: Path):
+    parts = rel.parts
+    if not parts:
+        return "invalid"
 
-    validation.require_relative_path(path)
+    if parts[0] in ("in", "out", "sort"):
+        return "pile"
+    if parts[0] in ("collection", "filing"):
+        return "static"
+    return "invalid"
+
+
+def validate_relative_path(path: Path):
+    if path.is_absolute():
+        raise PathParseError("absolute paths not allowed")
+
+    if ".." in path.parts:
+        raise PathParseError("parent traversal not allowed")
+
+
+def parse_logical_path(path: Path) -> LogicalPath:
+    try:
+        return _parse_logical_path(path)
+    except PathParseError as e:
+        error.fatal(str(e))
+
+
+def _parse_logical_path(path: Path) -> LogicalPath:
+    if not path.parts:
+        raise PathParseError("empty path")
+
+    validate_relative_path(path)
 
     top = path.parts[0]
 
@@ -62,7 +80,7 @@ def parse_logical_path(path: Path) -> LogicalPath:
 
     if top == "collection":
         if len(path.parts) < 2:
-            error.fatal("invalid collection path")
+            raise PathParseError("invalid collection path")
 
         return LogicalPath(
             domain=StorageDomain.COLLECTION,
@@ -71,11 +89,11 @@ def parse_logical_path(path: Path) -> LogicalPath:
 
     if top == "filing":
         if len(path.parts) < 3:
-            error.fatal("invalid filing path")
+            raise PathParseError("invalid filing path")
 
         return LogicalPath(
             domain=StorageDomain.FILING,
             relpath=Path(*path.parts[1:]),
         )
 
-    error.fatal(f"invalid path: {path}")
+    raise PathParseError(f"invalid path: {path}")
