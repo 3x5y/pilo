@@ -1,6 +1,7 @@
 from pathlib import Path
 import unittest
 
+from pilo import manifest
 from pilo import paths
 from pilo.context import StoragePolicy
 import pilotest
@@ -80,3 +81,28 @@ class TestContextStoragePolicy(unittest.TestCase):
         sp = cx.storage_policy(paths.StorageDomain.FILING)
 
         self.assertEqual(sp.root_dataset, "tank/a/static/filing")
+
+
+class TestManifestSubsetPolicy(unittest.TestCase):
+
+    def test_manifest_subset_pile_uses_pile_policy(self):
+        cx = pilotest.make_context()
+        plan = manifest.build_manifest_update_plan(cx, ["pile"])
+        subset = plan.subsets[0]
+
+        self.assertEqual(subset.root, Path("/tmp/pile"))
+
+    def test_manifest_subset_collection_uses_collection_policy(self):
+        cx = pilotest.make_context()
+        plan = manifest.build_manifest_update_plan(cx, ["collection"])
+        subset = plan.subsets[0]
+
+        self.assertEqual(subset.root, Path("/tmp/static/collection"))
+
+    def test_manifest_subset_filing_uses_filing_policy(self):
+        cx = pilotest.make_context()
+
+        plan = manifest.build_manifest_update_plan(cx, ["filing"])
+        subset = plan.subsets[0]
+
+        self.assertEqual(subset.root, Path("/tmp/static/filing"))

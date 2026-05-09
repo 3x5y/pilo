@@ -6,7 +6,15 @@ import tempfile
 
 from . import error
 from . import fs
+from . import paths
 from . import util
+
+
+MANIFEST_SUBSET_DOMAINS = {
+    "pile": paths.StorageDomain.PILE,
+    "collection": paths.StorageDomain.COLLECTION,
+    "filing": paths.StorageDomain.FILING,
+}
 
 
 @dataclass(frozen=True)
@@ -21,14 +29,17 @@ class ManifestUpdatePlan:
     subsets: list[ManifestSubset]
 
 
+def manifest_subset_domain(subset):
+    try:
+        return MANIFEST_SUBSET_DOMAINS[subset]
+    except KeyError:
+        error.fatal(f"invalid manifest subset: {subset}")
+
+
 def manifest_subset_root(cx, subset):
-    if subset == "pile":
-        return cx.pile_path
-    if subset == "collection":
-        return cx.static_path / "collection"
-    if subset == "filing":
-        return cx.static_path / "filing"
-    error.fatal(f"invalid manifest subset: {subset}")
+    domain = manifest_subset_domain(subset)
+    policy = cx.storage_policy(domain)
+    return policy.root_path
 
 
 def generate_manifest_lines(root: Path):
