@@ -17,6 +17,13 @@ MANIFEST_SUBSET_DOMAINS = {
 }
 
 
+MANIFEST_DATASET_PATTERNS = {
+    "pile": "/pile",
+    "collection": "/static/collection",
+    "filing": "/static/filing",
+}
+
+
 @dataclass(frozen=True)
 class ManifestSubset:
     name: str
@@ -40,6 +47,26 @@ def manifest_subset_root(cx, subset):
     domain = manifest_subset_domain(subset)
     policy = cx.storage_policy(domain)
     return policy.root_path
+
+
+def _dataset_manifest_subset(dataset):
+    if dataset.endswith("/pile"):
+        return "pile"
+    if "/static/collection" in dataset:
+        return "collection"
+    if "/static/filing" in dataset:
+        return "filing"
+    return None
+
+
+def dataset_manifest_subset(dataset):
+    if dataset.endswith(MANIFEST_DATASET_PATTERNS["pile"]):
+        return "pile"
+    for subset in ("collection", "filing"):
+        pattern = MANIFEST_DATASET_PATTERNS[subset]
+        if pattern in dataset:
+            return subset
+    return None
 
 
 def generate_manifest_lines(root: Path):

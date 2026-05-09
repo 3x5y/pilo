@@ -40,13 +40,9 @@ def execute_semantic_mutations(cx, mutations):
 def mutation_manifest_domains(mutations):
     domains = set()
     for mut in mutations:
-        ds = mut.dataset
-        if ds.endswith("/pile"):
-            domains.add("pile")
-        elif "/static/collection" in ds:
-            domains.add("collection")
-        elif "/static/filing" in ds:
-            domains.add("filing")
+       subset = manifest.dataset_manifest_subset(mut.dataset)
+       if subset:
+           domains.add(subset)
     return domains
 
 
