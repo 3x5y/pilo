@@ -78,8 +78,38 @@ class TestLogicalPaths(unittest.TestCase):
 
     def test_parse_logical_path_raises_parse_error(self):
         with self.assertRaises(paths.PathParseError):
-            paths._parse_logical_path(Path("random/file.txt"))
+            paths.try_parse_logical_path(Path("random/file.txt"))
 
     def test_parse_logical_path_raises_fatal_error(self):
         with self.assertRaises(error.FatalError):
             paths.parse_logical_path(Path("random/file.txt"))
+
+
+class TestStructuredLogicalParsing(unittest.TestCase):
+
+    def test_try_parse_logical_path_returns_logical_path(self):
+        lp = paths.try_parse_logical_path(
+            Path("collection/photo.jpg")
+        )
+
+        self.assertEqual(
+            lp.domain,
+            paths.StorageDomain.COLLECTION,
+        )
+
+        self.assertEqual(
+            lp.relpath,
+            Path("photo.jpg"),
+        )
+
+    def test_try_parse_logical_path_raises_parse_error(self):
+        with self.assertRaises(paths.PathParseError):
+            paths.try_parse_logical_path(
+                Path("invalid/file.txt")
+            )
+
+    def test_try_parse_logical_path_rejects_absolute_path(self):
+        with self.assertRaises(paths.PathParseError):
+            paths.try_parse_logical_path(
+                Path("/etc/passwd")
+            )

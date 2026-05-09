@@ -46,12 +46,12 @@ def validate_relative_path(path: Path):
 def parse_logical_path(path: Path) -> LogicalPath:
     from . import error
     try:
-        return _parse_logical_path(path)
+        return try_parse_logical_path(path)
     except PathParseError as e:
         error.fatal(str(e))
 
 
-def _parse_logical_path(path: Path) -> LogicalPath:
+def try_parse_logical_path(path: Path) -> LogicalPath:
     if not path.parts:
         raise PathParseError("empty path")
 

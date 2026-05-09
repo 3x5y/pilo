@@ -55,11 +55,13 @@ def require_relative_path(path: Path):
 
 
 def require_same_domain(src, dst):
-    lsrc = paths.parse_logical_path(src)
-    ldst = paths.parse_logical_path(dst)
+    try:
+        lsrc = paths.try_parse_logical_path(src)
+        ldst = paths.try_parse_logical_path(dst)
+    except paths.PathParseError as e:
+        error.fatal(str(e))
     if lsrc.domain != ldst.domain:
         error.fatal("cross-domain move not allowed")
-
 
 class validate:
     @staticmethod
