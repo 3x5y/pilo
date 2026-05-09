@@ -1,0 +1,72 @@
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from pilo import checks
+import pilotest
+
+
+class TestChecks(unittest.TestCase):
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    def test_require_dataset_ok(self, _):
+        checks.require_dataset("tank/foo")
+
+    @patch("pilo.zfs.dataset_exists", return_value=False)
+    def test_require_dataset_missing(self, _):
+        with pilotest.assert_fatal(self):
+            checks.require_dataset("tank/foo")
+
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    def test_require_snapshot_ok(self, _):
+        checks.require_snapshot("tank/a@snap")
+
+    @patch("pilo.zfs.snapshot_exists", return_value=False)
+    def test_require_snapshot_missing(self, _):
+        with pilotest.assert_fatal(self):
+            checks.require_snapshot("tank/a@snap")
+
+    def test_require_file_accepts_existing_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "a.txt"
+            path.write_text("x")
+
+            checks.require_file(path)
+
+    def test_require_file_rejects_missing_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "missing.txt"
+
+            with pilotest.assert_fatal(self):
+                checks.require_file(path)
+
+    def test_require_no_conflict_accepts_missing_target(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "src.txt"
+            dst = Path(td) / "dst.txt"
+
+            src.write_text("x")
+
+            checks.require_no_conflict(src, dst)
+
+    def test_require_no_conflict_accepts_identical_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "src.txt"
+            dst = Path(td) / "dst.txt"
+
+            src.write_text("same")
+            dst.write_text("same")
+
+            checks.require_no_conflict(src, dst)
+
+    def test_require_no_conflict_rejects_different_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "src.txt"
+            dst = Path(td) / "dst.txt"
+
+            src.write_text("a")
+            dst.write_text("b")
+
+            with pilotest.assert_fatal(self):
+                checks.require_no_conflict(src, dst)

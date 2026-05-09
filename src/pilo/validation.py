@@ -1,50 +1,24 @@
 from pathlib import Path
 
+from . import checks
 from . import error
 from . import fs
 from . import paths
 from . import zfs
 
 
-def require_dataset(dataset):
-    if not zfs.dataset_exists(dataset):
-        error.fatal(f"missing required dataset: {dataset}")
-
-
-def require_new_dataset(dataset):
-    if zfs.dataset_exists(dataset):
-        error.fatal(f"destination exists: {dataset}")
+require_dataset = checks.require_dataset
+require_new_dataset = checks.require_new_dataset
+require_snapshot = checks.require_snapshot
+require_snapshot_of_dataset =  checks.require_snapshot_of_dataset
+require_within_dataset = checks.require_within_dataset
+require_file = checks.require_file
+require_no_conflict = checks.require_no_conflict
 
 
 def require_child_dataset(dataset, root):
     if not dataset.startswith(root):
         error.fatal(f"dataset outside root: {dataset}")
-
-
-def require_snapshot(snapshot):
-    if not zfs.snapshot_exists(snapshot):
-        error.fatal(f"missing snapshot: {snapshot}")
-
-
-def require_snapshot_of_dataset(snap, dataset):
-    require_snapshot(snap)
-    if not snap.startswith(dataset + "@"):
-        error.fatal(f"snapshot {snap} does not belong to {dataset}")
-
-
-def require_within_dataset(target, root):
-    if not target == root and not target.startswith(root + "/"):
-        error.fatal(f"{target} outside {root}")
-
-
-def require_file(path):
-    if not path.is_file():
-        error.fatal(f"file does not exist: {path}")
-
-
-def require_no_conflict(src, dst):
-    if dst.is_file() and not fs.files_equal(src, dst):
-        error.fatal(f"destination conflict: {dst}")
 
 
 def require_relative_path(path: Path):
@@ -63,17 +37,18 @@ def require_same_domain(src, dst):
     if lsrc.domain != ldst.domain:
         error.fatal("cross-domain move not allowed")
 
+
 class validate:
     @staticmethod
     def dataset_exists(ds):
-        require_dataset(ds)
+        checks.require_dataset(ds)
 
     @staticmethod
     def snapshot_exists(snap):
-        require_snapshot(snap)
+        checks.require_snapshot(snap)
 
     @staticmethod
     def new_dataset(ds):
-        require_new_dataset(ds)
+        checks.require_new_dataset(ds)
 
 

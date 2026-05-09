@@ -1,5 +1,5 @@
+from . import checks
 from . import fs
-from . import validation
 from . import zfs
 
 
@@ -26,14 +26,14 @@ def apply_dataset_contract(cx):
 
 
 def apply_namespace(dataset, mountpoint=None):
-    validation.require_dataset(dataset)
+    checks.require_dataset(dataset)
     if mountpoint:
         zfs.set_mountpoint(dataset, mountpoint)
     zfs.set_canmount(dataset, False)
 
 
 def apply_filesystem(dataset, mountpoint, readonly):
-    validation.require_dataset(dataset)
+    checks.require_dataset(dataset)
     zfs.set_readonly(dataset, readonly)
     zfs.set_mountpoint(dataset, mountpoint)
     zfs.set_canmount(dataset, True)
