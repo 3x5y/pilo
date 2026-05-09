@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from . import error
-
 
 class PathParseError(ValueError):
     pass
@@ -37,18 +35,6 @@ class Resolved:
     dataset: str
 
 
-def domain(rel: Path):
-    parts = rel.parts
-    if not parts:
-        return "invalid"
-
-    if parts[0] in ("in", "out", "sort"):
-        return "pile"
-    if parts[0] in ("collection", "filing"):
-        return "static"
-    return "invalid"
-
-
 def validate_relative_path(path: Path):
     if path.is_absolute():
         raise PathParseError("absolute paths not allowed")
@@ -58,6 +44,7 @@ def validate_relative_path(path: Path):
 
 
 def parse_logical_path(path: Path) -> LogicalPath:
+    from . import error
     try:
         return _parse_logical_path(path)
     except PathParseError as e:
