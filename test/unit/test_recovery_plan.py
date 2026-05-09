@@ -85,7 +85,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.back.normalize.apply_ownership")
     @patch("pilo.subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
-    @patch("pilo.restore_dataset")
+    @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan(self, mock_restore, mock_contract, mock_run,
                           mock_owner, mock_dirs):
         plan = pilo.RecoveryPlan(
@@ -108,7 +108,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.back.normalize.apply_ownership")
     @patch("pilo.subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
-    @patch("pilo.restore_dataset")
+    @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
                                            mock_owner, mock_run, mock_dirs):
         cx = pilotest.make_context()
@@ -129,7 +129,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.back.normalize.apply_ownership")
     @patch("pilo.subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
-    @patch("pilo.restore_dataset")
+    @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
                                           mock_run, mock_owner, mock_dirs):
         cx = pilotest.make_context()
@@ -150,7 +150,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.back.normalize.ensure_runtime_dirs")
     @patch("pilo.subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
-    @patch("pilo.restore_dataset")
+    @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_ensures_runtime_dirs(
         self, mock_restore, mock_contract, mock_run, mock_dirs,
         mock_owner,
@@ -172,7 +172,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.ensure_runtime_dirs")
     @patch("pilo.subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
-    @patch("pilo.restore_dataset")
+    @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_applies_ownership(
         self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner
     ):
