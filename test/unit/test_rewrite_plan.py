@@ -11,11 +11,8 @@ import pilotest
 class TestRewritePlan(unittest.TestCase):
 
     def test_build_rewrite_plan(self):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-
-            cx = pilotest.make_context()
-            cx.pile_path = root
+        with pilotest.make_tmp_context() as cx:
+            root = cx.pile_path
 
             src = root / "in/a.txt"
             src.parent.mkdir(parents=True)

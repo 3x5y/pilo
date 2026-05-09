@@ -7,6 +7,7 @@ import sys
 from . import error
 from . import paths
 from . import policy
+from .storage_policy import StoragePolicy
 
 
 @dataclass(frozen=True)
@@ -58,32 +59,13 @@ class Context:
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
 
+        self.storage_policy = StoragePolicy(
+            pile_path=self.pile_path,
+            static_path=self.static_path,
+            pile_dataset=self.pile_dataset,
+            static_dataset=self.static_dataset,
+        )
+
     def resolve(self, rel: Path) -> paths.ResolvedPath:
-        try:
-            logical = paths.parse_logical_path(rel)
-        except paths.PathParseError as e:
-            error.fatal(str(e))
-
-        if logical.domain == paths.StorageDomain.PILE:
-            return paths.ResolvedPath(
-                logical=logical,
-                physical=self.pile_path / logical.relpath,
-                dataset=self.pile_dataset,
-            )
-
-        if logical.domain == paths.StorageDomain.COLLECTION:
-            return paths.ResolvedPath(
-                logical=logical,
-                physical=self.collection_path / logical.relpath,
-                dataset=self.collection_dataset,
-            )
-
-        if logical.domain == paths.StorageDomain.FILING:
-            subset = logical.relpath.parts[0]
-            return paths.ResolvedPath(
-                logical=logical,
-                physical=self.filing_path / logical.relpath,
-                dataset=f"{self.filing_dataset}/{subset}",
-            )
-
-        raise AssertionError("unreachable")
+        logical = paths.parse_logical_path(rel)
+        return self.storage_policy.resolve(logical)

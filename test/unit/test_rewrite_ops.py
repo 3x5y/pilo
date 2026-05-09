@@ -124,10 +124,7 @@ class TestRewriteOperationModel(unittest.TestCase):
             rewrite.validate_rewrite_ops(cx, resolved)
 
     def test_validate_rewrite_op_requires_source(self):
-        with tempfile.TemporaryDirectory() as td:
-            cx = pilotest.make_context()
-
-            cx.pile_path = Path(td)
+        with pilotest.make_tmp_context() as cx:
 
             op = rewrite.RewriteOp(
                 kind="mv",
@@ -141,11 +138,8 @@ class TestRewriteOperationModel(unittest.TestCase):
                 rewrite.validate_rewrite_op(cx, resolved)
 
     def test_validate_rewrite_op_rejects_conflicting_destination(self):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-
-            cx = pilotest.make_context()
-            cx.pile_path = root
+        with pilotest.make_tmp_context() as cx:
+            root = cx.pile_path
 
             src = root / "in/src.txt"
             dst = root / "in/dst.txt"
@@ -167,11 +161,8 @@ class TestRewriteOperationModel(unittest.TestCase):
                 rewrite.validate_rewrite_op(cx, resolved)
 
     def test_validate_rewrite_op_allows_identical_destination(self):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-
-            cx = pilotest.make_context()
-            cx.pile_path = root
+        with pilotest.make_tmp_context() as cx:
+            root = cx.pile_path
 
             src = root / "in/src.txt"
             dst = root / "in/dst.txt"
