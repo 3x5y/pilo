@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from pilo.back import normalize
+from pilo.back import normalize, recover
 from pilotest import make_context, import_command
 
 
@@ -56,17 +56,17 @@ class TestNormalize(unittest.TestCase):
 
     @patch("pilo.back.normalize.normalize_system")
     @patch("pilo.back.restore.restore_dataset")
-    def _test_execute_recovery_uses_normalize(self, mock_restore, mock_norm):
+    def test_execute_recovery_uses_normalize(self, mock_restore, mock_norm):
         cx = make_context()
 
-        plan = pilo.RecoveryPlan(
+        plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",
             recursive=True,
         )
 
-        pilo.execute_recovery_plan(plan, cx)
+        recover.execute_recovery_plan(plan, cx)
 
         mock_restore.assert_called_once()
         mock_norm.assert_called_once_with(cx)
