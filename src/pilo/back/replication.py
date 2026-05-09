@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from .. import checks
 from .. import context
 from .. import error
 from .. import util
-from .. import validation
 from .. import zfs
 
 
@@ -80,7 +80,7 @@ def build_replication_plan(src, dst):
         error.fatal("no source snapshot")
 
     # if strict (need to change test mocks)
-    validation.require_dataset(src)
+    checks.require_dataset(src)
     if not last_dst:
         return ReplicationPlan( src, dst, last_src, None, "full")
 

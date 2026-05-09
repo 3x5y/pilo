@@ -22,6 +22,11 @@ class TestRestorePlan(unittest.TestCase):
         self.assertFalse(plan.recursive)
 
     @patch("pilo.zfs.snapshot_exists", return_value=False)
+    def test_restore_requires_snapshot(self, _):
+        with pilotest.assert_fatal(self):
+            restore.restore_dataset("tank/a@r1", "tank/b")
+
+    @patch("pilo.zfs.snapshot_exists", return_value=False)
     def test_restore_plan_requires_snapshot(self, _):
         with pilotest.assert_fatal(self):
             restore.build_restore_plan(

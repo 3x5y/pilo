@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from pilo import context, error
+from pilo import context
+from pilo import error
 from pilo.back import replication as repl
 
 

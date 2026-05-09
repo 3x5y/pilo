@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-from pilo import context, error, status
+from pilo import context
+from pilo import error
+from pilo import status
 
 
 def main():

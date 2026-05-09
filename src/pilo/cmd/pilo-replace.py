@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
-from pilo import context, error, manifest
+from pilo import context
+from pilo import error
+from pilo import manifest
 from pilo.front import replace
 
 

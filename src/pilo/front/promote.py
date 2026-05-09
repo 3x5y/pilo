@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+from .. import checks
 from .. import error
 from .. import fs
 from .. import mutation
-from .. import validation
 
 
 @dataclass(frozen=True)
@@ -47,8 +47,8 @@ def build_promote_plan(cx):
 
     def validate_file(cx, src: Path, rel: Path):
         r = cx.resolve(rel)
-        validation.require_dataset(r.dataset)
-        validation.require_no_conflict(src, r.path)
+        checks.require_dataset(r.dataset)
+        checks.require_no_conflict(src, r.path)
 
     for f in col_files:
         rel = Path("collection") / f.relative_to(col_dir)

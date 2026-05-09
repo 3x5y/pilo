@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-from pilo import context, error, normalize, validation
+from pilo import checks
+from pilo import context
+from pilo import error
+from pilo import normalize
 
 
 def main():
@@ -13,7 +16,7 @@ def main():
         cx.collection_dataset,
     ]
     for ds in datasets:
-        validation.require_dataset(ds)
+        checks.require_dataset(ds)
 
     normalize.normalize_system(cx)
 

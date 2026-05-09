@@ -3,7 +3,9 @@
 import shutil
 from pathlib import Path
 
-from pilo import context, error, validation
+from pilo import checks
+from pilo import context
+from pilo import error
 
 
 def main():
@@ -17,7 +19,7 @@ def main():
     if not src.exists():
         error.fatal(f"source file missing: {src}")
 
-    validation.require_dataset(cx.intake_dataset)
+    checks.require_dataset(cx.intake_dataset)
 
     dst = cx.intake_path / src.name
     if dst.exists():

@@ -10,7 +10,7 @@ import pilotest
 
 class TestReplacePlan(unittest.TestCase):
 
-    @patch("pilo.validation.require_dataset")
+    @patch("pilo.checks.require_dataset")
     def test_build_replace_plan(self, *_):
         cx = pilotest.make_context()
 

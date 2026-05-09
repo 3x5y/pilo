@@ -2,7 +2,9 @@
 
 import sys
 
-from pilo import context, error, zfs
+from pilo import context
+from pilo import error
+from pilo import zfs
 
 
 class Doctor:

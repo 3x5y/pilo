@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from .. import checks
 from .. import error
 from .. import mutation
-from .. import validation
 from .. import paths
+from .. import policy
 
 
 @dataclass(frozen=True)
@@ -48,8 +49,8 @@ def parse_rewrite_ops(lines):
         src_p = Path(src)
         dst_p = Path(dst)
 
-        validation.require_relative_path(src_p)
-        validation.require_relative_path(dst_p)
+        policy.require_relative_path(src_p)
+        policy.require_relative_path(dst_p)
 
         op = RewriteOp( kind=kind, src=src_p, dst=dst_p)
         ops.append(op)
@@ -64,9 +65,9 @@ def resolve_rewrite_op(cx, op: RewriteOp):
 
 
 def validate_rewrite_op(cx, op: ResolvedRewriteOp):
-    validation.require_same_domain(op.op.src, op.op.dst)
-    validation.require_file(op.src.path)
-    validation.require_no_conflict(op.src.path, op.dst.path)
+    policy.require_same_domain(op.op.src, op.op.dst)
+    checks.require_file(op.src.path)
+    checks.require_no_conflict(op.src.path, op.dst.path)
 
 
 def validate_rewrite_ops(cx, ops):

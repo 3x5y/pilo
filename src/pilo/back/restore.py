@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
+from .. import checks
 from .. import error
-from .. import validation
 from .. import zfs
 
 
@@ -13,10 +13,10 @@ class RestorePlan:
 
 
 def restore_dataset(src_snap, dst, recursive=False, require_new=True):
-    validation.require_snapshot(src_snap)
+    checks.require_snapshot(src_snap)
 
     if require_new:
-        validation.require_new_dataset(dst)
+        checks.require_new_dataset(dst)
 
     zfs.send_recv(src_snap, dst, recursive=recursive)
 
@@ -29,9 +29,9 @@ def build_restore_plan(src, dst, snap, recursive):
     if "@" in snap:
         error.fatal("snapshot must not include dataset")
     src_snap = f"{src}@{snap}"
-    validation.require_snapshot(src_snap)
-    validation.require_snapshot_of_dataset(src_snap, src)
-    validation.require_new_dataset(dst)
+    checks.require_snapshot(src_snap)
+    checks.require_snapshot_of_dataset(src_snap, src)
+    checks.require_new_dataset(dst)
     return RestorePlan(
         src_snapshot=src_snap,
         dst=dst,

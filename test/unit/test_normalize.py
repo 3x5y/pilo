@@ -73,7 +73,7 @@ class TestNormalize(unittest.TestCase):
         mock_norm.assert_called_once_with(cx)
 
     @patch("pilo.normalize.normalize_system")
-    @patch("pilo.validation.require_dataset")
+    @patch("pilo.checks.require_dataset")
     def test_init_uses_normalize(self, mock_require, mock_norm):
         cx = make_context()
 

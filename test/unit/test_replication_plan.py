@@ -2,11 +2,12 @@ import unittest
 from unittest.mock import patch
 
 from pilo.back import replication as repl
+import pilotest
 
 
 class TestReplicationPlan(unittest.TestCase):
 
-    @patch('pilo.validation.require_dataset')
+    @patch('pilo.checks.require_dataset')
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_full_when_dst_empty(self, mock_latest, *_):
         mock_latest.side_effect = ["tank/a@r1", None]
@@ -19,7 +20,7 @@ class TestReplicationPlan(unittest.TestCase):
         self.assertEqual(plan.snapshot, "tank/a@r1")
         self.assertIsNone(plan.base)
 
-    @patch('pilo.validation.require_dataset')
+    @patch('pilo.checks.require_dataset')
     @patch("pilo.back.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_incremental(self, mock_latest, mock_base, *_):
@@ -32,7 +33,7 @@ class TestReplicationPlan(unittest.TestCase):
         self.assertEqual(plan.base, "tank/a@r1")
         self.assertEqual(plan.snapshot, "tank/a@r2")
 
-    @patch('pilo.validation.require_dataset')
+    @patch('pilo.checks.require_dataset')
     @patch("pilo.back.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_noop_when_up_to_date(self, mock_latest, mock_base, *_):
@@ -90,3 +91,9 @@ class TestReplicationPlan(unittest.TestCase):
 
         mock_build.assert_called_once_with("tank/a", "backup/a")
         mock_exec.assert_called_once()
+
+    @patch("pilo.zfs.latest_snapshot", return_value=None)
+    def test_no_source_snapshot_fails(self, _):
+        with pilotest.assert_fatal(self):
+            repl.build_replication_plan("tank/a", "backup/a")
+

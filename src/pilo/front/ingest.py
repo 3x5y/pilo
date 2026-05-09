@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from .. import checks
 from .. import mutation
-from .. import validation
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ def build_ingest_ops(cx, files):
     for src in files:
         rel = src.relative_to(cx.intake_path)
         dst = cx.pile_path / "in" / rel
-        validation.require_no_conflict(src, dst)
+        checks.require_no_conflict(src, dst)
         if dst.exists():
             action = 'noop'
         else:

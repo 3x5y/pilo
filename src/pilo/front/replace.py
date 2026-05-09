@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from .. import checks
 from .. import mutation
 from .. import paths
-from .. import validation
 
 
 @dataclass(frozen=True)
@@ -18,10 +18,10 @@ class ReplacePlan:
 
 
 def build_replace_plan(cx, src, dst_rel):
-    validation.require_file(src)
+    checks.require_file(src)
     resolved = cx.resolve(dst_rel)
-    validation.require_file(resolved.path)
-    validation.require_dataset(resolved.dataset)
+    checks.require_file(resolved.path)
+    checks.require_dataset(resolved.dataset)
     op = ReplaceOp(src=src, dst=resolved)
     return ReplacePlan(ops=[op])
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-from pilo import context, error, manifest
+from pilo import context
+from pilo import error
+from pilo import manifest
 from pilo.front import promote
 
 

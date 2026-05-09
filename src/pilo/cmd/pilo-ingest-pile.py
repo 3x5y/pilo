@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
+from pilo import checks
 from pilo import context
 from pilo import error
 from pilo import fs
 from pilo import manifest
-from pilo import validation
 from pilo.front import ingest
 
 
 def main():
     cx = context.Context()
-    validation.require_dataset(cx.intake_dataset)
-    validation.require_dataset(cx.pile_dataset)
+    checks.require_dataset(cx.intake_dataset)
+    checks.require_dataset(cx.pile_dataset)
 
     files = list(fs.iter_files(cx.intake_path))
     ops = ingest.build_ingest_ops(cx, files)

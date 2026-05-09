@@ -6,7 +6,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from pilo import context, error, fs
+from pilo import context
+from pilo import error
+from pilo import fs
 
 
 def generate_script(before, after):

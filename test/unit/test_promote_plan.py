@@ -21,7 +21,7 @@ class TestPromotePlan(unittest.TestCase):
         self.assertEqual(op.action, "copy")
         self.assertEqual(op.dataset, "tank/a/static/collection")
 
-    @patch("pilo.validation.require_dataset")
+    @patch("pilo.checks.require_dataset")
     @patch("pilo.fs.files_equal", return_value=True)
     def test_build_promote_plan(self, mock_equal, mock_require):
         cx = pilotest.make_context()
@@ -86,7 +86,7 @@ class TestPromotePlan(unittest.TestCase):
         promote.execute_promote_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.validation.require_dataset")
+    @patch("pilo.checks.require_dataset")
     @patch("pilo.fs.files_equal", return_value=True)
     def test_existing_identical_file_becomes_noop(
         self,

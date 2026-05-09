@@ -207,3 +207,13 @@ class TestRecoveryPlan(unittest.TestCase):
 
         mock_build.assert_called_once_with(cx, "tank/a")
         mock_exec.assert_called_once()
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r1")
+    def test_build_plan_uses_validation(self, *_):
+        cx = pilotest.make_context()
+
+        with pilotest.assert_fatal(self):
+            recover.build_recovery_plan(cx, "invalid/root")
+
