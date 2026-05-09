@@ -42,8 +42,8 @@ class Context:
         self.intake_dataset = environ["PILO_INTAKE_DATASET"]
         self.pile_dataset = environ["PILO_PILE_DATASET"]
         self.static_dataset = environ["PILO_STATIC_DATASET"]
-        self.collection_dataset = f"{self.static_dataset}/collection"
-        self.filing_dataset = f"{self.static_dataset}/filing"
+        #self.collection_dataset = f"{self.static_dataset}/collection"
+        #self.filing_dataset = f"{self.static_dataset}/filing"
 
         self.path = Path(environ["PILO_PATH"])
         self.admin_path = Path(environ["PILO_ADMIN_PATH"])
@@ -52,8 +52,8 @@ class Context:
         self.static_path = Path(environ["PILO_STATIC_PATH"])
         #self.collection_path = Path(environ["PILO_COLLECTION_PATH"])
         #self.filing_path = Path(environ["PILO_FILING_PATH"])
-        self.collection_path = self.static_path / 'collection'
-        self.filing_path = self.static_path / 'filing'
+        #self.collection_path = self.static_path / 'collection'
+        #self.filing_path = self.static_path / 'filing'
 
         self.user = environ["PILO_USER"]
         self.user_id = pwd.getpwnam(self.user).pw_uid
