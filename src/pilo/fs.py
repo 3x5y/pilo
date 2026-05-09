@@ -2,6 +2,7 @@ from contextlib import contextmanager, ExitStack
 from pathlib import Path
 import filecmp
 import hashlib
+import os
 import shutil
 
 from . import zfs
@@ -43,6 +44,12 @@ def iter_files(root):
             yield p
 
 
+def ensure_owned(cx, path):
+    stat = os.stat(path)
+    if not stat.st_uid == stat.st_gid == cx.user_id:
+        shutil.chown(path, cx.user, cx.user)
+
+
 def ensure_parent_dir(cx, path: Path):
     ensure_dir_owned(cx, path.parent)
 
@@ -61,21 +68,21 @@ def ensure_dir_owned(cx, path: Path):
     path.mkdir(parents=True, exist_ok=True)
 
     for d in reversed(missing):
-        cx.ensure_owned(d)
+        ensure_owned(cx, d)
 
 
 def safe_copy(cx, src: Path, dst: Path):
     ensure_parent_dir(cx, dst)
-    cx.ensure_owned(dst.parent)
+    ensure_owned(cx, dst.parent)
     shutil.copy2(src, dst)
-    cx.ensure_owned(dst)
+    ensure_owned(cx, dst)
 
 
 def safe_move(cx, src: Path, dst: Path):
     ensure_parent_dir(cx, dst)
-    cx.ensure_owned(dst.parent)
+    ensure_owned(cx, dst.parent)
     shutil.move(src, dst)
-    cx.ensure_owned(dst)
+    ensure_owned(cx, dst)
 
 
 def safe_unlink(path: Path):

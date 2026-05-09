@@ -25,40 +25,37 @@ def apply_dataset_contract(cx):
                     mountpoint=cx.filing_path)
 
 
-def apply_namespace(ds, mountpoint=None):
-    validation.require_dataset(ds)
-    mp = zfs.get_prop(ds, 'mountpoint')
-    if mountpoint and mp != str(mountpoint):
-        zfs.set_prop(ds, f"mountpoint={mountpoint}")
-    zfs.set_prop(ds, "canmount=off")
+def apply_namespace(dataset, mountpoint=None):
+    validation.require_dataset(dataset)
+    if mountpoint:
+        zfs.set_mountpoint(dataset, mountpoint)
+    zfs.set_canmount(dataset, False)
 
 
-def apply_filesystem(ds, mountpoint, readonly):
-    validation.require_dataset(ds)
-    zfs.set_readonly(ds, readonly)
-    mp = zfs.get_prop(ds, 'mountpoint')
-    if mp != str(mountpoint):
-        zfs.set_prop(ds, f"mountpoint={mountpoint}")
-    zfs.set_prop(ds, "canmount=on")
+def apply_filesystem(dataset, mountpoint, readonly):
+    validation.require_dataset(dataset)
+    zfs.set_readonly(dataset, readonly)
+    zfs.set_mountpoint(dataset, mountpoint)
+    zfs.set_canmount(dataset, True)
 
 
 def apply_ownership(cx):
-    cx.ensure_owned(cx.admin_path)
-    cx.ensure_owned(cx.intake_path)
+    fs.ensure_owned(cx, cx.admin_path)
+    fs.ensure_owned(cx, cx.intake_path)
     with fs.dataset_writable(cx.pile_dataset):
-        cx.ensure_owned(cx.pile_path)
+        fs.ensure_owned(cx, cx.pile_path)
     with fs.dataset_writable(cx.collection_dataset):
-        cx.ensure_owned(cx.collection_path)
+        fs.ensure_owned(cx, cx.collection_path)
 
 
 def ensure_runtime_dirs(cx):
     pile = cx.pile_path
     with fs.dataset_writable(cx.pile_dataset):
-        cx.ensure_dir(pile / "in")
-        cx.ensure_dir(pile / "sort")
-        cx.ensure_dir(pile / "out")
-        cx.ensure_dir(pile / "out" / "collection")
-        cx.ensure_dir(pile / "out" / "filing")
+        fs.ensure_dir_owned(cx, pile / "in")
+        fs.ensure_dir_owned(cx, pile / "sort")
+        fs.ensure_dir_owned(cx, pile / "out")
+        fs.ensure_dir_owned(cx, pile / "out" / "collection")
+        fs.ensure_dir_owned(cx, pile / "out" / "filing")
 
 
 def normalize_system(cx):

@@ -78,8 +78,8 @@ class TestManifestPlan(unittest.TestCase):
 
             self.assertIn("./a.txt", text)
 
-    @patch.object(context.Context, "git_commit_if_changed")
-    @patch.object(context.Context, "ensure_git_repo")
+    @patch("pilo.util.git_commit_if_changed")
+    @patch("pilo.util.ensure_git_repo")
     def test_commit_manifest_if_changed(
         self,
         mock_repo,

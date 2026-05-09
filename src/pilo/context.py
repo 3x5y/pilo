@@ -2,11 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import os
 import pwd
-import shutil
-import subprocess
 import sys
 
-from . import fs
 from . import paths
 from . import validation
 
@@ -79,7 +76,6 @@ class Context:
 
         if logical.domain == paths.StorageDomain.FILING:
             subset = logical.relpath.parts[0]
-
             return paths.ResolvedPath(
                 logical=logical,
                 physical=self.filing_path / logical.relpath,
@@ -87,53 +83,3 @@ class Context:
             )
 
         raise AssertionError("unreachable")
-
-    def as_user(self, cmd, check=True, **kw):
-        if os.geteuid() == 0:
-            return subprocess.run(["sudo", "-u", self.user] + cmd,
-                                  check=check,
-                                  **kw)
-        else:
-            return subprocess.run(cmd, check=check, **kw)
-
-    def ensure_owned(self, path):
-        stat = os.stat(path)
-        if not stat.st_uid == stat.st_gid == self.user_id:
-            shutil.chown(path, self.user, self.user)
-
-    def ensure_dir(self, path):
-        fs.ensure_dir_owned(self, path)
-
-    def move(self, src, dst):
-        fs.safe_move(self, src, dst)
-
-    def copy(self, src, dst):
-        fs.safe_copy(self, src, dst)
-
-    def copy_static(self, src, resolved):
-        with fs.dataset_writable(resolved.dataset):
-            self.copy(src, resolved.path)
-
-    def remove_piled(self, path):
-        with fs.dataset_writable(self.pile_dataset):
-            fs.safe_unlink(path)
-
-    def ensure_git_repo(self, path: Path):
-        git_path = path / ".git"
-        if not git_path.is_dir():
-            self.ensure_dir(path)
-            cmd = ["git", "-c", "init.defaultBranch=master", "init", str(path)]
-            self.as_user(cmd, capture_output=True)
-
-    def git_commit_if_changed(self, repo: Path, file: Path, message: str):
-        cmd = ["git", "-C", str(repo), "add", str(file)]
-        self.as_user(cmd)
-
-        cmd = ["git", "-C", str(repo), "diff", "--quiet", "--cached"]
-        result = self.as_user(cmd, check=False)
-
-        if result.returncode != 0:
-            cmd = [ "git", "-C", str(repo), "commit", "-m", message]
-            self.as_user(cmd, capture_output=True)
-
-

@@ -49,6 +49,26 @@ def set_readonly(dataset, state):
     set_prop(dataset, f'readonly={prop}')
 
 
+def get_mountpoint(dataset):
+    return get_prop(dataset, 'mountpoint')
+
+
+def set_mountpoint(dataset, mountpoint):
+    mp = get_mountpoint(dataset)
+    if mountpoint and mp != str(mountpoint):
+        set_prop(dataset, f"mountpoint={mountpoint}")
+
+
+def get_canmount(dataset):
+    return get_prop(dataset, 'canmount') == 'on'
+
+
+def set_canmount(dataset, value):
+    if get_canmount(dataset) != value:
+        setting = value and 'on' or 'off'
+        set_prop(dataset, f'canmount={setting}')
+
+
 def list_filesystems(root):
     result = subprocess.run(
         ["zfs", "list", "-r", "-t", "filesystem", "-Ho", "name", root],

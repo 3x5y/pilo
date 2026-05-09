@@ -6,6 +6,7 @@ import tempfile
 
 from . import error
 from . import fs
+from . import util
 
 
 @dataclass(frozen=True)
@@ -90,11 +91,11 @@ def write_manifest(cx, root: Path, manifest: Path):
 
     fs.ensure_parent_dir(cx, manifest)
     shutil.move(tmp_path, manifest)
-    cx.ensure_owned(manifest)
+    fs.ensure_owned(cx, manifest)
     manifest.chmod(0o644)
 
 
 def commit_manifest_if_changed(cx, manifest, message):
     repo = cx.admin_path / "manifest"
-    cx.ensure_git_repo(repo)
-    cx.git_commit_if_changed(repo, manifest, message)
+    util.ensure_git_repo(cx, repo)
+    util.git_commit_if_changed(cx, repo, manifest, message)
