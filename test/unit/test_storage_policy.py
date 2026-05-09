@@ -56,3 +56,27 @@ class TestStoragePolicy(unittest.TestCase):
         result = sp.dataset_for(Path("books/a.pdf"))
 
         self.assertEqual(result, "tank/a/static/filing/books")
+
+
+class TestContextStoragePolicy(unittest.TestCase):
+
+    def test_context_returns_pile_policy(self):
+        cx = pilotest.make_context()
+
+        sp = cx.storage_policy(paths.StorageDomain.PILE)
+
+        self.assertEqual(sp.root_dataset, "tank/a/pile")
+
+    def test_context_returns_collection_policy(self):
+        cx = pilotest.make_context()
+
+        sp = cx.storage_policy(paths.StorageDomain.COLLECTION)
+
+        self.assertEqual(sp.root_dataset, "tank/a/static/collection")
+
+    def test_context_returns_filing_policy(self):
+        cx = pilotest.make_context()
+
+        sp = cx.storage_policy(paths.StorageDomain.FILING)
+
+        self.assertEqual(sp.root_dataset, "tank/a/static/filing")

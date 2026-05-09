@@ -64,13 +64,15 @@ class StoragePolicy:
                 root_dataset=cx.filing_dataset,
             )
 
-        raise AssertionError("unreachable")
+        raise AssertionError(f"domain not implemented: {domain}")
 
     def physical_path(self, relpath: Path):
         return self.root_path / relpath
 
     def dataset_for(self, relpath: Path):
         if self.domain == paths.StorageDomain.FILING:
+            if not relpath.parts:
+                raise AssertionError("missing filing subset")
             subset = relpath.parts[0]
             return f"{self.root_dataset}/{subset}"
         return self.root_dataset
@@ -112,31 +114,14 @@ class Context:
         return StoragePolicy.for_domain(self, domain)
 
     def resolve(self, rel: Path) -> paths.ResolvedPath:
-        try:
-            logical = paths.parse_logical_path(rel)
-        except paths.PathParseError as e:
-            error.fatal(str(e))
-
-        if logical.domain == paths.StorageDomain.PILE:
-            return paths.ResolvedPath(
-                logical=logical,
-                physical=self.pile_path / logical.relpath,
-                dataset=self.pile_dataset,
-            )
-
-        if logical.domain == paths.StorageDomain.COLLECTION:
-            return paths.ResolvedPath(
-                logical=logical,
-                physical=self.collection_path / logical.relpath,
-                dataset=self.collection_dataset,
-            )
-
-        if logical.domain == paths.StorageDomain.FILING:
-            subset = logical.relpath.parts[0]
-            return paths.ResolvedPath(
-                logical=logical,
-                physical=self.filing_path / logical.relpath,
-                dataset=f"{self.filing_dataset}/{subset}",
-            )
-
-        raise AssertionError("unreachable")
+        logical = paths.parse_logical_path(rel)
+        policy = self.storage_policy(logical.domain)
+        return paths.ResolvedPath(
+            logical=logical,
+            physical=policy.physical_path(
+                logical.relpath,
+            ),
+            dataset=policy.dataset_for(
+                logical.relpath,
+            ),
+        )
