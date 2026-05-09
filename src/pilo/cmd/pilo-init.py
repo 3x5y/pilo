@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from pilo import context, error, validation
-from pilo.back import normalize
+from pilo import context, error, normalize, validation
 
 
 def main():

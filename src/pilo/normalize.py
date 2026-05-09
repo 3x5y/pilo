@@ -1,6 +1,6 @@
-from .. import fs
-from .. import validation
-from .. import zfs
+from . import fs
+from . import validation
+from . import zfs
 
 
 def apply_dataset_contract(cx):

@@ -1,16 +1,17 @@
 import unittest
 from unittest.mock import patch
 
-from pilo.back import normalize, recover
+from pilo import normalize
+from pilo.back import recover
 from pilotest import make_context, import_command
 
 
 class TestNormalize(unittest.TestCase):
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     def test_normalize_applies_contract(self, mock_contract, mock_run,
                                         mock_dirs, mock_owner):
 
@@ -18,10 +19,10 @@ class TestNormalize(unittest.TestCase):
         normalize.normalize_system(cx)
         mock_contract.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     def test_normalize_mounts(self, mock_contract, mock_run, mock_dirs,
                               mock_owner):
 
@@ -29,10 +30,10 @@ class TestNormalize(unittest.TestCase):
         normalize.normalize_system(cx)
         mock_run.assert_called_once_with(["zfs", "mount", "-a"], check=True)
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     def test_normalize_ensures_runtime_dirs(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
@@ -41,10 +42,10 @@ class TestNormalize(unittest.TestCase):
         normalize.normalize_system(cx)
         mock_dirs.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     def test_normalize_applies_ownership(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
@@ -54,7 +55,7 @@ class TestNormalize(unittest.TestCase):
 
         mock_owner.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.normalize_system")
+    @patch("pilo.normalize.normalize_system")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_recovery_uses_normalize(self, mock_restore, mock_norm):
         cx = make_context()
@@ -71,7 +72,7 @@ class TestNormalize(unittest.TestCase):
         mock_restore.assert_called_once()
         mock_norm.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.normalize_system")
+    @patch("pilo.normalize.normalize_system")
     @patch("pilo.validation.require_dataset")
     def test_init_uses_normalize(self, mock_require, mock_norm):
         cx = make_context()

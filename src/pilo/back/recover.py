@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 from .. import context
 from .. import error
+from .. import normalize
 from .. import validation
 from .. import zfs
-from . import normalize
 from . import restore
 
 

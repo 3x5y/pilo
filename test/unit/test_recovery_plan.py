@@ -80,10 +80,10 @@ class TestRecoveryPlan(unittest.TestCase):
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "tank/a")
 
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan(self, mock_restore, mock_contract, mock_run,
                           mock_owner, mock_dirs):
@@ -103,10 +103,10 @@ class TestRecoveryPlan(unittest.TestCase):
             recursive=True,
         )
 
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
                                            mock_owner, mock_run, mock_dirs):
@@ -124,10 +124,10 @@ class TestRecoveryPlan(unittest.TestCase):
         mock_restore.assert_called_once()
         mock_contract.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
                                           mock_run, mock_owner, mock_dirs):
@@ -145,10 +145,10 @@ class TestRecoveryPlan(unittest.TestCase):
         #mock_run.assert_called_with(["zfs", "mount", "-a"], check=True)
         mock_run.assert_any_call(["zfs", "mount", "-a"], check=True)
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_ensures_runtime_dirs(
         self, mock_restore, mock_contract, mock_run, mock_dirs,
@@ -167,10 +167,10 @@ class TestRecoveryPlan(unittest.TestCase):
 
         mock_dirs.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.normalize.apply_ownership")
+    @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contract")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_applies_ownership(
         self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner
