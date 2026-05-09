@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 
-import subprocess
-import pilo
+from pilo import context, error, status
+from pilo.back import recover
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
 
     if cx.args:
         target = cx.args[0]
     else:
         target = cx.root_dataset
 
-    plan = pilo.build_recovery_plan(cx, target)
-    pilo.execute_recovery_plan(plan, cx)
+    plan = recover.build_recovery_plan(cx, target)
+    recover.execute_recovery_plan(plan, cx)
 
-    st = pilo.collect_system_status(cx)
+    st = status.collect_system_status(cx)
     for sm in st.messages:
         print(f"[{sm.level}] {sm.message}")
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

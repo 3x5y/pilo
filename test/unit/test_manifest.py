@@ -5,7 +5,8 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-import pilo
+from pilo import fs, manifest, status
+from pilo.front import manifest_verify
 import pilotest
 
 
@@ -18,7 +19,7 @@ class TestManifest(unittest.TestCase):
 
             expected = hashlib.sha256(b"hello world").hexdigest()
 
-            self.assertEqual(pilo.sha256_file(path), expected)
+            self.assertEqual(fs.sha256_file(path), expected)
 
     def test_sha256_file_empty(self):
         with tempfile.TemporaryDirectory() as td:
@@ -27,7 +28,7 @@ class TestManifest(unittest.TestCase):
 
             expected = hashlib.sha256(b"").hexdigest()
 
-            self.assertEqual(pilo.sha256_file(path), expected)
+            self.assertEqual(fs.sha256_file(path), expected)
 
     def test_generate_manifest_lines_sorted(self):
         with tempfile.TemporaryDirectory() as td:
@@ -35,7 +36,7 @@ class TestManifest(unittest.TestCase):
             (root / "z.txt").write_text("z")
             (root / "a.txt").write_text("a")
 
-            lines = list(pilo.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertEqual(
                 [line.split("  ./")[1] for line in lines],
@@ -50,7 +51,7 @@ class TestManifest(unittest.TestCase):
             f = sub / "x.txt"
             f.write_text("abc")
 
-            lines = list(pilo.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertEqual(len(lines), 1)
             line = lines[0]
@@ -60,7 +61,7 @@ class TestManifest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
 
-            lines = list(pilo.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertEqual(lines, [])
 
@@ -69,33 +70,33 @@ class TestManifest(unittest.TestCase):
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(pilo.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
-            self.assertTrue(pilo.verify_manifest_lines(root, lines))
+            self.assertTrue(manifest.verify_manifest_lines(root, lines))
 
     def test_verify_manifest_lines_detects_mismatch(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(pilo.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
             f.write_text("changed")
 
-            self.assertFalse(pilo.verify_manifest_lines(root, lines))
+            self.assertFalse(manifest.verify_manifest_lines(root, lines))
 
     def test_verify_manifest_lines_detects_missing_file(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(pilo.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             f.unlink()
 
-            self.assertFalse(pilo.verify_manifest_lines(root, lines))
+            self.assertFalse(manifest.verify_manifest_lines(root, lines))
 
     def test_manifest_verify_op_model(self):
-        op = pilo.ManifestVerifyOp(
+        op = manifest_verify.ManifestVerifyOp(
             subset="pile",
             root=Path("/tmp/pile"),
             manifest=Path("/tmp/admin/manifest/pile.manifest"),
@@ -108,7 +109,7 @@ class TestManifest(unittest.TestCase):
     def test_build_manifest_verify_plan(self):
         cx = pilotest.make_context()
 
-        ops = pilo.build_manifest_verify_plan(
+        ops = manifest_verify.build_manifest_verify_plan(
             cx,
             ["pile", "collection"],
         )
@@ -120,7 +121,7 @@ class TestManifest(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_verify_manifest_op(self, mock_run):
-        op = pilo.ManifestVerifyOp(
+        op = manifest_verify.ManifestVerifyOp(
             subset="pile",
             root=Path("/tmp/pile"),
             manifest=Path("/tmp/pile.manifest"),
@@ -134,7 +135,7 @@ class TestManifest(unittest.TestCase):
 
                 mock_stat.return_value.st_size = 123
 
-                pilo.verify_manifest_op(op)
+                manifest_verify.verify_manifest_op(op)
 
         mock_run.assert_called_once()
 
@@ -144,14 +145,14 @@ class TestManifest(unittest.TestCase):
         mock_verify,
     ):
         ops = [
-            pilo.ManifestVerifyOp(
+            manifest_verify.ManifestVerifyOp(
                 subset="pile",
                 root=Path("/tmp/pile"),
                 manifest=Path("/tmp/pile.manifest"),
             )
         ]
 
-        pilo.execute_manifest_verify_plan(ops)
+        manifest_verify.execute_manifest_verify_plan(ops)
 
         mock_verify.assert_called_once()
 
@@ -160,7 +161,7 @@ class TestManifest(unittest.TestCase):
         self,
         mock_run,
     ):
-        op = pilo.ManifestVerifyOp(
+        op = manifest_verify.ManifestVerifyOp(
             subset="pile",
             root=Path("/tmp/pile"),
             manifest=Path("/tmp/pile.manifest"),
@@ -177,11 +178,11 @@ class TestManifest(unittest.TestCase):
                 mock_stat.return_value.st_size = 1
 
                 with pilotest.assert_fatal(self):
-                    pilo.verify_manifest_op(op)
+                    manifest_verify.verify_manifest_op(op)
 
     @patch("sys.exit")
-    @patch("pilo.render_system_status")
-    @patch("pilo.check_manifest_status")
+    @patch("pilo.status.render_system_status")
+    @patch("pilo.status.check_manifest_status")
     def test_manifest_verify_uses_status_system(
         self,
         mock_check,
@@ -190,7 +191,7 @@ class TestManifest(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             mod = pilotest.import_command(
                 "manifest-verify"
             )
@@ -202,7 +203,7 @@ class TestManifest(unittest.TestCase):
         mock_exit.assert_called_once()
 
     @patch("sys.exit")
-    @patch("pilo.render_system_status")
+    @patch("pilo.status.render_system_status")
     def test_manifest_verify_returns_status_code(
         self,
         mock_render,
@@ -210,12 +211,12 @@ class TestManifest(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        st = pilo.SystemStatus()
+        st = status.SystemStatus()
         st.code = 1
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             with patch(
-                "pilo.check_manifest_status",
+                "pilo.status.check_manifest_status",
                 side_effect=lambda cx, s: setattr(s, "code", 1),
             ):
                 mod = pilotest.import_command(
@@ -228,27 +229,26 @@ class TestManifest(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("sys.exit")
+    @patch("pilo.status.check_manifest_status")
     @patch(
-        "pilo.render_system_status",
-        return_value=[
-            "OK: manifest: pile verified"
-        ],
+        "pilo.status.render_system_status",
+        return_value=["OK: manifest: pile verified"],
     )
     def test_manifest_verify_renders_messages(
         self,
         mock_render,
+        mock_check,
         mock_exit,
         mock_print,
     ):
         cx = pilotest.make_context()
 
-        with patch("pilo.Context", return_value=cx):
-            with patch("pilo.check_manifest_status"):
-                mod = pilotest.import_command(
-                    "manifest-verify"
-                )
+        with patch("pilo.context.Context", return_value=cx):
+            mod = pilotest.import_command(
+                "manifest-verify"
+            )
 
-                mod.main()
+            mod.main()
 
         mock_print.assert_called_once_with(
             "OK: manifest: pile verified"

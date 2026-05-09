@@ -2,34 +2,35 @@
 
 import sys
 
-import pilo
+from pilo import context, error
+from pilo.back import replication as repl
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
     src = cx.root_dataset
     dst = cx.replica_dataset
 
-    status, msg = pilo.replication_status(src, dst)
+    status, msg = repl.replication_status(src, dst)
 
-    if status == pilo.ReplicationStatus.OK:
+    if status == repl.ReplicationStatus.OK:
         return
 
-    if status in (pilo.ReplicationStatus.EMPTY, pilo.ReplicationStatus.BEHIND):
-        pilo.replicate(src, dst)
+    if status in (repl.ReplicationStatus.EMPTY, repl.ReplicationStatus.BEHIND):
+        repl.replicate(src, dst)
     else:
         if msg:
             print(msg)
         sys.exit(1)
 
     # post-check
-    status, msg = pilo.replication_status(src, dst)
-    if status != pilo.ReplicationStatus.OK:
+    status, msg = repl.replication_status(src, dst)
+    if status != repl.ReplicationStatus.OK:
         print(f"STATUS={status.value}")
         if msg:
             print(msg)
-        pilo.fatal("replication did not converge")
+        error.fatal("replication did not converge")
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

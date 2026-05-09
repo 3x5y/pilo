@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error, manifest
+from pilo.front import rewrite
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
     if len(cx.args) < 1:
-        pilo.fatal("missing command")
+        error.fatal("missing command")
     cmd = cx.args[0].splitlines()
-    ops = pilo.parse_rewrite_ops(cmd)
-    plan = pilo.build_rewrite_plan(cx, ops)
-    pilo.execute_rewrite_plan(cx, plan)
+    ops = rewrite.parse_rewrite_ops(cmd)
+    plan = rewrite.build_rewrite_plan(cx, ops)
+    rewrite.execute_rewrite_plan(cx, plan)
     doms = ["pile", "collection", "filing"]
-    plan = pilo.build_manifest_update_plan(cx, doms)
-    pilo.execute_manifest_update_plan(cx, plan)
+    plan = manifest.build_manifest_update_plan(cx, doms)
+    manifest.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

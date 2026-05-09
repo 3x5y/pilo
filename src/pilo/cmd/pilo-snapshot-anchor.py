@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import error
+from pilo.back import snapshot
 
 
 def main():
-    pilo.create_prefixed_snapshot("a")
+    snapshot.create_prefixed_snapshot("a")
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

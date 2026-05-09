@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 
-import os
-import subprocess
-import sys
-
 import pilo
+from pilo import context, error
+from pilo.back import replication as repl
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
     src = cx.root_dataset
     dst = cx.replica_dataset
 
-    status, msg = pilo.replication_status(src, dst)
+    status, msg = repl.replication_status(src, dst)
 
     print(f"STATUS={status.value}")
 
     if status != pilo.ReplicationStatus.OK:
-        pilo.fatal(msg or "replication check failed")
+        error.fatal(msg or "replication check failed")
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

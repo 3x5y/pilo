@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
-import os
 import sys
-import subprocess
 
-import pilo
+from pilo import error
+from pilo.back import snapshot
 
 
 def main():
     if len(sys.argv) < 2:
-        pilo.fatal("missing anchor type")
+        error.fatal("missing anchor type")
 
-    pilo.create_anchor(sys.argv[1])
+    snapshot.create_anchor(sys.argv[1])
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

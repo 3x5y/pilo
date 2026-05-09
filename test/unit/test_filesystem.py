@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import pilo
+from pilo import fs
 import pilotest
 
 
@@ -14,7 +14,7 @@ class TestFilesystemPrimitives(unittest.TestCase):
 
             cx = pilotest.make_context()
 
-            pilo.ensure_parent_dir(cx, path)
+            fs.ensure_parent_dir(cx, path)
 
             self.assertTrue(
                 (Path(td) / "a" / "b").is_dir()
@@ -31,7 +31,7 @@ class TestFilesystemPrimitives(unittest.TestCase):
 
             cx = pilotest.make_context()
 
-            pilo.safe_copy(cx, src, dst)
+            fs.safe_copy(cx, src, dst)
 
             self.assertTrue(dst.is_file())
             self.assertEqual(
@@ -50,7 +50,7 @@ class TestFilesystemPrimitives(unittest.TestCase):
 
             cx = pilotest.make_context()
 
-            pilo.safe_move(cx, src, dst)
+            fs.safe_move(cx, src, dst)
 
             self.assertFalse(src.exists())
 
@@ -65,7 +65,7 @@ class TestFilesystemPrimitives(unittest.TestCase):
 
             path.write_text("data")
 
-            pilo.safe_unlink(path)
+            fs.safe_unlink(path)
 
             self.assertFalse(path.exists())
 
@@ -80,7 +80,7 @@ class TestFilesystemPrimitives(unittest.TestCase):
 
             cx = pilotest.make_context()
 
-            pilo.safe_copy(cx, src, dst)
+            fs.safe_copy(cx, src, dst)
 
             self.assertEqual(
                 src.stat().st_size,

@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import pilo
+from pilo.front import ingest
 import pilotest
 
 
@@ -25,7 +25,7 @@ class TestIngestOps(unittest.TestCase):
             cx.intake_path = intake
             cx.pile_path = pile
 
-            ops = pilo.build_ingest_ops(cx, [src])
+            ops = ingest.build_ingest_ops(cx, [src])
 
             self.assertEqual(len(ops), 1)
 
@@ -58,7 +58,7 @@ class TestIngestOps(unittest.TestCase):
             cx.intake_path = intake
             cx.pile_path = pile
 
-            ops = pilo.build_ingest_ops(cx, [src])
+            ops = ingest.build_ingest_ops(cx, [src])
 
             self.assertEqual(len(ops), 1)
             self.assertEqual(ops[0].action, "noop")
@@ -84,7 +84,7 @@ class TestIngestOps(unittest.TestCase):
             cx.pile_path = pile
 
             with pilotest.assert_fatal(self):
-                pilo.build_ingest_ops(cx, [src])
+                ingest.build_ingest_ops(cx, [src])
 
     @patch("pilo.fs.safe_move")
     @patch("pilo.fs.dataset_writable")
@@ -99,7 +99,7 @@ class TestIngestOps(unittest.TestCase):
         mock_writable.return_value.__exit__.return_value = None
 
         ops = [
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=Path("/tmp/in/a.txt"),
                 dst=Path("/tmp/pile/in/a.txt"),
                 action="move",
@@ -107,7 +107,7 @@ class TestIngestOps(unittest.TestCase):
             )
         ]
 
-        pilo.execute_ingest_ops(cx, ops)
+        ingest.execute_ingest_ops(cx, ops)
 
         mock_writable.assert_called_once_with(cx.pile_dataset)
 
@@ -132,7 +132,7 @@ class TestIngestOps(unittest.TestCase):
         src = Path("/tmp/in/a.txt")
 
         ops = [
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=src,
                 dst=Path("/tmp/pile/in/a.txt"),
                 action="noop",
@@ -140,7 +140,7 @@ class TestIngestOps(unittest.TestCase):
             )
         ]
 
-        pilo.execute_ingest_ops(cx, ops)
+        ingest.execute_ingest_ops(cx, ops)
 
         mock_unlink.assert_called_once_with()
 
@@ -157,13 +157,13 @@ class TestIngestOps(unittest.TestCase):
         mock_writable.return_value.__exit__.return_value = None
 
         ops = [
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=Path("/tmp/in/a.txt"),
                 dst=Path("/tmp/pile/in/a.txt"),
                 action="move",
                 dataset=cx.pile_dataset,
             ),
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=Path("/tmp/in/b.txt"),
                 dst=Path("/tmp/pile/in/b.txt"),
                 action="move",
@@ -171,7 +171,7 @@ class TestIngestOps(unittest.TestCase):
             ),
         ]
 
-        pilo.execute_ingest_ops(cx, ops)
+        ingest.execute_ingest_ops(cx, ops)
 
         mock_writable.assert_called_once_with(cx.pile_dataset)
         self.assertEqual(mock_move.call_count, 2)
@@ -179,13 +179,13 @@ class TestIngestOps(unittest.TestCase):
     def test_ingest_mutations(self):
         cx = pilotest.make_context()
         ops = [
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=Path("/tmp/in/a"),
                 dst=Path("/tmp/pile/in/a"),
                 action="move",
                 dataset=cx.pile_dataset,
             ),
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=Path("/tmp/in/b"),
                 dst=Path("/tmp/pile/in/b"),
                 action="noop",
@@ -193,7 +193,7 @@ class TestIngestOps(unittest.TestCase):
             ),
         ]
 
-        muts = pilo.ingest_plan_mutations(ops)
+        muts = ingest.ingest_plan_mutations(ops)
 
         self.assertEqual(len(muts), 2)
 
@@ -205,7 +205,7 @@ class TestIngestOps(unittest.TestCase):
         cx = pilotest.make_context()
 
         ops = [
-            pilo.IngestOp(
+            ingest.IngestOp(
                 src=Path("/tmp/a"),
                 dst=Path("/tmp/b"),
                 action="move",
@@ -213,14 +213,14 @@ class TestIngestOps(unittest.TestCase):
             )
         ]
 
-        pilo.execute_ingest_ops(cx, ops)
+        ingest.execute_ingest_ops(cx, ops)
 
         mock_exec.assert_called_once()
 
-    @patch("pilo.execute_manifest_update_plan")
-    @patch("pilo.build_manifest_update_plan")
-    @patch("pilo.execute_ingest_ops")
-    @patch("pilo.build_ingest_ops")
+    @patch("pilo.manifest.execute_manifest_update_plan")
+    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.front.ingest.execute_ingest_ops")
+    @patch("pilo.front.ingest.build_ingest_ops")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_ingest_command_uses_plans(
         self,
@@ -232,7 +232,7 @@ class TestIngestOps(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             mod = pilotest.import_command("ingest-pile")
             mod.main()
 

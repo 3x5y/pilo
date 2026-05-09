@@ -2,15 +2,13 @@ from contextlib import redirect_stderr
 import io
 import unittest
 
-
-
-import pilo
+from pilo import error
 
 
 class TestErrors(unittest.TestCase):
 
     def test_fatal_error_model(self):
-        err = pilo.FatalError("bad things")
+        err = error.FatalError("bad things")
 
         self.assertEqual(str(err), "bad things")
 
@@ -19,8 +17,8 @@ class TestErrors(unittest.TestCase):
 
         with redirect_stderr(stderr):
             with self.assertRaises(SystemExit):
-                pilo.run_main(
-                    lambda: pilo.fatal("boom")
+                error.run_main(
+                    lambda: error.fatal("boom")
                 )
 
         self.assertEqual(

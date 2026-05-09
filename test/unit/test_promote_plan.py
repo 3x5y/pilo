@@ -3,14 +3,15 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
-import pilo
+from pilo import paths
+from pilo.front import promote
 import pilotest
 
 
 class TestPromotePlan(unittest.TestCase):
 
     def test_promote_op_model(self):
-        op = pilo.PromoteOp(
+        op = promote.PromoteOp(
             src=Path("/tmp/pile/out/collection/a.txt"),
             dst=Path("/tmp/static/collection/a.txt"),
             dataset="tank/a/static/collection",
@@ -33,7 +34,7 @@ class TestPromotePlan(unittest.TestCase):
         with patch("pilo.fs.iter_files", return_value=iter_files()):
             with patch.object(Path, "is_dir", return_value=True):
                 with patch.object(Path, "iterdir", return_value=[]):
-                    plan = pilo.build_promote_plan(cx)
+                    plan = promote.build_promote_plan(cx)
 
         self.assertEqual(len(plan.ops), 2)
         op = plan.ops[0]
@@ -48,13 +49,13 @@ class TestPromotePlan(unittest.TestCase):
 
     def test_promote_mutations(self):
         ops = [
-            pilo.PromoteOp(
+            promote.PromoteOp(
                 action="copy",
                 src=Path("/tmp/a"),
                 dst=Path("/tmp/static/a"),
                 dataset="tank/a/static/collection",
             ),
-            pilo.PromoteOp(
+            promote.PromoteOp(
                 action="unlink",
                 src=Path("/tmp/a"),
                 dst=None,
@@ -62,7 +63,7 @@ class TestPromotePlan(unittest.TestCase):
             ),
         ]
 
-        muts = pilo.promote_plan_mutations(ops)
+        muts = promote.promote_plan_mutations(ops)
         self.assertEqual(len(muts), 2)
         self.assertEqual(muts[0].action, "copy")
         self.assertEqual(muts[1].action, "unlink")
@@ -71,9 +72,9 @@ class TestPromotePlan(unittest.TestCase):
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
-        plan = pilo.PromotePlan(
+        plan = promote.PromotePlan(
             ops = [
-                pilo.PromoteOp(
+                promote.PromoteOp(
                     src=cx.pile_path / "out/collection/a.txt",
                     dst=Path("/tmp/static/collection/a.txt"),
                     dataset="tank/a/static/collection",
@@ -82,7 +83,7 @@ class TestPromotePlan(unittest.TestCase):
             ]
         )
 
-        pilo.execute_promote_plan(cx, plan)
+        promote.execute_promote_plan(cx, plan)
         mock_exec.assert_called_once()
 
     @patch("pilo.validation.require_dataset")
@@ -96,7 +97,7 @@ class TestPromotePlan(unittest.TestCase):
 
         src = cx.pile_path / "out/collection/a.txt"
 
-        resolved = pilo.Resolved(
+        resolved = paths.Resolved(
             path=Path("/tmp/static/collection/a.txt"),
             dataset="tank/a/static/collection",
         )
@@ -109,6 +110,6 @@ class TestPromotePlan(unittest.TestCase):
                 with patch("pilo.fs.iter_files", return_value=iter_files()):
                     with patch.object(Path, "is_dir", return_value=True):
                         with patch.object(Path, "iterdir", return_value=[]):
-                            plan = pilo.build_promote_plan(cx)
+                            plan = promote.build_promote_plan(cx)
 
         self.assertEqual(plan.ops[0].action, "unlink")

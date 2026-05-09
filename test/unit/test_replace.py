@@ -94,9 +94,9 @@ class TestReplacePlan(unittest.TestCase):
             "tank/a/static/collection",
         )
 
-    @patch("pilo.build_replace_plan")
-    @patch("pilo.execute_replace_plan")
-    @patch("pilo.execute_manifest_update_plan")
+    @patch("pilo.front.replace.build_replace_plan")
+    @patch("pilo.front.replace.execute_replace_plan")
+    @patch("pilo.manifest.execute_manifest_update_plan")
     def test_replace_command_uses_plan(
         self,
         mock_upd,
@@ -105,7 +105,7 @@ class TestReplacePlan(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             with patch.object(
                 cx,
                 "args",

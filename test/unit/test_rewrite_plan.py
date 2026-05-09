@@ -117,9 +117,9 @@ class TestRewritePlan(unittest.TestCase):
         pilo.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.build_manifest_update_plan")
-    @patch("pilo.execute_rewrite_plan")
-    @patch("pilo.build_rewrite_plan")
+    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.front.rewrite.execute_rewrite_plan")
+    @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_uses_plan(
         self,
         mock_build,
@@ -128,7 +128,7 @@ class TestRewritePlan(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             with patch.object(
                 cx,
                 "args",

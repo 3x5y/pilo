@@ -1,30 +1,30 @@
 import unittest
 from pathlib import Path
 
-import pilo
+from pilo import paths
 import pilotest
 
 
 class TestLogicalPaths(unittest.TestCase):
 
     def test_parse_pile_path(self):
-        lp = pilo.parse_logical_path(Path("in/a.txt"))
+        lp = paths.parse_logical_path(Path("in/a.txt"))
 
-        self.assertEqual(lp.domain, pilo.StorageDomain.PILE)
+        self.assertEqual(lp.domain, paths.StorageDomain.PILE)
         self.assertEqual(lp.relpath, Path("in/a.txt"))
 
     def test_parse_collection_path(self):
-        lp = pilo.parse_logical_path(Path("collection/photo.jpg"))
+        lp = paths.parse_logical_path(Path("collection/photo.jpg"))
 
-        self.assertEqual(lp.domain, pilo.StorageDomain.COLLECTION)
+        self.assertEqual(lp.domain, paths.StorageDomain.COLLECTION)
         self.assertEqual(lp.relpath, Path("photo.jpg"))
 
     def test_parse_filing_path(self):
-        lp = pilo.parse_logical_path(
+        lp = paths.parse_logical_path(
             Path("filing/docs/report.pdf")
         )
 
-        self.assertEqual(lp.domain, pilo.StorageDomain.FILING)
+        self.assertEqual(lp.domain, paths.StorageDomain.FILING)
         self.assertEqual(
             lp.relpath,
             Path("docs/report.pdf"),
@@ -32,15 +32,15 @@ class TestLogicalPaths(unittest.TestCase):
 
     def test_reject_empty_path(self):
         with pilotest.assert_fatal(self):
-            pilo.parse_logical_path(Path())
+            paths.parse_logical_path(Path())
 
     def test_reject_invalid_domain(self):
         with pilotest.assert_fatal(self):
-            pilo.parse_logical_path(Path("random/file.txt"))
+            paths.parse_logical_path(Path("random/file.txt"))
 
     def test_reject_parent_traversal(self):
         with pilotest.assert_fatal(self):
-            pilo.parse_logical_path(Path("../secret"))
+            paths.parse_logical_path(Path("../secret"))
 
     def test_resolve_pile_path(self):
         cx = pilotest.make_context()
@@ -49,7 +49,7 @@ class TestLogicalPaths(unittest.TestCase):
 
         self.assertEqual(
             r.logical.domain,
-            pilo.StorageDomain.PILE,
+            paths.StorageDomain.PILE,
         )
 
         self.assertEqual(
@@ -69,7 +69,7 @@ class TestLogicalPaths(unittest.TestCase):
 
         self.assertEqual(
             r.logical.domain,
-            pilo.StorageDomain.COLLECTION,
+            paths.StorageDomain.COLLECTION,
         )
 
         self.assertEqual(
@@ -89,7 +89,7 @@ class TestLogicalPaths(unittest.TestCase):
 
         self.assertEqual(
             r.logical.domain,
-            pilo.StorageDomain.FILING,
+            paths.StorageDomain.FILING,
         )
 
         self.assertEqual(

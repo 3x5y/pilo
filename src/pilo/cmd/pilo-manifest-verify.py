@@ -2,17 +2,17 @@
 
 import sys
 
-import pilo
+from pilo import context, error, status
 
 
 def main():
-    cx = pilo.Context()
-    st = pilo.SystemStatus()
-    pilo.check_manifest_status(cx, st)
-    for line in pilo.render_system_status(st):
+    cx = context.Context()
+    st = status.SystemStatus()
+    status.check_manifest_status(cx, st)
+    for line in status.render_system_status(st):
         print(line)
     sys.exit(st.code)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error, validation
+from pilo.back import normalize
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
 
     datasets = [
         cx.admin_dataset,
@@ -13,10 +14,10 @@ def main():
         cx.collection_dataset,
     ]
     for ds in datasets:
-        pilo.require_dataset(ds)
+        validation.require_dataset(ds)
 
-    pilo.normalize_system(cx)
+    normalize.normalize_system(cx)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error
+from pilo.front import prune
 
 
 def main():
-    cx = pilo.Context()
-    plan = pilo.build_prune_plan(
-        cx.pile_path,
-        cx.pile_dataset,
-    )
-    pilo.execute_prune_plan(cx, plan)
+    cx = context.Context()
+    plan = prune.build_prune_plan(cx.pile_path, cx.pile_dataset)
+    prune.execute_prune_plan(cx, plan)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

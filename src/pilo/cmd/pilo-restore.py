@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error
+from pilo.back import restore
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
 
     if len(cx.args) < 3:
-        pilo.fatal("usage: restore SRC DST SNAP [--recursive]")
+        error.fatal("usage: restore SRC DST SNAP [--recursive]")
 
     src, dst, snap, *rest = cx.args
     recursive = "--recursive" in rest
 
-    plan = pilo.build_restore_plan(src, dst, snap, recursive)
-    pilo.execute_restore_plan(plan)
+    plan = restore.build_restore_plan(src, dst, snap, recursive)
+    restore.execute_restore_plan(plan)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

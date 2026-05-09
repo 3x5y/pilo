@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
-import pilo
-import pilo.zfs
+
+from pilo import context, error, zfs
 
 
 class Doctor:
-    def __init__(self, cx: pilo.Context):
+    def __init__(self, cx: context.Context):
         self.cx = cx
         self.status = 0
 
@@ -15,12 +15,12 @@ class Doctor:
         self.status = 1
 
     def check_dataset(self, dataset):
-        if not pilo.zfs.dataset_exists(dataset):
+        if not zfs.dataset_exists(dataset):
             self.warn(f"missing required dataset: {dataset}")
 
     def check_readonly(self, dataset):
         try:
-            if not pilo.zfs.get_readonly(dataset):
+            if not zfs.get_readonly(dataset):
                 self.warn(f"dataset not readonly: {dataset}")
         except Exception:
             self.warn(f"failed to read readonly state: {dataset}")
@@ -51,10 +51,10 @@ class Doctor:
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
     doctor = Doctor(cx)
     sys.exit(doctor.run())
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

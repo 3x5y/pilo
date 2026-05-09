@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 
-import pilo
 from pilo.back import normalize
 from pilotest import make_context, import_command
 
@@ -9,8 +8,8 @@ from pilotest import make_context, import_command
 class TestNormalize(unittest.TestCase):
 
     @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.ensure_runtime_dirs")
-    @patch("pilo.subprocess.run")
+    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_applies_contract(self, mock_contract, mock_run,
                                         mock_dirs, mock_owner):
@@ -32,7 +31,7 @@ class TestNormalize(unittest.TestCase):
 
     @patch("pilo.back.normalize.apply_ownership")
     @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.subprocess.run")
+    @patch("subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_ensures_runtime_dirs(
         self, mock_contract, mock_run, mock_dirs, mock_owner
@@ -43,8 +42,8 @@ class TestNormalize(unittest.TestCase):
         mock_dirs.assert_called_once_with(cx)
 
     @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.ensure_runtime_dirs")
-    @patch("pilo.subprocess.run")
+    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("subprocess.run")
     @patch("pilo.back.normalize.apply_dataset_contract")
     def test_normalize_applies_ownership(
         self, mock_contract, mock_run, mock_dirs, mock_owner
@@ -72,12 +71,12 @@ class TestNormalize(unittest.TestCase):
         mock_restore.assert_called_once()
         mock_norm.assert_called_once_with(cx)
 
-    @patch("pilo.normalize_system")
-    @patch("pilo.require_dataset")
+    @patch("pilo.back.normalize.normalize_system")
+    @patch("pilo.validation.require_dataset")
     def test_init_uses_normalize(self, mock_require, mock_norm):
         cx = make_context()
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             mod = import_command('init')
             mod.main()
 

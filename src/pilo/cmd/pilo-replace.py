@@ -2,24 +2,25 @@
 
 from pathlib import Path
 
-import pilo
+from pilo import context, error, manifest
+from pilo.front import replace
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
 
     if len(cx.args) < 2:
-        pilo.fatal("missing arguments")
+        error.fatal("missing arguments")
 
     src = Path(cx.args[0])
     dst_rel = Path(cx.args[1])
 
-    plan = pilo.build_replace_plan(cx, src, dst_rel)
-    pilo.execute_replace_plan(cx, plan)
+    plan = replace.build_replace_plan(cx, src, dst_rel)
+    replace.execute_replace_plan(cx, plan)
 
-    plan = pilo.build_manifest_update_plan(cx, ["pile"])
-    pilo.execute_manifest_update_plan(cx, plan)
+    plan = manifest.build_manifest_update_plan(cx, ["pile"])
+    manifest.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

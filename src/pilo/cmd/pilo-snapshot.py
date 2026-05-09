@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 import sys
-import pilo
+
+from pilo import error
+from pilo.back import snapshot
 
 
 def main():
     if len(sys.argv) < 2:
-        pilo.fatal("require snapshot name")
-    pilo.create_snapshot(sys.argv[1])
+        error.fatal("require snapshot name")
+    snapshot.create_snapshot(sys.argv[1])
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

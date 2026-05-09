@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error, status
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
     check = cx.args[0] if cx.args else None
-    st = pilo.collect_system_status(cx, check=check)
+    st = status.collect_system_status(cx, check=check)
 
     for sm in st.messages:
-        print(pilo.render_status_message(sm))
+        print(status.render_status_message(sm))
 
     exit(st.code)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, call
 
-import pilo
+from pilo.fs import writable_datasets
 
 
 class TestWritableDatasets(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestWritableDatasets(unittest.TestCase):
     ):
         mock_get.side_effect = [True, True]
 
-        with pilo.writable_datasets([
+        with writable_datasets([
             "tank/a",
             "tank/b",
         ]):
@@ -40,7 +40,7 @@ class TestWritableDatasets(unittest.TestCase):
     ):
         mock_get.return_value = True
 
-        with pilo.writable_datasets([
+        with writable_datasets([
             "tank/a",
             "tank/a",
         ]):

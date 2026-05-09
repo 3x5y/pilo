@@ -6,12 +6,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pilo
+from pilo import context, error, fs
 
 
 def generate_script(before, after):
     if len(after) != len(set(after)):
-        pilo.fatal("duplicate entries in edited list")
+        error.fatal("duplicate entries in edited list")
     for old, new in zip(before, after):
         if old != new:
             yield f"mv\t{old}\t{new}"
@@ -20,7 +20,7 @@ def generate_script(before, after):
 def list_files(cx):
     return sorted(
         str(p.relative_to(cx.pile_path))
-        for p in pilo.iter_files(cx.pile_path / "in")
+        for p in fs.iter_files(cx.pile_path / "in")
     )
 
 
@@ -55,7 +55,7 @@ def interactive(cx):
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
 
     if len(cx.args) >= 1 and cx.args[0] == "--dump":
         print_files(cx)
@@ -70,4 +70,4 @@ def main():
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

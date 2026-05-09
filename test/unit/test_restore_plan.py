@@ -63,12 +63,12 @@ class TestRestorePlan(unittest.TestCase):
             recursive=True,
         )
 
-    @patch("pilo.execute_restore_plan")
-    @patch("pilo.build_restore_plan")
+    @patch("pilo.back.restore.execute_restore_plan")
+    @patch("pilo.back.restore.build_restore_plan")
     def test_restore_command(self, mock_build, mock_exec):
         cx = pilotest.make_context()
 
-        with patch("pilo.Context", return_value=cx):
+        with patch("pilo.context.Context", return_value=cx):
             with patch.object(cx, "args", ["tank/a", "tank/b", "r-1"]):
                 mod = pilotest.import_command('restore')
                 mod.main()

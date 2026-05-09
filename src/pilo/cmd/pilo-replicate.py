@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error
+from pilo.back import replication as repl
 
 
 def main():
 
-    cx = pilo.Context()
+    cx = context.Context()
     if cx.args:
         src, dst = cx.args
     else:
         src = cx.root_dataset
         dst = cx.replica_dataset
 
-    return pilo.replicate(src, dst)
+    return repl.replicate(src, dst)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)

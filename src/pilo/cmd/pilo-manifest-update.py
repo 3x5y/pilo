@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-import pilo
+from pilo import context, error, manifest
 
 
 def main():
-    cx = pilo.Context()
+    cx = context.Context()
     doms = ["pile", "collection", "filing"]
-    plan = pilo.build_manifest_update_plan(cx, doms)
-    pilo.execute_manifest_update_plan(cx, plan)
+    plan = manifest.build_manifest_update_plan(cx, doms)
+    manifest.execute_manifest_update_plan(cx, plan)
 
 
 if __name__ == "__main__":
-    pilo.run_main(main)
+    error.run_main(main)
