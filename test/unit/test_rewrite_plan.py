@@ -3,7 +3,8 @@ import unittest
 from unittest.mock import patch, call
 from pathlib import Path
 
-import pilo
+from pilo import paths
+from pilo.front import rewrite
 import pilotest
 
 
@@ -21,14 +22,14 @@ class TestRewritePlan(unittest.TestCase):
             src.write_text("hello")
 
             ops = [
-                pilo.RewriteOp(
+                rewrite.RewriteOp(
                     kind="mv",
                     src=Path("in/a.txt"),
                     dst=Path("in/b.txt"),
                 )
             ]
 
-            plan = pilo.build_rewrite_plan(cx, ops)
+            plan = rewrite.build_rewrite_plan(cx, ops)
 
             self.assertEqual(len(plan.ops), 1)
 
@@ -48,35 +49,35 @@ class TestRewritePlan(unittest.TestCase):
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
-        op = pilo.RewriteOp(
+        op = rewrite.RewriteOp(
             kind="mv",
             src=Path("in/a.txt"),
             dst=Path("in/b.txt"),
         )
 
-        plan = pilo.RewritePlan(
+        plan = rewrite.RewritePlan(
             ops=[
-                pilo.resolve_rewrite_op(cx, op)
+                rewrite.resolve_rewrite_op(cx, op)
             ]
         )
 
-        pilo.execute_rewrite_plan(cx, plan)
+        rewrite.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
     def test_rewrite_plan_mutations(self):
-        plan = pilo.RewritePlan(
+        plan = rewrite.RewritePlan(
             ops=[
-                pilo.ResolvedRewriteOp(
-                    op=pilo.RewriteOp(
+                rewrite.ResolvedRewriteOp(
+                    op=rewrite.RewriteOp(
                         kind="mv",
                         src=Path("in/a"),
                         dst=Path("in/b"),
                     ),
-                    src=pilo.Resolved(
+                    src=paths.Resolved(
                         path=Path("/tmp/a"),
                         dataset="tank/a/pile",
                     ),
-                    dst=pilo.Resolved(
+                    dst=paths.Resolved(
                         path=Path("/tmp/b"),
                         dataset="tank/a/pile",
                     ),
@@ -84,7 +85,7 @@ class TestRewritePlan(unittest.TestCase):
             ]
         )
 
-        muts = pilo.rewrite_plan_mutations(plan)
+        muts = rewrite.rewrite_plan_mutations(plan)
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]
@@ -97,24 +98,24 @@ class TestRewritePlan(unittest.TestCase):
     def test_execute_uses_executor2(self, mock_exec):
         cx = pilotest.make_context()
 
-        op = pilo.ResolvedRewriteOp(
-            op=pilo.RewriteOp(
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/a"),
                 dst=Path("in/b"),
             ),
-            src=pilo.Resolved(
+            src=paths.Resolved(
                 path=Path("/tmp/a"),
                 dataset="tank/a/pile",
             ),
-            dst=pilo.Resolved(
+            dst=paths.Resolved(
                 path=Path("/tmp/b"),
                 dataset="tank/a/pile",
             ),
         )
 
-        plan = pilo.RewritePlan([op])
-        pilo.execute_rewrite_plan(cx, plan)
+        plan = rewrite.RewritePlan([op])
+        rewrite.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
     @patch("pilo.manifest.build_manifest_update_plan")

@@ -3,14 +3,14 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
-import pilo
+from pilo import mutation
 import pilotest
 
 
 class TestSemanticMutation(unittest.TestCase):
 
     def test_semantic_mutation_model(self):
-        mut = pilo.SemanticMutation(
+        mut = mutation.SemanticMutation(
             action="move",
             src=Path("/tmp/a"),
             dst=Path("/tmp/b"),
@@ -26,14 +26,14 @@ class TestSemanticMutation(unittest.TestCase):
     def test_apply_move_mutation(self, mock_move):
         cx = pilotest.make_context()
 
-        mut = pilo.SemanticMutation(
+        mut = mutation.SemanticMutation(
             action="move",
             src=Path("/tmp/a"),
             dst=Path("/tmp/b"),
             dataset="tank/a/pile",
         )
 
-        pilo.apply_semantic_mutation(cx, mut)
+        mutation.apply_semantic_mutation(cx, mut)
 
         mock_move.assert_called_once_with(
             cx,
@@ -47,14 +47,14 @@ class TestSemanticMutation(unittest.TestCase):
 
         src = Path("/tmp/a")
 
-        mut = pilo.SemanticMutation(
+        mut = mutation.SemanticMutation(
             action="unlink",
             src=src,
             dst=None,
             dataset="tank/a/pile",
         )
 
-        pilo.apply_semantic_mutation(cx, mut)
+        mutation.apply_semantic_mutation(cx, mut)
 
         mock_unlink.assert_called_once()
 
@@ -62,14 +62,14 @@ class TestSemanticMutation(unittest.TestCase):
     def test_apply_copy_mutation(self, mock_copy):
         cx = pilotest.make_context()
 
-        mut = pilo.SemanticMutation(
+        mut = mutation.SemanticMutation(
             action="copy",
             src=Path("/tmp/a"),
             dst=Path("/tmp/b"),
             dataset="tank/a/static",
         )
 
-        pilo.apply_semantic_mutation(cx, mut)
+        mutation.apply_semantic_mutation(cx, mut)
 
         mock_copy.assert_called_once_with(
             cx,
@@ -91,13 +91,13 @@ class TestSemanticMutation(unittest.TestCase):
         mock_writable.return_value = cm
 
         muts = [
-            pilo.SemanticMutation(
+            mutation.SemanticMutation(
                 action="move",
                 src=Path("/tmp/a"),
                 dst=Path("/tmp/b"),
                 dataset="tank/a/pile",
             ),
-            pilo.SemanticMutation(
+            mutation.SemanticMutation(
                 action="copy",
                 src=Path("/tmp/c"),
                 dst=Path("/tmp/d"),
@@ -105,7 +105,7 @@ class TestSemanticMutation(unittest.TestCase):
             ),
         ]
 
-        pilo.execute_semantic_mutations(cx, muts)
+        mutation.execute_semantic_mutations(cx, muts)
 
         mock_writable.assert_called_once_with(
             {"tank/a/pile", "tank/a/static"}
@@ -122,19 +122,19 @@ class TestSemanticMutation(unittest.TestCase):
             applied.append(mut.action)
 
         muts = [
-            pilo.SemanticMutation(
+            mutation.SemanticMutation(
                 action="move",
                 src=Path("/tmp/a"),
                 dst=Path("/tmp/b"),
                 dataset="tank/a/pile",
             ),
-            pilo.SemanticMutation(
+            mutation.SemanticMutation(
                 action="copy",
                 src=Path("/tmp/c"),
                 dst=Path("/tmp/d"),
                 dataset="tank/a/static",
             ),
-            pilo.SemanticMutation(
+            mutation.SemanticMutation(
                 action="unlink",
                 src=Path("/tmp/e"),
                 dst=None,
@@ -151,7 +151,7 @@ class TestSemanticMutation(unittest.TestCase):
 
                 mock_writable.return_value = cm
 
-                pilo.execute_semantic_mutations(cx, muts)
+                mutation.execute_semantic_mutations(cx, muts)
 
         self.assertEqual(
             applied,
@@ -174,7 +174,7 @@ class TestSemanticMutation(unittest.TestCase):
             events.append("apply")
 
         muts = [
-            pilo.SemanticMutation(
+            mutation.SemanticMutation(
                 action="move",
                 src=Path("/tmp/a"),
                 dst=Path("/tmp/b"),
@@ -190,7 +190,7 @@ class TestSemanticMutation(unittest.TestCase):
                 "pilo.mutation.apply_semantic_mutation",
                 side_effect=fake_apply,
             ):
-                pilo.execute_semantic_mutations(cx, muts)
+                mutation.execute_semantic_mutations(cx, muts)
 
         self.assertEqual(
             events,

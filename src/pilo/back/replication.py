@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from .. import context
+from .. import error
 from .. import util
 from .. import validation
 from .. import zfs
-from ..context import DatasetMapping
-from ..error import fatal
 
 
 class ReplicationStatus(Enum):
@@ -25,6 +25,16 @@ class ReplicationPlan:
     mode: str  # "full" | "incremental" | "noop"
 
 
+def find_incremental_base(src, dst):
+    guid = zfs.get_latest_guid(dst)
+    if not guid:
+        return None
+    for name, g in zfs.snapshot_guids(src):
+        if g == guid:
+            return name
+    return None
+
+
 def replicate(src, dst):
     plan = build_replication_plan(src, dst)
     return execute_replication_plan(plan)
@@ -37,7 +47,7 @@ def replication_status(src, dst):
     if not dst_guid:
         return ReplicationStatus.EMPTY, "no snapshots on target"
 
-    mapping = DatasetMapping(src, dst)
+    mapping = context.DatasetMapping(src, dst)
 
     for dst_ds in zfs.list_filesystems(dst):
         src_ds = mapping.inverse(dst_ds)
@@ -67,17 +77,17 @@ def build_replication_plan(src, dst):
     last_dst = zfs.latest_snapshot(dst)
 
     if not last_src:
-        fatal("no source snapshot")
+        error.fatal("no source snapshot")
 
     # if strict (need to change test mocks)
     validation.require_dataset(src)
     if not last_dst:
         return ReplicationPlan( src, dst, last_src, None, "full")
 
-    base = util.find_incremental_base(src, dst)
+    base = find_incremental_base(src, dst)
 
     if not base:
-        fatal(f"base snapshot missing on source: {base}")
+        error.fatal(f"base snapshot missing on source: {base}")
 
     if base == last_src:
         return ReplicationPlan(src, dst, last_src, base, "noop")
@@ -94,4 +104,3 @@ def execute_replication_plan(plan: ReplicationPlan):
 
     if plan.mode == "noop":
         return
-    

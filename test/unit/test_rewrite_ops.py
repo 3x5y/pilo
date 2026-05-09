@@ -2,14 +2,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import pilo
+from pilo.front import rewrite
 import pilotest
 
 
 class TestRewriteOperationModel(unittest.TestCase):
 
     def test_parse_move_op(self):
-        ops = pilo.parse_rewrite_ops([
+        ops = rewrite.parse_rewrite_ops([
             "mv\tin/a.txt\tin/b.txt"
         ])
 
@@ -23,32 +23,32 @@ class TestRewriteOperationModel(unittest.TestCase):
 
     def test_parse_rejects_unknown_op(self):
         with pilotest.assert_fatal(self):
-            pilo.parse_rewrite_ops([
+            rewrite.parse_rewrite_ops([
                 "cp\tin/a\tin/b"
             ])
 
     def test_parse_rejects_absolute_src(self):
         with pilotest.assert_fatal(self):
-            pilo.parse_rewrite_ops([
+            rewrite.parse_rewrite_ops([
                 "mv\t/etc/passwd\tin/x"
             ])
 
     def test_parse_rejects_parent_escape(self):
         with pilotest.assert_fatal(self):
-            pilo.parse_rewrite_ops([
+            rewrite.parse_rewrite_ops([
                 "mv\t../x\tin/y"
             ])
 
     def test_resolve_rewrite_op(self):
         cx = pilotest.make_context()
 
-        op = pilo.RewriteOp(
+        op = rewrite.RewriteOp(
             kind="mv",
             src=Path("in/a.txt"),
             dst=Path("in/b.txt"),
         )
 
-        resolved = pilo.resolve_rewrite_op(cx, op)
+        resolved = rewrite.resolve_rewrite_op(cx, op)
 
         self.assertEqual(
             resolved.src.path,
@@ -63,28 +63,28 @@ class TestRewriteOperationModel(unittest.TestCase):
     def test_validate_rewrite_op_rejects_cross_domain(self):
         cx = pilotest.make_context()
 
-        op = pilo.RewriteOp(
+        op = rewrite.RewriteOp(
             kind="mv",
             src=Path("in/a.txt"),
             dst=Path("collection/a.txt"),
         )
 
         with pilotest.assert_fatal(self):
-            pilo.validate_rewrite_op(
+            rewrite.validate_rewrite_op(
                 cx,
-                pilo.resolve_rewrite_op(cx, op),
+                rewrite.resolve_rewrite_op(cx, op),
             )
 
     def test_validate_rewrite_ops_rejects_duplicate_src(self):
         cx = pilotest.make_context()
 
         ops = [
-            pilo.RewriteOp(
+            rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/a"),
                 dst=Path("in/b"),
             ),
-            pilo.RewriteOp(
+            rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/a"),
                 dst=Path("in/c"),
@@ -92,23 +92,23 @@ class TestRewriteOperationModel(unittest.TestCase):
         ]
 
         resolved = [
-            pilo.resolve_rewrite_op(cx, op)
+            rewrite.resolve_rewrite_op(cx, op)
             for op in ops
         ]
 
         with pilotest.assert_fatal(self):
-            pilo.validate_rewrite_ops(cx, resolved)
+            rewrite.validate_rewrite_ops(cx, resolved)
 
     def test_validate_rewrite_ops_rejects_duplicate_dst(self):
         cx = pilotest.make_context()
 
         ops = [
-            pilo.RewriteOp(
+            rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/a"),
                 dst=Path("in/x"),
             ),
-            pilo.RewriteOp(
+            rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/b"),
                 dst=Path("in/x"),
@@ -116,12 +116,12 @@ class TestRewriteOperationModel(unittest.TestCase):
         ]
 
         resolved = [
-            pilo.resolve_rewrite_op(cx, op)
+            rewrite.resolve_rewrite_op(cx, op)
             for op in ops
         ]
 
         with pilotest.assert_fatal(self):
-            pilo.validate_rewrite_ops(cx, resolved)
+            rewrite.validate_rewrite_ops(cx, resolved)
 
     def test_validate_rewrite_op_requires_source(self):
         with tempfile.TemporaryDirectory() as td:
@@ -129,16 +129,16 @@ class TestRewriteOperationModel(unittest.TestCase):
 
             cx.pile_path = Path(td)
 
-            op = pilo.RewriteOp(
+            op = rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/missing.txt"),
                 dst=Path("in/x.txt"),
             )
 
-            resolved = pilo.resolve_rewrite_op(cx, op)
+            resolved = rewrite.resolve_rewrite_op(cx, op)
 
             with pilotest.assert_fatal(self):
-                pilo.validate_rewrite_op(cx, resolved)
+                rewrite.validate_rewrite_op(cx, resolved)
 
     def test_validate_rewrite_op_rejects_conflicting_destination(self):
         with tempfile.TemporaryDirectory() as td:
@@ -155,16 +155,16 @@ class TestRewriteOperationModel(unittest.TestCase):
             src.write_text("AAA")
             dst.write_text("BBB")
 
-            op = pilo.RewriteOp(
+            op = rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/src.txt"),
                 dst=Path("in/dst.txt"),
             )
 
-            resolved = pilo.resolve_rewrite_op(cx, op)
+            resolved = rewrite.resolve_rewrite_op(cx, op)
 
             with pilotest.assert_fatal(self):
-                pilo.validate_rewrite_op(cx, resolved)
+                rewrite.validate_rewrite_op(cx, resolved)
 
     def test_validate_rewrite_op_allows_identical_destination(self):
         with tempfile.TemporaryDirectory() as td:
@@ -181,12 +181,12 @@ class TestRewriteOperationModel(unittest.TestCase):
             src.write_text("same")
             dst.write_text("same")
 
-            op = pilo.RewriteOp(
+            op = rewrite.RewriteOp(
                 kind="mv",
                 src=Path("in/src.txt"),
                 dst=Path("in/dst.txt"),
             )
 
-            resolved = pilo.resolve_rewrite_op(cx, op)
+            resolved = rewrite.resolve_rewrite_op(cx, op)
 
-            pilo.validate_rewrite_op(cx, resolved)
+            rewrite.validate_rewrite_op(cx, resolved)

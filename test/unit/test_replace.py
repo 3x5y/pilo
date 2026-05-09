@@ -3,7 +3,8 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
-import pilo
+from pilo import paths
+from pilo.front import replace
 import pilotest
 
 
@@ -15,7 +16,7 @@ class TestReplacePlan(unittest.TestCase):
 
         src = Path("/tmp/new.txt")
 
-        resolved = pilo.Resolved(
+        resolved = paths.Resolved(
             path=Path("/tmp/static/collection/a.txt"),
             dataset="tank/a/static/collection",
         )
@@ -23,7 +24,7 @@ class TestReplacePlan(unittest.TestCase):
         with patch.object(Path, "is_file", return_value=True):
             with patch.object(cx, "resolve", return_value=resolved):
 
-                plan = pilo.build_replace_plan(
+                plan = replace.build_replace_plan(
                     cx,
                     src,
                     Path("collection/a.txt"),
@@ -42,7 +43,7 @@ class TestReplacePlan(unittest.TestCase):
         with patch.object(Path, "is_file", return_value=False):
             with pilotest.assert_fatal(self):
 
-                pilo.build_replace_plan(
+                replace.build_replace_plan(
                     cx,
                     Path("/tmp/nope.txt"),
                     Path("collection/a.txt"),
@@ -51,7 +52,7 @@ class TestReplacePlan(unittest.TestCase):
     def test_replace_requires_existing_target(self):
             cx = pilotest.make_context()
 
-            resolved = pilo.Resolved(
+            resolved = paths.Resolved(
                 path=Path("/tmp/static/collection/a.txt"),
                 dataset="tank/a/static/collection",
             )
@@ -63,18 +64,18 @@ class TestReplacePlan(unittest.TestCase):
                 with patch.object(Path, "is_file", side_effect=[True, False]):
 
                     with pilotest.assert_fatal(self):
-                        pilo.build_replace_plan(
+                        replace.build_replace_plan(
                             cx,
                             Path("/tmp/src.txt"),
                             Path("collection/a.txt"),
                         )
 
     def test_replace_plan_mutations(self):
-        plan = pilo.ReplacePlan(
+        plan = replace.ReplacePlan(
             ops=[
-                pilo.ReplaceOp(
+                replace.ReplaceOp(
                     src=Path("/tmp/src"),
-                    dst=pilo.Resolved(
+                    dst=paths.Resolved(
                         path=Path("/tmp/dst"),
                         dataset="tank/a/static/collection",
                     ),
@@ -82,7 +83,7 @@ class TestReplacePlan(unittest.TestCase):
             ]
         )
 
-        muts = pilo.replace_plan_mutations(plan)
+        muts = replace.replace_plan_mutations(plan)
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]
@@ -122,11 +123,11 @@ class TestReplacePlan(unittest.TestCase):
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
-        plan = pilo.ReplacePlan(
+        plan = replace.ReplacePlan(
             ops=[
-                pilo.ReplaceOp(
+                replace.ReplaceOp(
                     src=Path("/tmp/src.txt"),
-                    dst=pilo.Resolved(
+                    dst=paths.Resolved(
                         path=Path("/tmp/static/collection/a.txt"),
                         dataset="tank/a/static/collection",
                     ),
@@ -134,7 +135,7 @@ class TestReplacePlan(unittest.TestCase):
             ]
         )
 
-        pilo.execute_replace_plan(cx, plan)
+        replace.execute_replace_plan(cx, plan)
         mock_exec.assert_called_once()
         args = mock_exec.call_args[0]
 

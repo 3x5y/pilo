@@ -5,14 +5,15 @@ from pathlib import Path
 import tempfile
 import unittest
 
-import pilo
+from pilo import context
+from pilo import error
 
 
 @contextmanager
 def assert_fatal(testcase):
     stderr = StringIO()
     with redirect_stderr(stderr):
-        with testcase.assertRaises(pilo.FatalError) as cx:
+        with testcase.assertRaises(error.FatalError) as cx:
             yield cx
 
 
@@ -33,7 +34,7 @@ def suppress_stdout():
 def import_command(name):
     modname = f'pilo-{name}'
     filename = modname + '.py'
-    modpath = Path(pilo.__file__).parent / 'cmd' / filename
+    modpath = Path(__file__).parent / '../src/pilo/cmd' / filename
     spec = importlib.util.spec_from_file_location(modname, modpath)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -41,7 +42,7 @@ def import_command(name):
 
 
 def make_context():
-    return pilo.Context(environ={
+    return context.Context(environ={
         "PILO_ROOT": "tank/a",
         "PILO_REPLICA_ROOT": "backup/a",
         "PILO_ADMIN_DATASET": "tank/a/admin",
@@ -59,7 +60,7 @@ def make_context():
 @contextmanager
 def make_tmp_context():
     with tempfile.TemporaryDirectory() as td:
-        yield pilo.Context(environ={
+        yield context.Context(environ={
             "PILO_ROOT": "tank/a",
             "PILO_REPLICA_ROOT": "backup/a",
             "PILO_ADMIN_DATASET": "tank/a/admin",

@@ -3,14 +3,15 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-import pilo
+from pilo import mutation
+from pilo.front import prune
 import pilotest
 
 
 class TestPrunePlan(unittest.TestCase):
 
     def test_prune_op_model(self):
-        op = pilo.PruneOp(
+        op = prune.PruneOp(
             path=Path("/tmp/pile/in/a"),
             dataset="tank/a/pile",
         )
@@ -40,7 +41,7 @@ class TestPrunePlan(unittest.TestCase):
 
             (nonempty / "file.txt").write_text("x")
 
-            plan = pilo.build_prune_plan(
+            plan = prune.build_prune_plan(
                 root,
                 "tank/a/pile",
             )
@@ -55,16 +56,16 @@ class TestPrunePlan(unittest.TestCase):
             self.assertNotIn(root / "data", paths)
 
     def test_prune_mutations(self):
-        plan = pilo.PrunePlan(
+        plan = prune.PrunePlan(
             ops = [
-                pilo.PruneOp(
+                prune.PruneOp(
                     path=Path("/tmp/pile/x"),
                     dataset="tank/a/pile",
                 )
             ]
         )
 
-        muts = pilo.prune_mutations(plan)
+        muts = prune.prune_mutations(plan)
 
         self.assertEqual(len(muts), 1)
         self.assertEqual(muts[0].action, "rmdir")
@@ -73,29 +74,29 @@ class TestPrunePlan(unittest.TestCase):
     @patch("pilo.fs.safe_rmdir")
     def test_apply_rmdir_mutation(self, mock_rmdir):
         cx = pilotest.make_context()
-        mut = pilo.SemanticMutation(
+        mut = mutation.SemanticMutation(
             action="rmdir",
             src=Path("/tmp/x"),
             dst=None,
             dataset="tank/a/pile",
         )
 
-        pilo.apply_semantic_mutation(cx, mut)
+        mutation.apply_semantic_mutation(cx, mut)
 
         mock_rmdir.assert_called_once()
 
     @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
-        plan = pilo.PrunePlan(
+        plan = prune.PrunePlan(
             ops = [
-                pilo.PruneOp(
+                prune.PruneOp(
                     path=Path("/tmp/pile/x"),
                     dataset="tank/a/pile",
                 )
             ]
         )
 
-        pilo.execute_prune_plan(cx, plan)
+        prune.execute_prune_plan(cx, plan)
 
         mock_exec.assert_called_once()

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-import pilo
+from pilo.back import recover
 import pilotest
 
 
@@ -23,7 +23,7 @@ class TestRecoveryPlan(unittest.TestCase):
         mock_exists.side_effect = side_effect
         cx = pilotest.make_context()
 
-        plan = pilo.build_recovery_plan(cx, "tank/a")
+        plan = recover.build_recovery_plan(cx, "tank/a")
 
         self.assertEqual(plan.target, "tank/a")
         self.assertEqual(plan.replica, "backup/a")
@@ -35,7 +35,7 @@ class TestRecoveryPlan(unittest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.assert_fatal(self):
-            pilo.build_recovery_plan(cx, "tank/a")
+            recover.build_recovery_plan(cx, "tank/a")
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.latest_snapshot", return_value="wrong@foo")
@@ -43,8 +43,7 @@ class TestRecoveryPlan(unittest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.assert_fatal(self):
-            pilo.build_recovery_plan(cx, "tank/a")
-
+            recover.build_recovery_plan(cx, "tank/a")
 
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists")
@@ -63,7 +62,7 @@ class TestRecoveryPlan(unittest.TestCase):
 
         cx = pilotest.make_context()
 
-        plan = pilo.build_recovery_plan(cx, "tank/a/foo")
+        plan = recover.build_recovery_plan(cx, "tank/a/foo")
 
         self.assertEqual(plan.replica, "backup/a/foo")
         self.assertEqual(plan.snapshot, "backup/a/foo@r-1")
@@ -79,7 +78,7 @@ class TestRecoveryPlan(unittest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.assert_fatal(self):
-            pilo.build_recovery_plan(cx, "tank/a")
+            recover.build_recovery_plan(cx, "tank/a")
 
     @patch("pilo.back.normalize.ensure_runtime_dirs")
     @patch("pilo.back.normalize.apply_ownership")
@@ -88,7 +87,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan(self, mock_restore, mock_contract, mock_run,
                           mock_owner, mock_dirs):
-        plan = pilo.RecoveryPlan(
+        plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",
@@ -96,7 +95,7 @@ class TestRecoveryPlan(unittest.TestCase):
         )
 
         cx = pilotest.make_context()
-        pilo.execute_recovery_plan(plan, cx)
+        recover.execute_recovery_plan(plan, cx)
 
         mock_restore.assert_called_once_with(
             "backup/a@r-1",
@@ -113,14 +112,14 @@ class TestRecoveryPlan(unittest.TestCase):
                                            mock_owner, mock_run, mock_dirs):
         cx = pilotest.make_context()
 
-        plan = pilo.RecoveryPlan(
+        plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",
             recursive=True,
         )
 
-        pilo.execute_recovery_plan(plan, cx)
+        recover.execute_recovery_plan(plan, cx)
 
         mock_restore.assert_called_once()
         mock_contract.assert_called_once_with(cx)
@@ -134,14 +133,14 @@ class TestRecoveryPlan(unittest.TestCase):
                                           mock_run, mock_owner, mock_dirs):
         cx = pilotest.make_context()
 
-        plan = pilo.RecoveryPlan(
+        plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",
             recursive=True,
         )
 
-        pilo.execute_recovery_plan(plan, cx)
+        recover.execute_recovery_plan(plan, cx)
 
         #mock_run.assert_called_with(["zfs", "mount", "-a"], check=True)
         mock_run.assert_any_call(["zfs", "mount", "-a"], check=True)
@@ -157,14 +156,14 @@ class TestRecoveryPlan(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        plan = pilo.RecoveryPlan(
+        plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",
             recursive=True,
         )
 
-        pilo.execute_recovery_plan(plan, cx)
+        recover.execute_recovery_plan(plan, cx)
 
         mock_dirs.assert_called_once_with(cx)
 
@@ -178,14 +177,14 @@ class TestRecoveryPlan(unittest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        plan = pilo.RecoveryPlan(
+        plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",
             recursive=True,
         )
 
-        pilo.execute_recovery_plan(plan, cx)
+        recover.execute_recovery_plan(plan, cx)
 
         mock_owner.assert_called_once_with(cx)
 
@@ -193,7 +192,7 @@ class TestRecoveryPlan(unittest.TestCase):
     @patch("pilo.back.recover.build_recovery_plan")
     def test_recover_uses_plan(self, mock_build, mock_exec):
         cx = pilotest.make_context()
-        mock_build.return_value = pilo.RecoveryPlan(
+        mock_build.return_value = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
             snapshot="backup/a@r-1",

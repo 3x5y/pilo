@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-import pilo
 from . import fs
-from .error import fatal
+from . import error
+from . import manifest
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ def apply_semantic_mutation(cx, mut: SemanticMutation):
     if mut.action == "rmdir":
         fs.safe_rmdir(mut.src)
         return
-    fatal(f"unsupported mutation action: {mut.action}")
+    error.fatal(f"unsupported mutation action: {mut.action}")
 
 
 def execute_semantic_mutations(cx, mutations):
@@ -52,4 +52,4 @@ def mutation_manifest_domains(mutations):
 
 def build_manifest_plan_for_mutations(cx, mutations):
     domains = sorted(mutation_manifest_domains(mutations))
-    return pilo.build_manifest_update_plan(cx, domains)
+    return manifest.build_manifest_update_plan(cx, domains)

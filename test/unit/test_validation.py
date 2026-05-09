@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import pilo
+from pilo import validation
+from pilo.back import restore
+from pilo.back import recover
+from pilo.back import replication as repl
 import pilotest
 
 
@@ -11,53 +14,53 @@ class TestValidationFacade(unittest.TestCase):
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_validate_existing_dataset(self, _):
-        pilo.validate.dataset_exists("tank/a")
+        validation.validate.dataset_exists("tank/a")
 
 
 class TestValidation(unittest.TestCase):
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_require_dataset_ok(self, _):
-        pilo.require_dataset("tank/foo")
+        validation.require_dataset("tank/foo")
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_require_dataset_missing(self, _):
         with pilotest.assert_fatal(self):
-            pilo.require_dataset("tank/foo")
+            validation.require_dataset("tank/foo")
 
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     def test_require_snapshot_ok(self, _):
-        pilo.require_snapshot("tank/a@snap")
+        validation.require_snapshot("tank/a@snap")
 
     @patch("pilo.zfs.snapshot_exists", return_value=False)
     def test_require_snapshot_missing(self, _):
         with pilotest.assert_fatal(self):
-            pilo.require_snapshot("tank/a@snap")
+            validation.require_snapshot("tank/a@snap")
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_require_new_dataset_ok(self, _):
-        pilo.require_new_dataset("tank/a")
+        validation.require_new_dataset("tank/a")
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_require_new_dataset_fail(self, _):
         with pilotest.assert_fatal(self):
-            pilo.require_new_dataset("tank/a")
+            validation.require_new_dataset("tank/a")
 
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     def test_valid_snapshot(self, _):
-        pilo.require_snapshot_of_dataset("tank/a@r1", "tank/a")
+        validation.require_snapshot_of_dataset("tank/a@r1", "tank/a")
 
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     def test_wrong_dataset_fails(self, _):
         with pilotest.assert_fatal(self):
-            pilo.require_snapshot_of_dataset("tank/b@r1", "tank/a")
+            validation.require_snapshot_of_dataset("tank/b@r1", "tank/a")
 
     def test_valid_within(self):
-        pilo.require_within_dataset("tank/a/foo", "tank/a")
+        validation.require_within_dataset("tank/a/foo", "tank/a")
 
     def test_invalid_within(self):
         with pilotest.assert_fatal(self):
-            pilo.require_within_dataset("tank/b/foo", "tank/a")
+            validation.require_within_dataset("tank/b/foo", "tank/a")
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
@@ -66,31 +69,31 @@ class TestValidation(unittest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.assert_fatal(self):
-            pilo.build_recovery_plan(cx, "invalid/root")
+            recover.build_recovery_plan(cx, "invalid/root")
 
     @patch("pilo.zfs.latest_snapshot", return_value=None)
     def test_no_source_snapshot_fails(self, _):
         with pilotest.assert_fatal(self):
-            pilo.build_replication_plan("tank/a", "backup/a")
+            repl.build_replication_plan("tank/a", "backup/a")
 
     @patch("pilo.zfs.snapshot_exists", return_value=False)
     def test_restore_requires_snapshot(self, _):
         with pilotest.assert_fatal(self):
-            pilo.restore_dataset("tank/a@r1", "tank/b")
+            restore.restore_dataset("tank/a@r1", "tank/b")
 
     def test_require_file_accepts_existing_file(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "a.txt"
             path.write_text("x")
 
-            pilo.require_file(path)
+            validation.require_file(path)
 
     def test_require_file_rejects_missing_file(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "missing.txt"
 
             with pilotest.assert_fatal(self):
-                pilo.require_file(path)
+                validation.require_file(path)
 
     def test_require_no_conflict_accepts_missing_target(self):
         with tempfile.TemporaryDirectory() as td:
@@ -99,7 +102,7 @@ class TestValidation(unittest.TestCase):
 
             src.write_text("x")
 
-            pilo.require_no_conflict(src, dst)
+            validation.require_no_conflict(src, dst)
 
     def test_require_no_conflict_accepts_identical_file(self):
         with tempfile.TemporaryDirectory() as td:
@@ -109,7 +112,7 @@ class TestValidation(unittest.TestCase):
             src.write_text("same")
             dst.write_text("same")
 
-            pilo.require_no_conflict(src, dst)
+            validation.require_no_conflict(src, dst)
 
     def test_require_no_conflict_rejects_different_file(self):
         with tempfile.TemporaryDirectory() as td:
@@ -120,4 +123,4 @@ class TestValidation(unittest.TestCase):
             dst.write_text("b")
 
             with pilotest.assert_fatal(self):
-                pilo.require_no_conflict(src, dst)
+                validation.require_no_conflict(src, dst)

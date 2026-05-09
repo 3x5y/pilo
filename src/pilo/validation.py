@@ -1,64 +1,65 @@
 from pathlib import Path
 
-import pilo
-
+from . import error
+from . import fs
+from . import paths
 from . import zfs
 
 
 def require_dataset(dataset):
     if not zfs.dataset_exists(dataset):
-        pilo.fatal(f"missing required dataset: {dataset}")
+        error.fatal(f"missing required dataset: {dataset}")
 
 
 def require_new_dataset(dataset):
     if zfs.dataset_exists(dataset):
-        pilo.fatal(f"destination exists: {dataset}")
+        error.fatal(f"destination exists: {dataset}")
 
 
 def require_child_dataset(dataset, root):
     if not dataset.startswith(root):
-        pilo.fatal(f"dataset outside root: {dataset}")
+        error.fatal(f"dataset outside root: {dataset}")
 
 
 def require_snapshot(snapshot):
     if not zfs.snapshot_exists(snapshot):
-        pilo.fatal(f"missing snapshot: {snapshot}")
+        error.fatal(f"missing snapshot: {snapshot}")
 
 
 def require_snapshot_of_dataset(snap, dataset):
     require_snapshot(snap)
     if not snap.startswith(dataset + "@"):
-        pilo.fatal(f"snapshot {snap} does not belong to {dataset}")
+        error.fatal(f"snapshot {snap} does not belong to {dataset}")
 
 
 def require_within_dataset(target, root):
     if not target == root and not target.startswith(root + "/"):
-        pilo.fatal(f"{target} outside {root}")
+        error.fatal(f"{target} outside {root}")
 
 
 def require_file(path):
     if not path.is_file():
-        pilo.fatal(f"file does not exist: {path}")
+        error.fatal(f"file does not exist: {path}")
 
 
 def require_no_conflict(src, dst):
-    if dst.is_file() and not pilo.files_equal(src, dst):
-        pilo.fatal(f"destination conflict: {dst}")
+    if dst.is_file() and not fs.files_equal(src, dst):
+        error.fatal(f"destination conflict: {dst}")
 
 
 def require_relative_path(path: Path):
     if path.is_absolute():
-        pilo.fatal("absolute paths not allowed")
+        error.fatal("absolute paths not allowed")
     if ".." in path.parts:
-        pilo.fatal("parent traversal not allowed")
+        error.fatal("parent traversal not allowed")
 
 
 def require_same_domain(src, dst):
-    src_domain = pilo.domain(src)
-    dst_domain = pilo.domain(dst)
+    src_domain = paths.domain(src)
+    dst_domain = paths.domain(dst)
 
     if src_domain != dst_domain:
-        pilo.fatal("cross-domain move not allowed")
+        error.fatal("cross-domain move not allowed")
 
 
 class validate:

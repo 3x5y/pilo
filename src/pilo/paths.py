@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from .error import fatal
-from .validation import require_relative_path
+from . import error
+from . import validation
 
 
 def domain(rel: Path):
@@ -48,9 +48,9 @@ class Resolved:
 
 def parse_logical_path(path: Path) -> LogicalPath:
     if not path.parts:
-        fatal("empty path")
+        error.fatal("empty path")
 
-    require_relative_path(path)
+    validation.require_relative_path(path)
 
     top = path.parts[0]
 
@@ -62,7 +62,7 @@ def parse_logical_path(path: Path) -> LogicalPath:
 
     if top == "collection":
         if len(path.parts) < 2:
-            fatal("invalid collection path")
+            error.fatal("invalid collection path")
 
         return LogicalPath(
             domain=StorageDomain.COLLECTION,
@@ -71,11 +71,11 @@ def parse_logical_path(path: Path) -> LogicalPath:
 
     if top == "filing":
         if len(path.parts) < 3:
-            fatal("invalid filing path")
+            error.fatal("invalid filing path")
 
         return LogicalPath(
             domain=StorageDomain.FILING,
             relpath=Path(*path.parts[1:]),
         )
 
-    fatal(f"invalid path: {path}")
+    error.fatal(f"invalid path: {path}")

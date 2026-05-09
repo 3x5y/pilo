@@ -87,7 +87,7 @@ class TestPromotePlan(unittest.TestCase):
         mock_exec.assert_called_once()
 
     @patch("pilo.validation.require_dataset")
-    @patch("pilo.files_equal", return_value=True)
+    @patch("pilo.fs.files_equal", return_value=True)
     def test_existing_identical_file_becomes_noop(
         self,
         mock_equal,

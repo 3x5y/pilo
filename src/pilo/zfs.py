@@ -1,5 +1,7 @@
 import subprocess
 
+from . import error
+
 
 def simple_pipe(src_cmd, sink_cmd):
     source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
@@ -7,7 +9,7 @@ def simple_pipe(src_cmd, sink_cmd):
     source.stdout.close()
     sink.communicate()
     if source.wait() != 0 or sink.returncode != 0:
-        fatal("replication failed")
+        error.fatal("replication failed")
 
 
 def dataset_exists(dataset):
@@ -111,7 +113,7 @@ def get_latest_guid(dataset):
 
 def snapshot(name: str, dataset: str):
     if not dataset:
-        fatal("dataset required for snapshot")
+        error.fatal("dataset required for snapshot")
     cmd = ["zfs", "snapshot", "-r", f"{dataset}@{name}"]
     subprocess.run(cmd, check=True)
 
@@ -190,5 +192,3 @@ def send_recv(src_snap, dst, recursive=False):
 
 def mount():
     subprocess.run(["zfs", "mount", "-a"], check=True)
-
-

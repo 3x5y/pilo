@@ -6,9 +6,9 @@ import shutil
 import subprocess
 import sys
 
-import pilo
-from .paths import parse_logical_path, ResolvedPath, StorageDomain
-from .validation import require_child_dataset
+from . import fs
+from . import paths
+from . import validation
 
 
 @dataclass(frozen=True)
@@ -17,7 +17,7 @@ class DatasetMapping:
     dst_root: str
 
     def _suffix(self, dataset: str, root: str) -> str:
-        require_child_dataset(dataset, root)
+        validation.require_child_dataset(dataset, root)
         return dataset[len(root):].lstrip("/")
 
     def map(self, dataset: str) -> str:
@@ -29,10 +29,10 @@ class DatasetMapping:
         return f"{self.src_root}/{suffix}" if suffix else self.src_root
 
     def validate_within_src(self, dataset: str):
-        require_child_dataset(dataset, self.src_root)
+        validation.require_child_dataset(dataset, self.src_root)
 
     def validate_within_dst(self, dataset: str):
-        require_child_dataset(dataset, self.dst_root)
+        validation.require_child_dataset(dataset, self.dst_root)
 
 
 class Context:
@@ -60,27 +60,27 @@ class Context:
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
 
-    def resolve(self, rel: Path) -> ResolvedPath:
-        logical = parse_logical_path(rel)
+    def resolve(self, rel: Path) -> paths.ResolvedPath:
+        logical = paths.parse_logical_path(rel)
 
-        if logical.domain == StorageDomain.PILE:
-            return ResolvedPath(
+        if logical.domain == paths.StorageDomain.PILE:
+            return paths.ResolvedPath(
                 logical=logical,
                 physical=self.pile_path / logical.relpath,
                 dataset=self.pile_dataset,
             )
 
-        if logical.domain == StorageDomain.COLLECTION:
-            return ResolvedPath(
+        if logical.domain == paths.StorageDomain.COLLECTION:
+            return paths.ResolvedPath(
                 logical=logical,
                 physical=self.collection_path / logical.relpath,
                 dataset=self.collection_dataset,
             )
 
-        if logical.domain == StorageDomain.FILING:
+        if logical.domain == paths.StorageDomain.FILING:
             subset = logical.relpath.parts[0]
 
-            return ResolvedPath(
+            return paths.ResolvedPath(
                 logical=logical,
                 physical=self.filing_path / logical.relpath,
                 dataset=f"{self.filing_dataset}/{subset}",
@@ -102,21 +102,21 @@ class Context:
             shutil.chown(path, self.user, self.user)
 
     def ensure_dir(self, path):
-        pilo.ensure_dir_owned(self, path)
+        fs.ensure_dir_owned(self, path)
 
     def move(self, src, dst):
-        pilo.safe_move(self, src, dst)
+        fs.safe_move(self, src, dst)
 
     def copy(self, src, dst):
-        pilo.safe_copy(self, src, dst)
+        fs.safe_copy(self, src, dst)
 
     def copy_static(self, src, resolved):
-        with pilo.dataset_writable(resolved.dataset):
+        with fs.dataset_writable(resolved.dataset):
             self.copy(src, resolved.path)
 
     def remove_piled(self, path):
-        with pilo.dataset_writable(self.pile_dataset):
-            pilo.safe_unlink(path)
+        with fs.dataset_writable(self.pile_dataset):
+            fs.safe_unlink(path)
 
     def ensure_git_repo(self, path: Path):
         git_path = path / ".git"

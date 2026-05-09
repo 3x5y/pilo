@@ -38,7 +38,7 @@ class TestIngestOps(unittest.TestCase):
             )
             self.assertEqual(op.action, "move")
 
-    @patch("pilo.files_equal", return_value=True)
+    @patch("pilo.fs.files_equal", return_value=True)
     def test_build_ingest_ops_identical_file_is_noop(self, _):
         cx = pilotest.make_context()
 
@@ -63,7 +63,7 @@ class TestIngestOps(unittest.TestCase):
             self.assertEqual(len(ops), 1)
             self.assertEqual(ops[0].action, "noop")
 
-    @patch("pilo.files_equal", return_value=False)
+    @patch("pilo.fs.files_equal", return_value=False)
     def test_build_ingest_ops_conflict_fails(self, _):
         cx = pilotest.make_context()
 

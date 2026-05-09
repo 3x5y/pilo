@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import pilo
 from pilo import context, error
 from pilo.back import replication as repl
 
@@ -14,7 +13,7 @@ def main():
 
     print(f"STATUS={status.value}")
 
-    if status != pilo.ReplicationStatus.OK:
+    if status != repl.ReplicationStatus.OK:
         error.fatal(msg or "replication check failed")
 
 

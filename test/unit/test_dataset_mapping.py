@@ -1,6 +1,6 @@
 import unittest
 
-from pilo import DatasetMapping
+from pilo.context import DatasetMapping
 import pilotest
 
 

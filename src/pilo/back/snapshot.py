@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 import os
 
+from .. import error
+from .. import util
 from .. import zfs
-from ..error import fatal
-from ..util import snapshot_timestamp
 
 
 @dataclass(frozen=True)
@@ -20,9 +20,9 @@ class SnapshotPolicy:
 
 def create_snapshot_with_policy(policy: SnapshotPolicy, dataset: str, ts=None):
     if not dataset:
-        fatal("dataset required for snapshot")
+        error.fatal("dataset required for snapshot")
 
-    ts = ts or snapshot_timestamp()
+    ts = ts or util.snapshot_timestamp()
     name = policy.build_name(ts)
 
     zfs.snapshot(name, dataset)
@@ -47,7 +47,7 @@ def create_anchor(anchor_type, dataset=None):
     elif anchor_type == "rotation":
         policy = SnapshotPolicy(prefix="rotation", hold=True)
     else:
-        fatal("invalid anchor type")
+        error.fatal("invalid anchor type")
     return create_snapshot_with_policy(policy, dataset)
 
 
@@ -55,5 +55,3 @@ def create_snapshot(name, dataset=None):
     dataset = dataset or os.environ["PILO_ROOT"]
     policy = SnapshotPolicy(prefix=name, raw=True)
     return create_snapshot_with_policy(policy, dataset, ts="")
-
-

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-
 from .. import mutation
+
 
 @dataclass(frozen=True)
 class PruneOp:
