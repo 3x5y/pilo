@@ -1,36 +1,8 @@
-from contextlib import contextmanager, ExitStack
 from pathlib import Path
 import filecmp
 import hashlib
 import os
 import shutil
-
-from . import zfs
-
-
-@contextmanager
-def dataset_writable(dataset):
-    was = zfs.get_readonly(dataset)
-    if was:
-        zfs.set_readonly(dataset, False)
-    try:
-        yield
-    finally:
-        if was:
-            zfs.set_readonly(dataset, True)
-
-
-@contextmanager
-def writable_datasets(datasets):
-    seen = []
-    for ds in datasets:
-        if ds not in seen:
-            seen.append(ds)
-
-    with ExitStack() as stack:
-        for ds in seen:
-            stack.enter_context(dataset_writable(ds))
-        yield
 
 
 def list_files(root):

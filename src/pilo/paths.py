@@ -37,6 +37,17 @@ class Resolved:
     dataset: str
 
 
+def logical_namespace(rel: Path):
+    parts = rel.parts
+    if not parts:
+        return "invalid"
+    if parts[0] in ("in", "out", "sort"):
+        return "pile"
+    if parts[0] in ("collection", "filing"):
+        return "static"
+    return "invalid"
+
+
 def validate_relative_path(path: Path):
     if path.is_absolute():
         raise PathParseError("absolute paths not allowed")

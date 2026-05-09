@@ -4,6 +4,7 @@ from pathlib import Path
 from . import fs
 from . import error
 from . import manifest
+from . import zfs
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ def apply_semantic_mutation(cx, mut: SemanticMutation):
 
 def execute_semantic_mutations(cx, mutations):
     datasets = {m.dataset for m in mutations}
-    with fs.writable_datasets(datasets):
+    with zfs.writable_datasets(datasets):
         for mut in mutations:
             apply_semantic_mutation(cx, mut)
 

@@ -87,7 +87,7 @@ class TestIngestOps(unittest.TestCase):
                 ingest.build_ingest_ops(cx, [src])
 
     @patch("pilo.fs.safe_move")
-    @patch("pilo.fs.dataset_writable")
+    @patch("pilo.zfs.dataset_writable")
     def test_execute_ingest_ops_moves_files(
         self,
         mock_writable,
@@ -118,7 +118,7 @@ class TestIngestOps(unittest.TestCase):
         )
 
     @patch("pathlib.Path.unlink")
-    @patch("pilo.fs.dataset_writable")
+    @patch("pilo.zfs.dataset_writable")
     def test_execute_ingest_ops_unlinks_noop_files(
         self,
         mock_writable,
@@ -145,7 +145,7 @@ class TestIngestOps(unittest.TestCase):
         mock_unlink.assert_called_once_with()
 
     @patch("pilo.fs.safe_move")
-    @patch("pilo.fs.dataset_writable")
+    @patch("pilo.zfs.dataset_writable")
     def test_execute_ingest_ops_batches_writable_context(
         self,
         mock_writable,

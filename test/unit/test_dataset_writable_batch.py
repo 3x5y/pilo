@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, call
 
-from pilo.fs import writable_datasets
+from pilo.zfs import writable_datasets
 
 
 class TestWritableDatasets(unittest.TestCase):

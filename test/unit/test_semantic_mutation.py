@@ -77,7 +77,7 @@ class TestSemanticMutation(unittest.TestCase):
             Path("/tmp/b"),
         )
 
-    @patch("pilo.fs.writable_datasets")
+    @patch("pilo.zfs.writable_datasets")
     @patch("pilo.mutation.apply_semantic_mutation")
     def test_execute_semantic_mutations(
         self,
@@ -143,7 +143,7 @@ class TestSemanticMutation(unittest.TestCase):
         ]
 
         with patch("pilo.mutation.apply_semantic_mutation", side_effect=fake_apply):
-            with patch("pilo.fs.writable_datasets") as mock_writable:
+            with patch("pilo.zfs.writable_datasets") as mock_writable:
 
                 cm = MagicMock()
                 cm.__enter__.return_value = None
@@ -183,7 +183,7 @@ class TestSemanticMutation(unittest.TestCase):
         ]
 
         with patch(
-            "pilo.fs.writable_datasets",
+            "pilo.zfs.writable_datasets",
             return_value=FakeContext(),
         ):
             with patch(

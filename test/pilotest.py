@@ -57,6 +57,7 @@ def make_context():
         "PILO_USER": "root",
     })
 
+
 @contextmanager
 def make_tmp_context():
     with tempfile.TemporaryDirectory() as td:
@@ -74,3 +75,9 @@ def make_tmp_context():
             "PILO_STATIC_PATH": f"{td}/static",
             "PILO_USER": "root",
         })
+
+
+@contextmanager
+def tmpdir():
+    with tempfile.TemporaryDirectory() as td:
+        yield Path(td)

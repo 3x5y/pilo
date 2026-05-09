@@ -113,3 +113,22 @@ class TestStructuredLogicalParsing(unittest.TestCase):
             paths.try_parse_logical_path(
                 Path("/etc/passwd")
             )
+
+
+class TestLogicalNamespace(unittest.TestCase):
+
+    def test_namespace_for_pile_path(self):
+        result = paths.logical_namespace(Path("in/a.txt"))
+        self.assertEqual(result, "pile")
+
+    def test_namespace_for_collection_path(self):
+        result = paths.logical_namespace(Path("collection/x.jpg"))
+        self.assertEqual(result, "static")
+
+    def test_namespace_for_filing_path(self):
+        result = paths.logical_namespace(Path("filing/docs/a.pdf"))
+        self.assertEqual(result, "static")
+
+    def test_namespace_for_invalid_path(self):
+        result = paths.logical_namespace(Path("random/file.txt"))
+        self.assertEqual(result, "invalid")

@@ -1,3 +1,4 @@
+from contextlib import contextmanager, ExitStack
 import subprocess
 
 from . import error
@@ -212,3 +213,28 @@ def send_recv(src_snap, dst, recursive=False):
 
 def mount():
     subprocess.run(["zfs", "mount", "-a"], check=True)
+
+
+@contextmanager
+def dataset_writable(dataset):
+    was = get_readonly(dataset)
+    if was:
+        set_readonly(dataset, False)
+    try:
+        yield
+    finally:
+        if was:
+            set_readonly(dataset, True)
+
+
+@contextmanager
+def writable_datasets(datasets):
+    seen = []
+    for ds in datasets:
+        if ds not in seen:
+            seen.append(ds)
+
+    with ExitStack() as stack:
+        for ds in seen:
+            stack.enter_context(dataset_writable(ds))
+        yield

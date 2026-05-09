@@ -42,15 +42,15 @@ def apply_filesystem(dataset, mountpoint, readonly):
 def apply_ownership(cx):
     fs.ensure_owned(cx, cx.admin_path)
     fs.ensure_owned(cx, cx.intake_path)
-    with fs.dataset_writable(cx.pile_dataset):
+    with zfs.dataset_writable(cx.pile_dataset):
         fs.ensure_owned(cx, cx.pile_path)
-    with fs.dataset_writable(cx.collection_dataset):
+    with zfs.dataset_writable(cx.collection_dataset):
         fs.ensure_owned(cx, cx.collection_path)
 
 
 def ensure_runtime_dirs(cx):
     pile = cx.pile_path
-    with fs.dataset_writable(cx.pile_dataset):
+    with zfs.dataset_writable(cx.pile_dataset):
         fs.ensure_dir_owned(cx, pile / "in")
         fs.ensure_dir_owned(cx, pile / "sort")
         fs.ensure_dir_owned(cx, pile / "out")
