@@ -13,7 +13,7 @@ def main():
         cx.admin_dataset,
         cx.intake_dataset,
         cx.pile_dataset,
-        #cx.collection_dataset,
+        cx.collection_dataset,
     ]
     for ds in datasets:
         checks.require_dataset(ds)

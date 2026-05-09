@@ -1,56 +1,58 @@
-import unittest
 from pathlib import Path
+import unittest
 
-from pilo.storage_policy import StoragePolicy
 from pilo import paths
+from pilo.context import StoragePolicy
 import pilotest
 
 
 class TestStoragePolicy(unittest.TestCase):
 
-    def setUp(self):
-        self.policy = StoragePolicy(
-            pile_path=Path("/tmp/pile"),
-            static_path=Path("/tmp/static"),
-            pile_dataset="tank/a/pile",
-            static_dataset="tank/a/static",
-        )
+    def test_pile_policy(self):
+        cx = pilotest.make_context()
 
-    def test_map_pile(self):
-        p = self.policy.resolve(
-            paths.LogicalPath(
-                domain=paths.StorageDomain.PILE,
-                relpath=Path("in/a.txt"),
-            )
-        )
+        sp = StoragePolicy.for_domain(cx, paths.StorageDomain.PILE)
 
-        self.assertEqual(p.physical, Path("/tmp/pile/in/a.txt"))
-        self.assertEqual(p.dataset, "tank/a/pile")
+        self.assertEqual(sp.domain, paths.StorageDomain.PILE)
+        self.assertEqual(sp.root_path, Path("/tmp/pile"))
+        self.assertEqual(sp.root_dataset, "tank/a/pile")
 
-    def test_map_collection(self):
-        p = self.policy.resolve(
-            paths.LogicalPath(
-                domain=paths.StorageDomain.COLLECTION,
-                relpath=Path("x.jpg"),
-            )
-        )
+    def test_collection_policy(self):
+        cx = pilotest.make_context()
 
-        self.assertEqual(p.physical, Path("/tmp/static/collection/x.jpg"))
-        self.assertEqual(p.dataset, "tank/a/static/collection")
+        sp = StoragePolicy.for_domain(cx, paths.StorageDomain.COLLECTION)
 
-    def test_map_filing(self):
-        p = self.policy.resolve(
-            paths.LogicalPath(
-                domain=paths.StorageDomain.FILING,
-                relpath=Path("docs/a.pdf"),
-            )
-        )
+        self.assertEqual(sp.root_path, Path("/tmp/static/collection"))
+        self.assertEqual(sp.root_dataset, "tank/a/static/collection")
 
-        self.assertEqual(p.physical, Path("/tmp/static/filing/docs/a.pdf"))
-        self.assertEqual(p.dataset, "tank/a/static/filing/docs")
+    def test_filing_policy(self):
+        cx = pilotest.make_context()
 
-    def test_invalid_domain_raises(self):
-        with self.assertRaises(ValueError):
-            self.policy.resolve(
-                "not-a-logical-path"
-            )
+        sp = StoragePolicy.for_domain(cx, paths.StorageDomain.FILING)
+
+        self.assertEqual(sp.root_path, Path("/tmp/static/filing"))
+        self.assertEqual(sp.root_dataset, "tank/a/static/filing")
+
+    def test_policy_physical_path(self):
+        cx = pilotest.make_context()
+
+        sp = StoragePolicy.for_domain(cx, paths.StorageDomain.COLLECTION)
+        result = sp.physical_path(Path("photo.jpg"))
+
+        self.assertEqual(result, Path("/tmp/static/collection/photo.jpg"))
+
+    def test_policy_dataset_for_collection(self):
+        cx = pilotest.make_context()
+
+        sp = StoragePolicy.for_domain(cx, paths.StorageDomain.COLLECTION)
+        result = sp.dataset_for(Path("photo.jpg"))
+
+        self.assertEqual(result, "tank/a/static/collection")
+
+    def test_policy_dataset_for_filing(self):
+        cx = pilotest.make_context()
+
+        sp = StoragePolicy.for_domain(cx, paths.StorageDomain.FILING)
+        result = sp.dataset_for(Path("books/a.pdf"))
+
+        self.assertEqual(result, "tank/a/static/filing/books")
