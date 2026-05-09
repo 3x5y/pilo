@@ -6,7 +6,7 @@ import sys
 
 from . import error
 from . import paths
-from . import validation
+from . import policy
 
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class DatasetMapping:
     dst_root: str
 
     def _suffix(self, dataset: str, root: str) -> str:
-        validation.require_child_dataset(dataset, root)
+        policy.require_child_dataset(dataset, root)
         return dataset[len(root):].lstrip("/")
 
     def map(self, dataset: str) -> str:
@@ -27,10 +27,10 @@ class DatasetMapping:
         return f"{self.src_root}/{suffix}" if suffix else self.src_root
 
     def validate_within_src(self, dataset: str):
-        validation.require_child_dataset(dataset, self.src_root)
+        policy.require_child_dataset(dataset, self.src_root)
 
     def validate_within_dst(self, dataset: str):
-        validation.require_child_dataset(dataset, self.dst_root)
+        policy.require_child_dataset(dataset, self.dst_root)
 
 
 class Context:

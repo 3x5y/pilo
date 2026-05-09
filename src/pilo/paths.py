@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from . import error
+
 
 class PathParseError(ValueError):
     pass
@@ -44,7 +46,6 @@ def validate_relative_path(path: Path):
 
 
 def parse_logical_path(path: Path) -> LogicalPath:
-    from . import error
     try:
         return try_parse_logical_path(path)
     except PathParseError as e:
