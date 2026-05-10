@@ -11,6 +11,19 @@ from pilo import error
 from pilo import fs
 
 
+def has_output_script(cx):
+    return (
+        len(cx.args) >= 1
+        and cx.args[0] == "--output-script"
+    )
+
+
+def output_script_path(cx):
+    if len(cx.args) < 2:
+        error.fatal("--output-script requires path")
+    return cx.args[1]
+
+
 def generate_script(before, after):
     if len(after) != len(set(after)):
         error.fatal("duplicate entries in edited list")
@@ -76,6 +89,11 @@ def build_script(before, after):
     return "\n".join(build_script_lines(before, after))
 
 
+def write_script_file(path, script):
+    with open(path, "w") as f:
+        f.write(script)
+
+
 def execute_script(script):
     cmd = "pilo rewrite".split()
     args = [script]
@@ -89,6 +107,10 @@ def interactive(cx):
         edited = edit_file(tmp)
         after = parse_edited_lines(edited)
         script = build_script(before, after)
+        if has_output_script(cx):
+            path = output_script_path(cx)
+            write_script_file(path, script)
+            return
         result = execute_script(script)
         sys.exit(result.returncode)
     finally:
