@@ -15,7 +15,7 @@ class SemanticMutation:
     dataset: str
 
 
-class dispatch:
+class exec_dispatch:
 
     @staticmethod
     def move(cx, mut):
@@ -34,10 +34,38 @@ class dispatch:
         fs.safe_rmdir(mut.src)
 
 
+class render_dispatch:
+
+    @staticmethod
+    def move(mut):
+        return f"move {mut.src} -> {mut.dst}"
+
+    @staticmethod
+    def copy(mut):
+        return f"copy {mut.src} -> {mut.dst}"
+
+    @staticmethod
+    def unlink(mut):
+        return f"unlink {mut.src}"
+
+    @staticmethod
+    def rmdir(mut):
+        return f"rmdir {mut.src}"
+
+
+def render_mutation(mut):
+    func = getattr(render_dispatch, mut.action)
+    return func(mut)
+
+
+def render_mutations(mutations):
+    return [render_mutation(m) for m in mutations]
+
+
 def apply_semantic_mutation(cx, mut: SemanticMutation):
 
     try:
-        func = getattr(dispatch, mut.action)
+        func = getattr(exec_dispatch, mut.action)
     except AttributeError:
         error.fatal(f"unsupported mutation action: {mut.action}")
 
