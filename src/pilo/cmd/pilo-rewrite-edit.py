@@ -19,6 +19,24 @@ def generate_script(before, after):
             yield f"mv\t{old}\t{new}"
 
 
+def parse_edited_lines(lines):
+    return [
+        line.strip()
+        for line in lines
+        if line.strip()
+    ]
+
+
+def build_script_lines(before, after):
+
+    if len(after) != len(set(after)):
+        error.fatal("duplicate entries in edited list")
+
+    for old, new in zip(before, after):
+        if old != new:
+            yield f"mv\t{old}\t{new}"
+
+
 def list_files(cx):
     return sorted(
         str(p.relative_to(cx.pile_path))
@@ -33,27 +51,48 @@ def print_files(cx):
 
 def print_script(cx, edited_lines):
     before = list_files(cx)
-    after = [line.strip() for line in edited_lines if line.strip()]
+    after = parse_edited_lines(edited_lines)
     for line in generate_script(before, after):
         print(line)
 
 
+def write_edit_buffer(lines):
+    with tempfile.NamedTemporaryFile( "w+", delete=False) as f:
+        tmp = Path(f.name)
+        for line in lines:
+            f.write(line + "\n")
+    return tmp
+
+
+def edit_file(path):
+    editor = os.environ.get("EDITOR", "vi")
+    cmd = editor.split()
+    args = [str(path)]
+    subprocess.run(cmd + args, check=True)
+    return path.read_text().splitlines()
+
+
+def build_script(before, after):
+    return "\n".join(build_script_lines(before, after))
+
+
+def execute_script(script):
+    cmd = "pilo rewrite".split()
+    args = [script]
+    return subprocess.run(cmd + args)
+
+
 def interactive(cx):
     before = list_files(cx)
-
-    with tempfile.NamedTemporaryFile("w+", delete=False) as f:
-        tmp = Path(f.name)
-        for line in before:
-            f.write(line + "\n")
-
-    editor = os.environ.get("EDITOR", "vi")
-    cmd = editor.split() + [str(tmp)]
-    subprocess.run(cmd, check=True)
-    after = tmp.read_text().splitlines()
-    script = "\n".join(generate_script(before, after))
-    result = subprocess.run(["pilo", "rewrite", script])
-    tmp.unlink(missing_ok=True)
-    sys.exit(result.returncode)
+    tmp = write_edit_buffer(before)
+    try:
+        edited = edit_file(tmp)
+        after = parse_edited_lines(edited)
+        script = build_script(before, after)
+        result = execute_script(script)
+        sys.exit(result.returncode)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def main():
