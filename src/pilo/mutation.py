@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,6 +40,34 @@ class UnlinkMutation:
 class RmdirMutation:
     path: Path
     dataset: str
+
+
+class MutationExecutor:
+
+    def __init__(self, cx):
+        self.cx = cx
+
+    def apply(self, mut):
+        raise NotImplementedError
+
+
+class LiveExecutor(MutationExecutor):
+    requires_write_access = True
+    def apply(self, mut):
+        apply_semantic_mutation(self.cx, mut)
+
+
+class PreviewExecutor(MutationExecutor):
+    requires_write_access = False
+
+    def __init__(self, cx):
+        super().__init__(cx)
+        self.rendered = []
+
+    def apply(self, mut):
+        self.rendered.append(
+            render_mutation(mut)
+        )
 
 
 class exec_dispatch:
@@ -102,6 +131,12 @@ def preview_mutations(mutations):
     return render_mutations(mutations)
 
 
+def preview_execution(cx, mutations):
+    executor = PreviewExecutor(cx)
+    execute_mutations(executor, mutations)
+    return executor.rendered
+
+
 def apply_semantic_mutation(cx, mut: SemanticMutation):
     kind = mutation_kind(mut)
     try:
@@ -111,11 +146,22 @@ def apply_semantic_mutation(cx, mut: SemanticMutation):
     func(cx, mut)
 
 
-def execute_semantic_mutations(cx, mutations):
-    datasets = {m.dataset for m in mutations}
-    with zfs.writable_datasets(datasets):
+def execute_mutations(executor, mutations):
+
+    if executor.requires_write_access:
+        datasets = {m.dataset for m in mutations}
+        context = zfs.writable_datasets(datasets)
+    else:
+        context = nullcontext()
+
+    with context:
         for mut in mutations:
-            apply_semantic_mutation(cx, mut)
+            executor.apply(mut)
+
+
+def execute_semantic_mutations(cx, mutations):
+    executor = LiveExecutor(cx)
+    execute_mutations(executor, mutations)
 
 
 def mutation_manifest_domains(mutations):

@@ -1,10 +1,12 @@
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pilo import mutation
 from pilo.front import ingest
 from pilo.front import promote
 from pilo.front import prune
+import pilotest
 
 
 class TestExecutionPreview(unittest.TestCase):
@@ -104,3 +106,101 @@ class TestExecutionPreview(unittest.TestCase):
         rendered = prune.preview_prune_plan(plan)
 
         self.assertEqual(rendered, ["rmdir /tmp/empty"])
+
+
+
+class TestMutationExecutors(unittest.TestCase):
+
+    @patch("pilo.fs.safe_move")
+    def test_live_executor_moves(self, mock_move):
+        cx = pilotest.make_context()
+
+        mut = mutation.MoveMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        ex = mutation.LiveExecutor(cx)
+
+        ex.apply(mut)
+
+        mock_move.assert_called_once_with(
+            cx,
+            Path("/tmp/a"),
+            Path("/tmp/b"),
+        )
+
+    @patch("pilo.fs.safe_move")
+    def test_preview_executor_does_not_move(self, mock_move):
+        cx = pilotest.make_context()
+
+        mut = mutation.MoveMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        ex = mutation.PreviewExecutor(cx)
+
+        ex.apply(mut)
+
+        mock_move.assert_not_called()
+
+    def test_preview_executor_collects_rendered_output(self):
+        cx = pilotest.make_context()
+
+        mut = mutation.MoveMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        ex = mutation.PreviewExecutor(cx)
+
+        ex.apply(mut)
+
+        self.assertEqual(
+            ex.rendered,
+            ["move /tmp/a -> /tmp/b"],
+        )
+
+    @patch("pilo.zfs.writable_datasets")
+    def test_preview_executor_skips_writable_context(
+        self,
+        mock_writable,
+    ):
+        cx = pilotest.make_context()
+
+        mut = mutation.MoveMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        mutation.preview_execution(cx, [mut])
+
+        mock_writable.assert_not_called()
+
+    @patch("pilo.zfs.writable_datasets")
+    @patch('pilo.fs.safe_move')
+    def test_live_execution_uses_writable_context(
+        self,
+        mock_move,
+        mock_writable,
+    ):
+        cx = pilotest.make_context()
+
+        mock_writable.return_value.__enter__.return_value = None
+        mock_writable.return_value.__exit__.return_value = None
+
+        mut = mutation.MoveMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        mutation.execute_semantic_mutations(cx, [mut])
+
+        mock_writable.assert_called_once_with({"tank/a"})
+        mock_move.assert_called_once_with(cx, mut.src, mut.dst)
