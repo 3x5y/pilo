@@ -3,6 +3,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
+from pilo import mutation
 from pilo import paths
 from pilo.front import promote
 import pilotest
@@ -65,8 +66,8 @@ class TestPromotePlan(unittest.TestCase):
 
         muts = promote.promote_plan_mutations(ops)
         self.assertEqual(len(muts), 2)
-        self.assertEqual(muts[0].action, "copy")
-        self.assertEqual(muts[1].action, "unlink")
+        self.assertIsInstance(muts[0], mutation.CopyMutation)
+        self.assertIsInstance(muts[1], mutation.UnlinkMutation)
 
     @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):

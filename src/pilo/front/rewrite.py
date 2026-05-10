@@ -105,8 +105,7 @@ def rewrite_plan_mutations(plan):
             # currently unimplemented; throw error
             1/0
             mutations.append(
-                mutation.SemanticMutation(
-                    action="unlink",
+                mutation.UnlinkMutation(
                     src=op.src.path,
                     dst=None,
                     dataset=op.src.dataset,
@@ -114,8 +113,7 @@ def rewrite_plan_mutations(plan):
             )
         else:
             mutations.append(
-                mutation.SemanticMutation(
-                    action="move",
+                mutation.MoveMutation(
                     src=op.src.path,
                     dst=op.dst.path,
                     dataset=op.src.dataset,

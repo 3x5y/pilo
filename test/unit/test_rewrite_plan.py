@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch, call
 from pathlib import Path
 
+from pilo import mutation
 from pilo import paths
 from pilo.front import rewrite
 import pilotest
@@ -86,7 +87,7 @@ class TestRewritePlan(unittest.TestCase):
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]
-        self.assertEqual(mut.action, "move")
+        self.assertIsInstance(mut, mutation.MoveMutation)
         self.assertEqual(mut.src, Path("/tmp/a"))
         self.assertEqual(mut.dst, Path("/tmp/b"))
         self.assertEqual(mut.dataset, "tank/a/pile")

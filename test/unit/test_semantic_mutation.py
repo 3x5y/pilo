@@ -10,14 +10,12 @@ import pilotest
 class TestSemanticMutation(unittest.TestCase):
 
     def test_semantic_mutation_model(self):
-        mut = mutation.SemanticMutation(
-            action="move",
+        mut = mutation.MoveMutation(
             src=Path("/tmp/a"),
             dst=Path("/tmp/b"),
             dataset="tank/a/pile",
         )
 
-        self.assertEqual(mut.action, "move")
         self.assertEqual(mut.src, Path("/tmp/a"))
         self.assertEqual(mut.dst, Path("/tmp/b"))
         self.assertEqual(mut.dataset, "tank/a/pile")
@@ -26,8 +24,7 @@ class TestSemanticMutation(unittest.TestCase):
     def test_apply_move_mutation(self, mock_move):
         cx = pilotest.make_context()
 
-        mut = mutation.SemanticMutation(
-            action="move",
+        mut = mutation.MoveMutation(
             src=Path("/tmp/a"),
             dst=Path("/tmp/b"),
             dataset="tank/a/pile",
@@ -47,10 +44,8 @@ class TestSemanticMutation(unittest.TestCase):
 
         src = Path("/tmp/a")
 
-        mut = mutation.SemanticMutation(
-            action="unlink",
-            src=src,
-            dst=None,
+        mut = mutation.UnlinkMutation(
+            path=src,
             dataset="tank/a/pile",
         )
 
@@ -62,8 +57,7 @@ class TestSemanticMutation(unittest.TestCase):
     def test_apply_copy_mutation(self, mock_copy):
         cx = pilotest.make_context()
 
-        mut = mutation.SemanticMutation(
-            action="copy",
+        mut = mutation.CopyMutation(
             src=Path("/tmp/a"),
             dst=Path("/tmp/b"),
             dataset="tank/a/static",
@@ -204,8 +198,7 @@ class TestMutationDispatch(unittest.TestCase):
     def test_move_dispatch(self, move):
         cx = pilotest.make_context()
 
-        mut = mutation.SemanticMutation(
-            action="move",
+        mut = mutation.MoveMutation(
             src=Path("/src"),
             dst=Path("/dst"),
             dataset="tank/a",
@@ -223,8 +216,7 @@ class TestMutationDispatch(unittest.TestCase):
     def test_copy_dispatch(self, copy):
         cx = pilotest.make_context()
 
-        mut = mutation.SemanticMutation(
-            action="copy",
+        mut = mutation.CopyMutation(
             src=Path("/src"),
             dst=Path("/dst"),
             dataset="tank/a",
@@ -250,3 +242,133 @@ class TestMutationDispatch(unittest.TestCase):
 
         with pilotest.assert_fatal(self):
             mutation.apply_semantic_mutation(cx, mut)
+
+
+class TestMutationTypes(unittest.TestCase):
+
+    def test_move_mutation(self):
+        m = mutation.MoveMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        self.assertEqual(m.src, Path("/tmp/a"))
+        self.assertEqual(m.dst, Path("/tmp/b"))
+        self.assertEqual(m.dataset, "tank/a")
+
+    def test_copy_mutation(self):
+        m = mutation.CopyMutation(
+            src=Path("/tmp/a"),
+            dst=Path("/tmp/b"),
+            dataset="tank/a",
+        )
+
+        self.assertEqual(m.src, Path("/tmp/a"))
+        self.assertEqual(m.dst, Path("/tmp/b"))
+
+    def test_unlink_mutation(self):
+        m = mutation.UnlinkMutation(
+            path=Path("/tmp/a"),
+            dataset="tank/a",
+        )
+
+        self.assertEqual(m.path, Path("/tmp/a"))
+
+    def test_rmdir_mutation(self):
+        m = mutation.RmdirMutation(
+            path=Path("/tmp/a"),
+            dataset="tank/a",
+        )
+
+        self.assertEqual(m.path, Path("/tmp/a"))
+
+
+class TestMutationRender(unittest.TestCase):
+
+    def test_render_move(self):
+        mut = mutation.MoveMutation(
+            src=Path("/src"),
+            dst=Path("/dst"),
+            dataset="tank/a",
+        )
+
+        result = mutation.render_mutation(mut)
+
+        self.assertEqual(
+            result,
+            "move /src -> /dst",
+        )
+
+    def test_render_copy(self):
+        mut = mutation.CopyMutation(
+            src=Path("/a"),
+            dst=Path("/b"),
+            dataset="tank/a",
+        )
+
+        result = mutation.render_mutation(mut)
+
+        self.assertEqual(
+            result,
+            "copy /a -> /b",
+        )
+
+    def test_render_unlink(self):
+        mut = mutation.UnlinkMutation(
+            path=Path("/tmp/a"),
+            dataset="tank/a",
+        )
+
+        result = mutation.render_mutation(mut)
+
+        self.assertEqual(
+            result,
+            "unlink /tmp/a",
+        )
+
+    def test_render_rmdir(self):
+        mut = mutation.RmdirMutation(
+            path=Path("/tmp/dir"),
+            dataset="tank/a",
+        )
+
+        result = mutation.render_mutation(mut)
+
+        self.assertEqual(
+            result,
+            "rmdir /tmp/dir",
+        )
+
+    def test_render_multiple(self):
+        muts = [
+            mutation.UnlinkMutation(
+                path=Path("/a"),
+                dataset="tank/a",
+            ),
+            mutation.RmdirMutation(
+                path=Path("/b"),
+                dataset="tank/a",
+            ),
+        ]
+
+        result = mutation.render_mutations(muts)
+
+        self.assertEqual(
+            result,
+            [
+                "unlink /a",
+                "rmdir /b",
+            ],
+        )
+
+    def test_render_unknown_action_fails(self):
+        mut = mutation.SemanticMutation(
+            action="invalid",
+            src=None,
+            dst=None,
+            dataset="tank/a",
+        )
+
+        with self.assertRaises(AttributeError):
+            mutation.render_mutation(mut)

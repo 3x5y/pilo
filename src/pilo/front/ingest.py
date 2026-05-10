@@ -47,8 +47,7 @@ def ingest_plan_mutations(plan):
     for op in plan.ops:
         if op.action == "move":
             muts.append(
-                mutation.SemanticMutation(
-                    action="move",
+                mutation.MoveMutation(
                     src=op.src,
                     dst=op.dst,
                     dataset=op.dataset,
@@ -56,10 +55,8 @@ def ingest_plan_mutations(plan):
             )
         elif op.action == "noop":
             muts.append(
-                mutation.SemanticMutation(
-                    action="unlink",
-                    src=op.src,
-                    dst=None,
+                mutation.UnlinkMutation(
+                    path=op.src,
                     dataset=op.dataset,
                 )
             )

@@ -3,6 +3,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
+from pilo import mutation
 from pilo import paths
 from pilo.front import replace
 import pilotest
@@ -87,7 +88,7 @@ class TestReplacePlan(unittest.TestCase):
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]
-        self.assertEqual(mut.action, "copy")
+        self.assertIsInstance(mut, mutation.CopyMutation)
         self.assertEqual(mut.src, Path("/tmp/src"))
         self.assertEqual(mut.dst, Path("/tmp/dst"))
         self.assertEqual(
@@ -145,7 +146,7 @@ class TestReplacePlan(unittest.TestCase):
         self.assertEqual(len(muts), 1)
 
         mut = muts[0]
-        self.assertEqual(mut.action, "copy")
+        self.assertIsInstance(mut, mutation.CopyMutation)
         self.assertEqual(mut.src, Path("/tmp/src.txt"))
         self.assertEqual(
             mut.dst,

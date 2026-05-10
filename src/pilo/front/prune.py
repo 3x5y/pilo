@@ -45,10 +45,8 @@ def build_prune_plan(root, dataset):
 
 def prune_mutations(plan):
     def build(op):
-        return mutation.SemanticMutation(action="rmdir",
-                                src=op.path,
-                                dst=None,
-                                dataset=op.dataset)
+        return mutation.RmdirMutation(path=op.path,
+                                      dataset=op.dataset)
     return [build(op) for op in plan.ops]
 
 

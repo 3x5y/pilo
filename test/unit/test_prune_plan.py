@@ -68,16 +68,14 @@ class TestPrunePlan(unittest.TestCase):
         muts = prune.prune_mutations(plan)
 
         self.assertEqual(len(muts), 1)
-        self.assertEqual(muts[0].action, "rmdir")
-        self.assertEqual(muts[0].src, Path("/tmp/pile/x"))
+        self.assertIsInstance(muts[0], mutation.RmdirMutation)
+        self.assertEqual(muts[0].path, Path("/tmp/pile/x"))
 
     @patch("pilo.fs.safe_rmdir")
     def test_apply_rmdir_mutation(self, mock_rmdir):
         cx = pilotest.make_context()
-        mut = mutation.SemanticMutation(
-            action="rmdir",
-            src=Path("/tmp/x"),
-            dst=None,
+        mut = mutation.RmdirMutation(
+            path=Path("/tmp/x"),
             dataset="tank/a/pile",
         )
 

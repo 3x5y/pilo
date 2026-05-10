@@ -33,10 +33,9 @@ def execute_replace_plan(cx, plan):
 
 def replace_plan_mutations(plan):
     def build(op):
-        return mutation.SemanticMutation(action="copy",
-                                src=op.src,
-                                dst=op.dst.path,
-                                dataset=op.dst.dataset)
+        return mutation.CopyMutation(src=op.src,
+                                     dst=op.dst.path,
+                                     dataset=op.dst.dataset)
     return [build(op) for op in plan.ops]
 
 

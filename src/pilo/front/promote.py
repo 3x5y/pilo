@@ -97,10 +97,18 @@ def execute_promote_plan(cx, plan):
 
 def promote_plan_mutations(ops):
     def build(op):
-        return mutation.SemanticMutation(action=op.action,
-                                src=op.src,
-                                dst=op.dst,
-                                dataset=op.dataset)
+        if op.action == "copy":
+            return mutation.CopyMutation(
+                src=op.src,
+                dst=op.dst,
+                dataset=op.dataset,
+            )
+
+        if op.action == "unlink":
+            return mutation.UnlinkMutation(
+                path=op.src,
+                dataset=op.dataset,
+            )
     return [build(op) for op in ops]
 
 
