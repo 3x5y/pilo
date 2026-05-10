@@ -98,6 +98,10 @@ def render_mutations(mutations):
     return [render_mutation(m) for m in mutations]
 
 
+def preview_mutations(mutations):
+    return render_mutations(mutations)
+
+
 def apply_semantic_mutation(cx, mut: SemanticMutation):
     kind = mutation_kind(mut)
     try:

@@ -90,6 +90,11 @@ def build_rewrite_plan(cx, ops):
     return RewritePlan(ops=resolved)
 
 
+def preview_rewrite_plan(plan):
+    muts = rewrite_plan_mutations(plan)
+    return mutation.preview_mutations(muts)
+
+
 def execute_rewrite_plan(cx, plan):
     muts = rewrite_plan_mutations(plan)
     mutation.execute_semantic_mutations(cx, muts)

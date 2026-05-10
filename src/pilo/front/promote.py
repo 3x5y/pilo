@@ -90,12 +90,17 @@ def build_promote_plan(cx):
     return PromotePlan(ops=ops)
 
 
+def preview_promote_plan(plan):
+    muts = promote_plan_mutations(plan)
+    return mutation.preview_mutations(muts)
+
+
 def execute_promote_plan(cx, plan):
-    muts = promote_plan_mutations(plan.ops)
+    muts = promote_plan_mutations(plan)
     mutation.execute_semantic_mutations(cx, muts)
 
 
-def promote_plan_mutations(ops):
+def promote_plan_mutations(plan):
     def build(op):
         if op.action == "copy":
             return mutation.CopyMutation(
@@ -109,6 +114,6 @@ def promote_plan_mutations(ops):
                 path=op.src,
                 dataset=op.dataset,
             )
-    return [build(op) for op in ops]
+    return [build(op) for op in plan.ops]
 
 

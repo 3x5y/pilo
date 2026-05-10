@@ -49,22 +49,24 @@ class TestPromotePlan(unittest.TestCase):
 
 
     def test_promote_mutations(self):
-        ops = [
-            promote.PromoteOp(
-                action="copy",
-                src=Path("/tmp/a"),
-                dst=Path("/tmp/static/a"),
-                dataset="tank/a/static/collection",
-            ),
-            promote.PromoteOp(
-                action="unlink",
-                src=Path("/tmp/a"),
-                dst=None,
-                dataset="tank/a/pile",
-            ),
-        ]
+        plan = promote.PromotePlan(
+            ops = [
+                promote.PromoteOp(
+                    action="copy",
+                    src=Path("/tmp/a"),
+                    dst=Path("/tmp/static/a"),
+                    dataset="tank/a/static/collection",
+                ),
+                promote.PromoteOp(
+                    action="unlink",
+                    src=Path("/tmp/a"),
+                    dst=None,
+                    dataset="tank/a/pile",
+                ),
+            ]
+        )
 
-        muts = promote.promote_plan_mutations(ops)
+        muts = promote.promote_plan_mutations(plan)
         self.assertEqual(len(muts), 2)
         self.assertIsInstance(muts[0], mutation.CopyMutation)
         self.assertIsInstance(muts[1], mutation.UnlinkMutation)

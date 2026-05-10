@@ -26,6 +26,11 @@ def build_replace_plan(cx, src, dst_rel):
     return ReplacePlan(ops=[op])
 
 
+def preview_replace_plan(plan):
+    muts = replace_plan_mutations(plan)
+    return mutation.preview_mutations(muts)
+
+
 def execute_replace_plan(cx, plan):
     muts = replace_plan_mutations(plan)
     mutation.execute_semantic_mutations(cx, muts)
