@@ -90,9 +90,9 @@ def build_promote_plan(cx):
     return PromotePlan(ops=ops)
 
 
-def preview_promote_plan(plan):
+def preview_promote_plan(cx, plan):
     muts = promote_plan_mutations(plan)
-    return mutation.preview_mutations(muts)
+    return mutation.preview_execution_rendered(cx, muts)
 
 
 def execute_promote_plan(cx, plan):

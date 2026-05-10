@@ -50,9 +50,9 @@ def prune_mutations(plan):
     return [build(op) for op in plan.ops]
 
 
-def preview_prune_plan(plan):
+def preview_prune_plan(cx, plan):
     muts = prune_mutations(plan)
-    return mutation.preview_mutations(muts)
+    return mutation.preview_execution_rendered(cx, muts)
 
 
 def execute_prune_plan(cx, ops):

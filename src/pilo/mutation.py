@@ -42,6 +42,14 @@ class RmdirMutation:
     dataset: str
 
 
+@dataclass(frozen=True)
+class OperationEvent:
+    kind: str
+    src: Path
+    dst: Path | None
+    dataset: str
+
+
 class MutationExecutor:
 
     def __init__(self, cx):
@@ -62,12 +70,11 @@ class PreviewExecutor(MutationExecutor):
 
     def __init__(self, cx):
         super().__init__(cx)
-        self.rendered = []
+        self.events = []
 
     def apply(self, mut):
-        self.rendered.append(
-            render_mutation(mut)
-        )
+        e = event_for_mutation(mut)
+        self.events.append(e)
 
 
 class exec_dispatch:
@@ -134,7 +141,12 @@ def preview_mutations(mutations):
 def preview_execution(cx, mutations):
     executor = PreviewExecutor(cx)
     execute_mutations(executor, mutations)
-    return executor.rendered
+    return executor.events
+
+
+def preview_execution_rendered(cx, mutations):
+    events = preview_execution(cx, mutations)
+    return render_events(events)
 
 
 def apply_semantic_mutation(cx, mut: SemanticMutation):
@@ -176,3 +188,57 @@ def mutation_manifest_domains(mutations):
 def build_manifest_plan_for_mutations(cx, mutations):
     domains = sorted(mutation_manifest_domains(mutations))
     return manifest.build_manifest_update_plan(cx, domains)
+
+
+def event_for_mutation(mut):
+
+    if isinstance(mut, MoveMutation):
+        return OperationEvent(
+            kind="move",
+            src=mut.src,
+            dst=mut.dst,
+            dataset=mut.dataset,
+        )
+
+    if isinstance(mut, CopyMutation):
+        return OperationEvent(
+            kind="copy",
+            src=mut.src,
+            dst=mut.dst,
+            dataset=mut.dataset,
+        )
+
+    if isinstance(mut, UnlinkMutation):
+        return OperationEvent(
+            kind="unlink",
+            src=mut.path,
+            dst=None,
+            dataset=mut.dataset,
+        )
+
+    if isinstance(mut, RmdirMutation):
+        return OperationEvent(
+            kind="rmdir",
+            src=mut.path,
+            dst=None,
+            dataset=mut.dataset,
+        )
+
+    error.fatal(
+        f"unsupported mutation type: {type(mut).__name__}"
+    )
+
+
+def render_event(ev):
+    if ev.dst is None:
+        return f"{ev.kind} {ev.src}"
+    return f"{ev.kind} {ev.src} -> {ev.dst}"
+
+
+def render_mutation(mut):
+    ev = event_for_mutation(mut)
+    return render_event(ev)
+
+
+def render_events(events):
+    return [render_event(ev) for ev in events]

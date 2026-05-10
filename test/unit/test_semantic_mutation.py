@@ -370,5 +370,6 @@ class TestMutationRender(unittest.TestCase):
             dataset="tank/a",
         )
 
-        with self.assertRaises(AttributeError):
+        #with self.assertRaises(AttributeError):
+        with pilotest.assert_fatal(self):
             mutation.render_mutation(mut)

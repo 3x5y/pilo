@@ -90,9 +90,9 @@ def build_rewrite_plan(cx, ops):
     return RewritePlan(ops=resolved)
 
 
-def preview_rewrite_plan(plan):
+def preview_rewrite_plan(cx, plan):
     muts = rewrite_plan_mutations(plan)
-    return mutation.preview_mutations(muts)
+    return mutation.preview_execution_rendered(cx, muts)
 
 
 def execute_rewrite_plan(cx, plan):
