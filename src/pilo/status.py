@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from . import fs
+from . import git
 from . import util
 from . import zfs
 
@@ -96,7 +97,7 @@ def check_dataset_status(cx, st: SystemStatus):
 def check_transient_status(cx, st: SystemStatus):
     for git_dir in cx.admin_path.rglob(".git"):
         repo = git_dir.parent
-        if util.git_dirty(repo):
+        if git.is_dirty(repo):
             st.warn("transient", f"repo {repo} has uncommitted changes")
 
 

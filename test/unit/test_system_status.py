@@ -71,7 +71,7 @@ class TestSystemStatusModel(unittest.TestCase):
 
         self.assertTrue(any(m.category == "incomplete" for m in st.messages))
 
-    @patch("pilo.util.git_dirty", return_value=True)
+    @patch("pilo.git.is_dirty", return_value=True)
     def test_dirty_repo(self, _):
         with pilotest.make_tmp_context() as cx:
             st = status.SystemStatus()
