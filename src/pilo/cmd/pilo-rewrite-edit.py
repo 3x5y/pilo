@@ -24,6 +24,10 @@ def output_script_path(cx):
     return cx.args[1]
 
 
+def has_apply(cx):
+    return "--apply" in cx.args
+
+
 def generate_script(before, after):
     if len(after) != len(set(after)):
         error.fatal("duplicate entries in edited list")
@@ -110,9 +114,12 @@ def interactive(cx):
         if has_output_script(cx):
             path = output_script_path(cx)
             write_script_file(path, script)
-            return
+            if not has_apply(cx):
+                return
+
         result = execute_script(script)
         sys.exit(result.returncode)
+
     finally:
         tmp.unlink(missing_ok=True)
 

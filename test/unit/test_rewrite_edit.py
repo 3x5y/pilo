@@ -219,3 +219,138 @@ class TestRewriteEdit(unittest.TestCase):
 
         with pilotest.assert_fatal(self):
             mod.output_script_path(cx)
+
+    def test_has_apply_flag(self):
+        mod = pilotest.import_command("rewrite-edit")
+
+        cx = pilotest.make_context()
+
+        cx.args = ["--apply"]
+
+        self.assertTrue(
+            mod.has_apply(cx)
+        )
+
+    def test_has_apply_flag_false(self):
+        mod = pilotest.import_command("rewrite-edit")
+
+        cx = pilotest.make_context()
+
+        self.assertFalse(
+            mod.has_apply(cx)
+        )
+
+    #@patch("pilo-rewrite-edit.execute_script")
+    #@patch("pilo-rewrite-edit.edit_file")
+    #@patch("pilo-rewrite-edit.write_edit_buffer")
+    #@patch("pilo-rewrite-edit.list_files")
+    def test_apply_flag_executes_script(
+        self,
+        #mock_list,
+        #mock_write_buffer,
+        #mock_edit,
+        #mock_execute,
+    ):
+        mod = pilotest.import_command("rewrite-edit")
+        cx = pilotest.make_context()
+        cx.args = ["--apply"]
+        tmp = Path("/tmp/edit-buffer")
+
+        def test():
+            mock_list.return_value = ["in/a.txt"]
+            mock_write_buffer.return_value = tmp
+            mock_edit.return_value = ["in/b.txt"]
+            result = unittest.mock.Mock()
+            result.returncode = 0
+            mock_execute.return_value = result
+
+            with patch("sys.exit") as mock_exit:
+                mod.interactive(cx)
+
+            mock_execute.assert_called_once()
+            mock_exit.assert_called_once_with(0)
+
+        with patch.object(mod, 'execute_script') as mock_execute:
+            with patch.object(mod, 'edit_file') as mock_edit:
+                with patch.object(mod, 'write_edit_buffer') as mock_write_buffer:
+                    with patch.object(mod, 'list_files') as mock_list:
+                        test()
+
+    #@patch("pilo-rewrite-edit.execute_script")
+    #@patch("pilo-rewrite-edit.write_script_file")
+    #@patch("pilo-rewrite-edit.edit_file")
+    #@patch("pilo-rewrite-edit.write_edit_buffer")
+    #@patch("pilo-rewrite-edit.list_files")
+    def test_output_script_without_apply_skips_execution(
+        self,
+        #mock_list,
+        #mock_write_buffer,
+        #mock_edit,
+        #mock_write_script,
+        #mock_execute,
+    ):
+        mod = pilotest.import_command("rewrite-edit")
+        cx = pilotest.make_context()
+        cx.args = [
+            "--output-script",
+            "/tmp/changes.pilo",
+        ]
+        tmp = Path("/tmp/edit-buffer")
+
+        def test():
+            mock_list.return_value = ["in/a.txt"]
+            mock_write_buffer.return_value = tmp
+            mock_edit.return_value = ["in/b.txt"]
+            mod.interactive(cx)
+            mock_write_script.assert_called_once()
+            mock_execute.assert_not_called()
+
+        with patch.object(mod, 'execute_script') as mock_execute:
+            with patch.object(mod, 'write_script_file') as mock_write_script:
+                with patch.object(mod, 'edit_file') as mock_edit:
+                    with patch.object(mod, 'write_edit_buffer') as mock_write_buffer:
+                        with patch.object(mod, 'list_files') as mock_list:
+                            test()
+
+    #@patch("pilo-rewrite-edit.execute_script")
+    #@patch("pilo-rewrite-edit.write_script_file")
+    #@patch("pilo-rewrite-edit.edit_file")
+    #@patch("pilo-rewrite-edit.write_edit_buffer")
+    #@patch("pilo-rewrite-edit.list_files")
+    def test_output_script_with_apply_executes_script(
+        self,
+        #mock_list,
+        #mock_write_buffer,
+        #mock_edit,
+        #mock_write_script,
+        #mock_execute,
+    ):
+        mod = pilotest.import_command("rewrite-edit")
+        tmp = Path("/tmp/edit-buffer")
+        cx = pilotest.make_context()
+        cx.args = [
+            "--output-script",
+            "/tmp/changes.pilo",
+            "--apply",
+        ]
+        def test():
+
+            mock_list.return_value = ["in/a.txt"]
+            mock_write_buffer.return_value = tmp
+            mock_edit.return_value = ["in/b.txt"]
+            result = unittest.mock.Mock()
+            result.returncode = 0
+            mock_execute.return_value = result
+
+            with patch("sys.exit") as mock_exit:
+                mod.interactive(cx)
+
+            mock_write_script.assert_called_once()
+            mock_execute.assert_called_once()
+            mock_exit.assert_called_once_with(0)
+        with patch.object(mod, 'execute_script') as mock_execute:
+            with patch.object(mod, 'write_script_file') as mock_write_script:
+                with patch.object(mod, 'edit_file') as mock_edit:
+                    with patch.object(mod, 'write_edit_buffer') as mock_write_buffer:
+                        with patch.object(mod, 'list_files') as mock_list:
+                            test()
