@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
 import sys
 
 from pilo import context
@@ -10,7 +11,11 @@ from pilo.front import rewrite
 
 def load_rewrite_lines(cx):
     if cx.args:
-        return cx.args[0].splitlines()
+        arg = cx.args[0]
+        path = Path(arg)
+        if path.is_file():
+            return path.read_text().splitlines()
+        return arg.splitlines()
     return sys.stdin.read().splitlines()
 
 
@@ -24,6 +29,7 @@ def main():
     ops = rewrite.parse_rewrite_ops(lines)
     plan = rewrite.build_rewrite_plan(cx, ops)
     rewrite.execute_rewrite_plan(cx, plan)
+
     doms = ["pile", "collection", "filing"]
     plan = manifest.build_manifest_update_plan(cx, doms)
     manifest.execute_manifest_update_plan(cx, plan)
