@@ -103,13 +103,6 @@ class Context:
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
 
-        #self.storage_policy = StoragePolicy(
-        #    pile_path=self.pile_path,
-        #    static_path=self.static_path,
-        #    pile_dataset=self.pile_dataset,
-        #    static_dataset=self.static_dataset,
-        #)
-
     def storage_policy(self, domain):
         return StoragePolicy.for_domain(self, domain)
 
