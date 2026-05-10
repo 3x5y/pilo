@@ -259,49 +259,6 @@ class TestRewriteCommand(unittest.TestCase):
         self.assertEqual(mock_print.call_args_list, arg_list)
 
 
-class TestRewriteScript(unittest.TestCase):
-
-    def test_script_from_lines(self):
-        script = rewrite.RewriteScript.from_lines([
-            "mv\tin/a\tin/b",
-            "mv\tin/c\tin/d",
-        ])
-
-        self.assertEqual(
-            script.lines,
-            [
-                "mv\tin/a\tin/b",
-                "mv\tin/c\tin/d",
-            ]
-        )
-
-    def test_script_parse_ops(self):
-        script = rewrite.RewriteScript.from_lines([
-            "mv\tin/a\tin/b"
-        ])
-
-        ops = script.parse_ops()
-
-        self.assertEqual(len(ops), 1)
-
-        op = ops[0]
-
-        self.assertEqual(op.kind, "mv")
-        self.assertEqual(op.src, Path("in/a"))
-        self.assertEqual(op.dst, Path("in/b"))
-
-    def test_script_ignores_blank_lines(self):
-        script = rewrite.RewriteScript.from_lines([
-            "",
-            "   ",
-            "mv\tin/a\tin/b",
-        ])
-
-        ops = script.parse_ops()
-
-        self.assertEqual(len(ops), 1)
-
-
 class TestRewriteValidateCommand(unittest.TestCase):
 
     @patch("builtins.print")
@@ -362,3 +319,122 @@ class TestRewriteValidateCommand(unittest.TestCase):
         with patch("pilo.context.Context", return_value=cx):
             with pilotest.assert_fatal(self):
                 mod.main()
+
+
+class TestRewriteScript(unittest.TestCase):
+
+    def test_script_from_lines(self):
+        script = rewrite.RewriteScript.from_lines([
+            "mv\tin/a\tin/b",
+            "mv\tin/c\tin/d",
+        ])
+
+        self.assertEqual(
+            script.lines,
+            [
+                "mv\tin/a\tin/b",
+                "mv\tin/c\tin/d",
+            ]
+        )
+
+    def test_script_parse_ops(self):
+        script = rewrite.RewriteScript.from_lines([
+            "mv\tin/a\tin/b"
+        ])
+
+        ops = script.parse_ops()
+
+        self.assertEqual(len(ops), 1)
+
+        op = ops[0]
+
+        self.assertEqual(op.kind, "mv")
+        self.assertEqual(op.src, Path("in/a"))
+        self.assertEqual(op.dst, Path("in/b"))
+
+    def test_script_ignores_blank_lines(self):
+        script = rewrite.RewriteScript.from_lines([
+            "",
+            "   ",
+            "mv\tin/a\tin/b",
+        ])
+
+        ops = script.parse_ops()
+
+        self.assertEqual(len(ops), 1)
+
+
+class TestRewriteScriptVersioning(unittest.TestCase):
+
+    def test_parse_versioned_script(self):
+        script = rewrite.RewriteScript.from_lines([
+            "#version 1",
+            "mv\tin/a\tin/b",
+        ])
+
+        ops = script.parse_ops()
+        self.assertEqual(len(ops), 1)
+        op = ops[0]
+        self.assertEqual(op.kind, "mv")
+        self.assertEqual(op.src, Path("in/a"))
+        self.assertEqual(op.dst, Path("in/b"))
+
+    def test_reject_unknown_script_version(self):
+        script = rewrite.RewriteScript.from_lines([
+            "#version 999",
+            "mv\tin/a\tin/b",
+        ])
+
+        with pilotest.assert_fatal(self):
+            script.parse_ops()
+
+    def test_legacy_script_without_version_still_works(self):
+        script = rewrite.RewriteScript.from_lines([
+            "mv\tin/a\tin/b",
+        ])
+
+        ops = script.parse_ops()
+        self.assertEqual(len(ops), 1)
+
+    def test_script_version_header_not_treated_as_command(self):
+        script = rewrite.RewriteScript.from_lines([
+            "#version 1",
+        ])
+
+        ops = script.parse_ops()
+
+        self.assertEqual(ops, [])
+
+    def test_invalid_version_header_rejected(self):
+        script = rewrite.RewriteScript.from_lines([
+            "#version x",
+        ])
+
+        with pilotest.assert_fatal(self):
+            script.parse_ops()
+
+
+class TestRewriteScriptSerialization(unittest.TestCase):
+
+    def test_render_versioned_script(self):
+        script = rewrite.RewriteScript.from_ops([
+            rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/a"),
+                dst=Path("in/b"),
+            )
+        ])
+
+        lines = [
+            "#version 1",
+            "mv\tin/a\tin/b",
+        ]
+        self.assertEqual(script.render_lines(), lines)
+
+    def test_render_empty_script(self):
+        script = rewrite.RewriteScript.from_ops([])
+
+        lines = [
+            "#version 1",
+        ]
+        self.assertEqual(script.render_lines(), lines)

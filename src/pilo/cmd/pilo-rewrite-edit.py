@@ -9,6 +9,7 @@ from pathlib import Path
 from pilo import context
 from pilo import error
 from pilo import fs
+from pilo.front import rewrite
 
 
 def has_output_script(cx):
@@ -90,7 +91,14 @@ def edit_file(path):
 
 
 def build_script(before, after):
-    return "\n".join(build_script_lines(before, after))
+
+    lines = list(build_script_lines(before, after))
+    ops = []
+    for op in lines:
+        ops += rewrite.parse_rewrite_ops([op])
+
+    script = rewrite.RewriteScript.from_ops(ops)
+    return script.render_text()
 
 
 def write_script_file(path, script):

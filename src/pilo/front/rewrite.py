@@ -9,6 +9,9 @@ from .. import paths
 from .. import policy
 
 
+SCRIPT_VERSION = 1
+
+
 @dataclass(frozen=True)
 class RewriteOp:
     kind: str
@@ -26,18 +29,6 @@ class ResolvedRewriteOp:
 @dataclass(frozen=True)
 class RewritePlan:
     ops: list[ResolvedRewriteOp]
-
-
-@dataclass(frozen=True)
-class RewriteScript:
-    lines: list[str]
-
-    @classmethod
-    def from_lines(Class, lines):
-        return Class(lines=list(lines))
-
-    def parse_ops(self):
-        return parse_rewrite_ops(self.lines)
 
 
 def parse_rewrite_ops(lines):
@@ -167,3 +158,81 @@ def rewrite_script_args(cx):
     if is_preview_mode(cx):
         return cx.args[1:]
     return cx.args
+
+
+@dataclass(frozen=True)
+class RewriteScript:
+    lines: list[str]
+
+    @classmethod
+    def from_lines(Class, lines):
+        return Class(lines=list(lines))
+
+    def parse_ops(self):
+        return parse_rewrite_ops(self.lines)
+
+    def parse_ops(self):
+        return parse_rewrite_ops(self.body_lines())
+
+    @classmethod
+    def from_ops(cls, ops):
+
+        lines = [
+            f"#version {SCRIPT_VERSION}"
+        ]
+
+        for op in ops:
+            lines.append(
+                "\t".join([
+                    op.kind,
+                    str(op.src),
+                    str(op.dst),
+                ])
+            )
+
+        return cls(lines=lines)
+
+    def version(self):
+
+        if not self.lines:
+            return None
+
+        line = self.lines[0].strip()
+
+        if not line.startswith("#version "):
+            return None
+
+        parts = line.split()
+
+        if len(parts) != 2:
+            error.fatal(
+                f"invalid version header: {line}"
+            )
+
+        try:
+            return int(parts[1])
+
+        except ValueError:
+            error.fatal(
+                f"invalid version header: {line}"
+            )
+
+    def body_lines(self):
+
+        version = self.version()
+
+        if version is None:
+            return self.lines
+
+        if version != SCRIPT_VERSION:
+            error.fatal(
+                f"unsupported script version: {version}"
+            )
+
+        return self.lines[1:]
+
+    def render_lines(self):
+        return list(self.lines)
+
+    def render_text(self):
+        return "\n".join(self.render_lines())
