@@ -27,6 +27,18 @@ class RewritePlan:
     ops: list[ResolvedRewriteOp]
 
 
+@dataclass(frozen=True)
+class RewriteScript:
+    lines: list[str]
+
+    @classmethod
+    def from_lines(Class, lines):
+        return Class(lines=list(lines))
+
+    def parse_ops(self):
+        return parse_rewrite_ops(self.lines)
+
+
 def parse_rewrite_ops(lines):
     ops = []
 

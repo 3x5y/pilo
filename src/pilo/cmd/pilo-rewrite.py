@@ -19,14 +19,19 @@ def load_rewrite_lines(cx):
     return sys.stdin.read().splitlines()
 
 
+def load_rewrite_script(cx):
+    lines = load_rewrite_lines(cx)
+    return rewrite.RewriteScript.from_lines(lines)
+
+
 def main():
     cx = context.Context()
 
-    lines = load_rewrite_lines(cx)
-    if not lines:
+    script = load_rewrite_script(cx)
+    if not script.lines:
         error.fatal("missing command")
 
-    ops = rewrite.parse_rewrite_ops(lines)
+    ops = script.parse_ops()
     plan = rewrite.build_rewrite_plan(cx, ops)
     rewrite.execute_rewrite_plan(cx, plan)
 

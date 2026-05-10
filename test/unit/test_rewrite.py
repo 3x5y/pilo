@@ -165,3 +165,80 @@ class TestRewriteCommand(unittest.TestCase):
             "mv\tin/a\tin/b",
             "mv\tin/c\tin/d",
         ])
+
+    @patch("pilo.front.rewrite.RewriteScript.from_lines")
+    @patch("pilo.manifest.execute_manifest_update_plan")
+    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.front.rewrite.execute_rewrite_plan")
+    @patch("pilo.front.rewrite.build_rewrite_plan")
+    def test_rewrite_command_uses_script_model(
+        self,
+        mock_build,
+        mock_execute,
+        mock_manifest_build,
+        mock_manifest_exec,
+        mock_script,
+    ):
+        cx = pilotest.make_context()
+
+        script = unittest.mock.Mock()
+        script.parse_ops.return_value = []
+
+        mock_script.return_value = script
+
+        with patch("pilo.context.Context", return_value=cx):
+            with patch.object(
+                cx,
+                "args",
+                ["mv\tin/a\tin/b"]
+            ):
+                mod = pilotest.import_command("rewrite")
+                mod.main()
+
+        mock_script.assert_called_once_with([
+            "mv\tin/a\tin/b"
+        ])
+
+        script.parse_ops.assert_called_once_with()
+
+class TestRewriteScript(unittest.TestCase):
+
+    def test_script_from_lines(self):
+        script = rewrite.RewriteScript.from_lines([
+            "mv\tin/a\tin/b",
+            "mv\tin/c\tin/d",
+        ])
+
+        self.assertEqual(
+            script.lines,
+            [
+                "mv\tin/a\tin/b",
+                "mv\tin/c\tin/d",
+            ]
+        )
+
+    def test_script_parse_ops(self):
+        script = rewrite.RewriteScript.from_lines([
+            "mv\tin/a\tin/b"
+        ])
+
+        ops = script.parse_ops()
+
+        self.assertEqual(len(ops), 1)
+
+        op = ops[0]
+
+        self.assertEqual(op.kind, "mv")
+        self.assertEqual(op.src, Path("in/a"))
+        self.assertEqual(op.dst, Path("in/b"))
+
+    def test_script_ignores_blank_lines(self):
+        script = rewrite.RewriteScript.from_lines([
+            "",
+            "   ",
+            "mv\tin/a\tin/b",
+        ])
+
+        ops = script.parse_ops()
+
+        self.assertEqual(len(ops), 1)
