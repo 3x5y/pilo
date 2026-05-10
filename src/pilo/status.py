@@ -34,6 +34,34 @@ class SystemStatus:
         self.messages.append(sm)
 
 
+@dataclass(frozen=True)
+class StatusCheck:
+    name: str
+    func_name: str
+
+    @property
+    def func(self):
+        return globals()[self.func_name]
+
+
+class status_checks:
+    ALL = [
+        StatusCheck("transient", "check_transient_status"),
+        StatusCheck("pile", "check_pile_status"),
+        StatusCheck("snapshot", "check_snapshot_status"),
+        StatusCheck("replication", "check_replication_status"),
+        StatusCheck("datasets", "check_dataset_status"),
+        StatusCheck("manifest", "check_manifest_status"),
+    ]
+
+    @staticmethod
+    def lookup(name):
+        for check in status_checks.ALL:
+            if check.name == name:
+                return check
+        return None
+
+
 def render_status_message(msg):
     return f"{msg.level}: {msg.category}: {msg.message}"
 
@@ -122,20 +150,9 @@ def check_manifest_status(cx, st):
 
 def collect_system_status(cx, check=None):
     st = SystemStatus()
-
-    checks = {
-        "transient": check_transient_status,
-        "pile": check_pile_status,
-        "snapshot": check_snapshot_status,
-        "replication": check_replication_status,
-        "datasets": check_dataset_status,
-        "manifest": check_manifest_status,
-    }
-
-    for name, fn in checks.items():
-        if check is None or check == name:
-            fn(cx, st)
-
+    for entry in status_checks.ALL:
+        if check is None or check == entry.name:
+            entry.func(cx, st)
     return st
 
 

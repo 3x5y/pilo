@@ -183,3 +183,38 @@ class TestSystemStatusModel(unittest.TestCase):
         status.collect_system_status(cx, check="manifest")
 
         self.assertEqual(mock_manifest.call_count, 3)
+
+
+class TestStatusRegistry(unittest.TestCase):
+
+    def test_status_checks_order(self):
+        names = [
+            check.name
+            for check in status.status_checks.ALL
+        ]
+
+        self.assertEqual(
+            names,
+            [
+                "transient",
+                "pile",
+                "snapshot",
+                "replication",
+                "datasets",
+                "manifest",
+            ],
+        )
+
+    def test_status_check_lookup(self):
+        check = status.status_checks.lookup("snapshot")
+
+        self.assertEqual(check.name, "snapshot")
+        self.assertEqual(
+            check.func,
+            status.check_snapshot_status,
+        )
+
+    def test_unknown_status_check_returns_none(self):
+        self.assertIsNone(
+            status.status_checks.lookup("missing")
+        )
