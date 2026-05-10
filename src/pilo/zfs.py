@@ -4,6 +4,32 @@ import subprocess
 from . import error
 
 
+def run(cmd, *, check=True, capture_output=False, text=True, **kw):
+    return subprocess.run(cmd,
+                          check=check,
+                          capture_output=capture_output,
+                          text=text,
+                          **kw)
+
+
+def run_get_status(cmd, **kw):
+    result = run(cmd,
+                 stdout=subprocess.DEVNULL,
+                 stderr=subprocess.DEVNULL,
+                 check=False,
+                 **kw)
+    return result.returncode
+
+
+def run_get_output(cmd, **kw):
+    result = run(cmd, capture_output=True, **kw)
+    return result.stdout
+
+
+def run_get_lines(cmd, **kw):
+    return run_get_output(cmd, **kw).strip().splitlines()
+
+
 def simple_pipe(src_cmd, sink_cmd):
     source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
     sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
@@ -14,22 +40,24 @@ def simple_pipe(src_cmd, sink_cmd):
 
 
 def dataset_exists(dataset):
-    result = subprocess.run(
-        ["zfs", "list", dataset],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return result.returncode == 0
+    cmd = "zfs list".split()
+    args = [dataset]
+    status =  run_get_status(cmd + args)
+    return status == 0
+
+
+def snapshot_exists(snap):
+    cmd = "zfs list -t snapshot".split()
+    args = [snap]
+    status =  run_get_status(cmd + args)
+    return status == 0
 
 
 def get_prop(dataset, propname):
     cmd = 'zfs get -Ho value'.split()
     args = [propname, dataset]
-    result = subprocess.run(cmd + args,
-                            capture_output=True,
-                            text=True,
-                            check=True)
-    return result.stdout.strip()
+    out = run_get_output(cmd + args)
+    return out.strip()
 
 
 def set_prop(dataset, propval, recursive=False):
@@ -37,17 +65,19 @@ def set_prop(dataset, propval, recursive=False):
         for child in list_filesystems(dataset):
             set_prop(child, propval, recursive=False)
     else:
-        cmd = ["zfs", "set", propval, dataset]
-        subprocess.run(cmd, check=True)
+        cmd = "zfs set".split()
+        args = [propval, dataset]
+        run(cmd + args)
 
 
 def get_readonly(dataset):
-    return get_prop(dataset, 'readonly') == 'on'
+    state = get_prop(dataset, 'readonly')
+    return state == 'on'
 
 
-def set_readonly(dataset, state):
-    prop = 'on' if state else 'off'
-    set_prop(dataset, f'readonly={prop}')
+def set_readonly(dataset, setting):
+    state = 'on' if setting else 'off'
+    set_prop(dataset, f'readonly={state}')
 
 
 def get_mountpoint(dataset):
@@ -71,88 +101,52 @@ def set_canmount(dataset, value):
 
 
 def list_filesystems(root):
-    result = subprocess.run(
-        ["zfs", "list", "-r", "-t", "filesystem", "-Ho", "name", root],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return [line for line in result.stdout.splitlines() if line]
+    cmd = "zfs list -r -t filesystem -Ho name".split()
+    args = [root]
+    return run_get_lines(cmd + args)
 
 
 def list_snapshots(dataset):
-    cmd = 'zfs list -t snapshot -Ho name -s creation ' + dataset
-    result = subprocess.run(
-        cmd.split(),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return [line for line in result.stdout.strip().splitlines() if line]
+    cmd = "zfs list -t snapshot -Ho name -s creation".split()
+    args = [dataset]
+    return run_get_lines(cmd + args, check=False)
 
 
 def latest_snapshot(dataset):
-    try:
-        snaps = list_snapshots(dataset)
-    except subprocess.CalledProcessError:
-        return None
-    else:
-        return snaps and snaps[-1] or None
+    snaps = list_snapshots(dataset)
+    return snaps and snaps[-1] or None
 
 
 def list_guids(dataset):
-    result = subprocess.run(
-        ["zfs", "list", "-t", "snapshot", "-Ho", "guid", dataset],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return sorted(result.stdout.splitlines())
+    cmd = "zfs list -t snapshot -Ho guid".split()
+    args = [dataset]
+    return sorted(run_get_lines(cmd + args))
 
 
 def snapshot_guids(dataset):
-    result = subprocess.run(
-        ["zfs", "list", "-t", "snapshot", "-o", "name,guid", dataset],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    lines = result.stdout.strip().splitlines()
+    cmd = "zfs list -t snapshot -o name,guid".split()
+    args = [dataset]
+    lines = run_get_lines(cmd + args)
     return [line.split() for line in lines if line]
 
 
 def get_latest_guid(dataset):
-    result = subprocess.run(
-        ["zfs", "list", "-t", "snapshot", "-Ho", "guid", "-s", "creation", dataset],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    lines = result.stdout.strip().splitlines()
+    cmd = "zfs list -t snapshot -Ho guid -s creation".split()
+    args = [dataset]
+    lines = run_get_lines(cmd + args, check=False)
     return lines[-1] if lines else None
 
 
-def snapshot(name: str, dataset: str):
-    if not dataset:
-        error.fatal("dataset required for snapshot")
-    cmd = ["zfs", "snapshot", "-r", f"{dataset}@{name}"]
-    subprocess.run(cmd, check=True)
-
-
-def hold(tag, snapshot):
-    cmd = ["zfs", "hold", "-r", tag, snapshot]
-    subprocess.run(cmd, check=True)
-
-
 def latest_snapshot_with_time(dataset):
-    cmd = ["zfs", "list", "-p", "-t", "snapshot", "-o", "name,creation", "-s", "creation", dataset]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    lines = [l for l in result.stdout.splitlines() if l.startswith(dataset + "@")]
+    cmd = "zfs list -p -t snapshot -o name,creation -s creation".split()
+    args = [dataset]
+    lines = run_get_lines(cmd + args, check=False)
+    matches = [l for l in lines if l.startswith(dataset + "@")]
 
-    if not lines:
+    if not matches:
         return None, None
 
-    name, ts = lines[-1].split()
+    name, ts = matches[-1].split()
 
     try:
         return name, int(ts)
@@ -160,59 +154,60 @@ def latest_snapshot_with_time(dataset):
         return name, None
 
 
-def destroy(dataset, recursive=True):
-    cmd = ["zfs", "destroy"]
-    if recursive:
-        cmd.append("-r")
-    cmd.append(dataset)
-    subprocess.run(cmd, check=False)
+def snapshot(name: str, dataset: str):
+    if not dataset:
+        error.fatal("dataset required for snapshot")
+    cmd = "zfs snapshot -r".split()
+    snap = f"{dataset}@{name}"
+    args = [snap]
+    run(cmd + args)
 
 
-def snapshot_exists(snap):
-    return subprocess.run(
-        ["zfs", "list", "-t", "snapshot", snap],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    ).returncode == 0
+def hold(tag, snapshot):
+    cmd = "zfs hold -r".split()
+    args = [tag, snapshot]
+    run(cmd + args)
 
 
 def create_parent(dataset):
     parent = dataset.rsplit("/", 1)[0]
     if parent and not dataset_exists(parent):
-        subprocess.run(["zfs", "create", "-p", parent], check=False)
+        cmd = "zfs create -p".split()
+        args = [parent]
+        run(cmd + args, check=False)
 
 
 def replicate_full(snapshot, dst):
-    send = ["zfs", "send", "-h", "-R", snapshot]
-    recv = ["zfs", "receive", "-u",
-            "-o", "readonly=on",
-            "-o", "mountpoint=none",
-            dst]
-    simple_pipe(send, recv)
+    send = "zfs send -h -R".split()
+    send_args = [snapshot]
+    recv = "zfs receive -u -o readonly=on -o mountpoint=none".split()
+    recv_args = [dst]
+    simple_pipe(send + send_args, recv + recv_args)
     set_prop(dst, "canmount=off", recursive=True)
 
 
 def replicate_incremental(base, snapshot, dst):
-    send = ["zfs", "send", "-h", "-R", "-I", base, snapshot]
-    recv = ["zfs", "receive", "-u",
-            "-o", "readonly=on",
-            "-o", "mountpoint=none",
-            dst]
-    simple_pipe(send, recv)
+    send = "zfs send -h -R -I".split()
+    send_args = [base, snapshot]
+    recv = "zfs receive -u -o readonly=on -o mountpoint=none".split()
+    recv_args = [dst]
+    simple_pipe(send + send_args, recv + recv_args)
     set_prop(dst, "canmount=off", recursive=True)
 
 
 def send_recv(src_snap, dst, recursive=False):
-    send_cmd = ["zfs", "send"]
+    send_cmd = "zfs send".split()
     if recursive:
         send_cmd.append("-R")
-    send_cmd.append(src_snap)
-    recv_cmd = ["zfs", "receive", dst]
-    simple_pipe(send_cmd, recv_cmd)
+    send_args = [src_snap]
+    recv_cmd = "zfs recv".split()
+    recv_args = [dst]
+    simple_pipe(send_cmd + send_args, recv_cmd + recv_args)
 
 
 def mount():
-    subprocess.run(["zfs", "mount", "-a"], check=True)
+    cmd = "zfs mount -a".split()
+    run(cmd)
 
 
 @contextmanager

@@ -126,7 +126,7 @@ class TestRecoveryPlan(unittest.TestCase):
 
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("pilo.normalize.apply_ownership")
-    @patch("subprocess.run")
+    @patch("pilo.zfs.run")
     @patch("pilo.normalize.apply_dataset_contract")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
@@ -142,8 +142,7 @@ class TestRecoveryPlan(unittest.TestCase):
 
         recover.execute_recovery_plan(plan, cx)
 
-        #mock_run.assert_called_with(["zfs", "mount", "-a"], check=True)
-        mock_run.assert_any_call(["zfs", "mount", "-a"], check=True)
+        mock_run.assert_called_with(["zfs", "mount", "-a"])
 
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")

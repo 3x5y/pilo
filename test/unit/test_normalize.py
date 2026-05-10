@@ -21,14 +21,14 @@ class TestNormalize(unittest.TestCase):
 
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
-    @patch("subprocess.run")
+    @patch("pilo.zfs.run")
     @patch("pilo.normalize.apply_dataset_contract")
     def test_normalize_mounts(self, mock_contract, mock_run, mock_dirs,
                               mock_owner):
 
         cx = make_context()
         normalize.normalize_system(cx)
-        mock_run.assert_called_once_with(["zfs", "mount", "-a"], check=True)
+        mock_run.assert_called_once_with(["zfs", "mount", "-a"])
 
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
