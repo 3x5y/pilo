@@ -14,8 +14,8 @@ def main():
     checks.require_dataset(cx.pile_dataset)
 
     files = list(fs.iter_files(cx.intake_path))
-    ops = ingest.build_ingest_ops(cx, files)
-    ingest.execute_ingest_ops(cx, ops)
+    plan = ingest.build_ingest_plan(cx, files)
+    ingest.execute_ingest_plan(cx, plan)
 
     plan = manifest.build_manifest_update_plan(cx, ["pile"])
     manifest.execute_manifest_update_plan(cx, plan)

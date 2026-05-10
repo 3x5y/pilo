@@ -13,7 +13,12 @@ class IngestOp:
     action: str
 
 
-def build_ingest_ops(cx, files):
+@dataclass(frozen=True)
+class IngestPlan:
+    ops: list[IngestOp]
+
+
+def build_ingest_plan(cx, files):
     ops = []
     for src in files:
         rel = src.relative_to(cx.intake_path)
@@ -29,17 +34,17 @@ def build_ingest_ops(cx, files):
             dataset=cx.pile_dataset,
             action=action
         ))
-    return ops
+    return IngestPlan(ops=ops)
 
 
-def execute_ingest_ops(cx, ops):
-    muts = ingest_plan_mutations(ops)
+def execute_ingest_plan(cx, plan):
+    muts = ingest_plan_mutations(plan)
     mutation.execute_semantic_mutations(cx, muts)
 
 
-def ingest_plan_mutations(ops):
+def ingest_plan_mutations(plan):
     muts = []
-    for op in ops:
+    for op in plan.ops:
         if op.action == "move":
             muts.append(
                 mutation.SemanticMutation(
