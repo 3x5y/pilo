@@ -15,20 +15,33 @@ class SemanticMutation:
     dataset: str
 
 
-def apply_semantic_mutation(cx, mut: SemanticMutation):
-    if mut.action == "move":
+class dispatch:
+
+    @staticmethod
+    def move(cx, mut):
         fs.safe_move(cx, mut.src, mut.dst)
-        return
-    if mut.action == "copy":
+
+    @staticmethod
+    def copy(cx, mut):
         fs.safe_copy(cx, mut.src, mut.dst)
-        return
-    if mut.action == "unlink":
+
+    @staticmethod
+    def unlink(cx, mut):
         fs.safe_unlink(mut.src)
-        return
-    if mut.action == "rmdir":
+
+    @staticmethod
+    def rmdir(cx, mut):
         fs.safe_rmdir(mut.src)
-        return
-    error.fatal(f"unsupported mutation action: {mut.action}")
+
+
+def apply_semantic_mutation(cx, mut: SemanticMutation):
+
+    try:
+        func = getattr(dispatch, mut.action)
+    except AttributeError:
+        error.fatal(f"unsupported mutation action: {mut.action}")
+
+    func(cx, mut)
 
 
 def execute_semantic_mutations(cx, mutations):

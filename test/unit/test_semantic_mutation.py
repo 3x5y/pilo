@@ -196,3 +196,57 @@ class TestSemanticMutation(unittest.TestCase):
             events,
             ["enter", "apply", "exit"]
         )
+
+
+class TestMutationDispatch(unittest.TestCase):
+
+    @patch("pilo.fs.safe_move")
+    def test_move_dispatch(self, move):
+        cx = pilotest.make_context()
+
+        mut = mutation.SemanticMutation(
+            action="move",
+            src=Path("/src"),
+            dst=Path("/dst"),
+            dataset="tank/a",
+        )
+
+        mutation.apply_semantic_mutation(cx, mut)
+
+        move.assert_called_once_with(
+            cx,
+            Path("/src"),
+            Path("/dst"),
+        )
+
+    @patch("pilo.fs.safe_copy")
+    def test_copy_dispatch(self, copy):
+        cx = pilotest.make_context()
+
+        mut = mutation.SemanticMutation(
+            action="copy",
+            src=Path("/src"),
+            dst=Path("/dst"),
+            dataset="tank/a",
+        )
+
+        mutation.apply_semantic_mutation(cx, mut)
+
+        copy.assert_called_once_with(
+            cx,
+            Path("/src"),
+            Path("/dst"),
+        )
+
+    def test_unknown_action_fails(self):
+        cx = pilotest.make_context()
+
+        mut = mutation.SemanticMutation(
+            action="invalid",
+            src=None,
+            dst=None,
+            dataset="tank/a",
+        )
+
+        with pilotest.assert_fatal(self):
+            mutation.apply_semantic_mutation(cx, mut)
