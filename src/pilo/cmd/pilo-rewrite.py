@@ -27,7 +27,7 @@ def load_rewrite_script(cx):
 def main():
     cx = context.Context()
 
-    script = load_rewrite_script(cx)
+    script = rewrite.load_rewrite_script(cx)
     if not script.lines:
         error.fatal("missing command")
 

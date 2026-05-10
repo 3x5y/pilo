@@ -242,3 +242,61 @@ class TestRewriteScript(unittest.TestCase):
         ops = script.parse_ops()
 
         self.assertEqual(len(ops), 1)
+
+
+class TestRewriteValidateCommand(unittest.TestCase):
+
+    @patch("pilo.front.rewrite.build_rewrite_plan")
+    def test_validate_command_builds_plan(
+        self,
+        mock_build,
+    ):
+        cx = pilotest.make_context()
+        cx.args = ["mv\tin/a\tin/b"]
+        mod = pilotest.import_command("rewrite-validate")
+
+        with patch("pilo.context.Context", return_value=cx):
+            mod.main()
+
+        mock_build.assert_called_once()
+
+    @patch("pilo.front.rewrite.execute_rewrite_plan")
+    @patch("pilo.front.rewrite.build_rewrite_plan")
+    def test_validate_command_does_not_execute(
+        self,
+        mock_build,
+        mock_execute,
+    ):
+        cx = pilotest.make_context()
+        cx.args = ["mv\tin/a\tin/b"]
+        mod = pilotest.import_command("rewrite-validate")
+
+        with patch("pilo.context.Context", return_value=cx):
+            mod.main()
+
+        mock_execute.assert_not_called()
+
+    @patch("builtins.print")
+    @patch("pilo.front.rewrite.build_rewrite_plan")
+    def test_validate_command_prints_ok(
+        self,
+        mock_build,
+        mock_print,
+    ):
+        cx = pilotest.make_context()
+        cx.args = ["mv\tin/a\tin/b"]
+        mod = pilotest.import_command("rewrite-validate")
+
+        with patch("pilo.context.Context", return_value=cx):
+            mod.main()
+
+        mock_print.assert_called_once_with("valid")
+
+    def test_validate_command_rejects_invalid_script(self):
+        cx = pilotest.make_context()
+        cx.args = ["invalid"]
+        mod = pilotest.import_command("rewrite-validate")
+
+        with patch("pilo.context.Context", return_value=cx):
+            with pilotest.assert_fatal(self):
+                mod.main()

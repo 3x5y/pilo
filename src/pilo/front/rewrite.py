@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -137,3 +138,18 @@ def rewrite_plan_mutations(plan):
                 )
             )
     return mutations
+
+
+def load_rewrite_lines(cx):
+    if cx.args:
+        arg = cx.args[0]
+        path = Path(arg)
+        if path.is_file():
+            return path.read_text().splitlines()
+        return arg.splitlines()
+    return sys.stdin.read().splitlines()
+
+
+def load_rewrite_script(cx):
+    lines = load_rewrite_lines(cx)
+    return RewriteScript.from_lines(lines)
