@@ -141,8 +141,9 @@ def rewrite_plan_mutations(plan):
 
 
 def load_rewrite_lines(cx):
-    if cx.args:
-        arg = cx.args[0]
+    args = rewrite_script_args(cx)
+    if args:
+        arg = args[0]
         path = Path(arg)
         if path.is_file():
             return path.read_text().splitlines()
@@ -153,3 +154,16 @@ def load_rewrite_lines(cx):
 def load_rewrite_script(cx):
     lines = load_rewrite_lines(cx)
     return RewriteScript.from_lines(lines)
+
+
+def is_preview_mode(cx):
+    return (
+        len(cx.args) >= 1
+        and cx.args[0] == "--preview"
+    )
+
+
+def rewrite_script_args(cx):
+    if is_preview_mode(cx):
+        return cx.args[1:]
+    return cx.args

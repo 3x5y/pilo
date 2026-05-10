@@ -1,27 +1,14 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
-import sys
-
 from pilo import context
 from pilo import error
 from pilo import manifest
 from pilo.front import rewrite
 
 
-def load_rewrite_lines(cx):
-    if cx.args:
-        arg = cx.args[0]
-        path = Path(arg)
-        if path.is_file():
-            return path.read_text().splitlines()
-        return arg.splitlines()
-    return sys.stdin.read().splitlines()
-
-
-def load_rewrite_script(cx):
-    lines = load_rewrite_lines(cx)
-    return rewrite.RewriteScript.from_lines(lines)
+def print_preview(lines):
+    for line in lines:
+        print(line)
 
 
 def main():
@@ -33,6 +20,18 @@ def main():
 
     ops = script.parse_ops()
     plan = rewrite.build_rewrite_plan(cx, ops)
+
+    if rewrite.is_preview_mode(cx):
+
+        preview = rewrite.preview_rewrite_plan(
+            cx,
+            plan,
+        )
+
+        print_preview(preview)
+
+        return
+
     rewrite.execute_rewrite_plan(cx, plan)
 
     doms = ["pile", "collection", "filing"]
