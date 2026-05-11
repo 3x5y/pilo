@@ -36,6 +36,12 @@ class ManifestUpdatePlan:
     subsets: list[ManifestSubset]
 
 
+@dataclass(frozen=True)
+class ManifestEntry:
+    checksum: str
+    path: Path
+
+
 def manifest_subset_domain(subset):
     try:
         return MANIFEST_SUBSET_DOMAINS[subset]
@@ -70,13 +76,8 @@ def dataset_manifest_subset(dataset):
 
 
 def generate_manifest_lines(root: Path, exclude=None):
-    exclude = set(exclude or [])
-    for path in sorted(fs.iter_files(root)):
-        rel = path.relative_to(root)
-        if rel in exclude:
-            continue
-        h = fs.sha256_file(path)
-        yield f"{h}  ./{rel}"
+    for entry in generate_manifest_entries(root, exclude):
+        yield render_manifest_entry(entry)
 
 
 def verify_manifest_lines(root: Path, lines, exclude=None):
@@ -90,7 +91,7 @@ def verify_manifest_lines(root: Path, lines, exclude=None):
             continue
 
         try:
-            expected, rel = line.split("  ./", 1)
+            entry = parse_manifest_line(line)
         except ValueError:
             return False
 
@@ -105,7 +106,7 @@ def verify_manifest_lines(root: Path, lines, exclude=None):
 
         actual = fs.sha256_file(path)
 
-        if actual != expected:
+        if actual != entry.checksum:
             return False
 
     return True
@@ -177,3 +178,53 @@ def commit_manifest_if_changed(cx, manifest, message):
     repo = cx.admin_path / "manifest"
     git.ensure_repo(cx, repo)
     git.commit_if_changed(cx, repo, manifest, message)
+
+
+def render_manifest_entry(entry):
+    return f"{entry.checksum}  ./{entry.path}"
+
+
+def parse_manifest_line(line):
+    try:
+        checksum, rel = line.split("  ./", 1)
+    except ValueError:
+        raise ValueError(f"invalid manifest line: {line}")
+
+    return ManifestEntry(checksum=checksum, path=Path(rel))
+
+
+def generate_manifest_entries(root: Path, exclude=None):
+    exclude = set(exclude or [])
+
+    for path in sorted(fs.iter_files(root)):
+        rel = path.relative_to(root)
+
+        if rel in exclude:
+            continue
+
+        yield ManifestEntry(
+            checksum=fs.sha256_file(path),
+            path=rel,
+        )
+
+
+def render_manifest_lines(entries):
+    for entry in entries:
+        yield render_manifest_entry(entry)
+
+
+def load_manifest_entries(path):
+    entries = []
+
+    if not path.exists():
+        return entries
+
+    for line in path.read_text().splitlines():
+        line = line.strip()
+
+        if not line:
+            continue
+
+        entries.append(parse_manifest_line(line))
+
+    return entries

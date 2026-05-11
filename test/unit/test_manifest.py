@@ -253,3 +253,117 @@ class TestManifest(unittest.TestCase):
         mock_print.assert_called_once_with(
             "OK: manifest: pile verified"
         )
+
+
+class TestManifestEntries(unittest.TestCase):
+
+    def test_manifest_entry_model(self):
+
+        entry = manifest.ManifestEntry(
+            checksum="abc123",
+            path=Path("a.txt"),
+        )
+
+        self.assertEqual(entry.checksum, "abc123")
+        self.assertEqual(entry.path, Path("a.txt"))
+
+    def test_render_manifest_entry(self):
+
+        entry = manifest.ManifestEntry(
+            checksum="deadbeef",
+            path=Path("dir/file.txt"),
+        )
+
+        line = manifest.render_manifest_entry(entry)
+
+        self.assertEqual(
+            line,
+            "deadbeef  ./dir/file.txt",
+        )
+
+    def test_parse_manifest_line(self):
+
+        entry = manifest.parse_manifest_line(
+            "abc123  ./dir/file.txt"
+        )
+
+        self.assertEqual(entry.checksum, "abc123")
+        self.assertEqual(
+            entry.path,
+            Path("dir/file.txt"),
+        )
+
+    def test_parse_manifest_line_rejects_invalid(self):
+
+        with self.assertRaises(ValueError):
+            manifest.parse_manifest_line(
+                "invalid line"
+            )
+
+    def test_generate_manifest_entries(self):
+
+        with pilotest.tmpdir() as td:
+            root = td / "capture"
+            root.mkdir()
+
+            path = root / "a.txt"
+            path.write_text("hello")
+
+            entries = list(
+                manifest.generate_manifest_entries(root)
+            )
+
+            self.assertEqual(len(entries), 1)
+
+            entry = entries[0]
+
+            self.assertEqual(entry.path, Path("a.txt"))
+
+    def test_load_manifest_entries(self):
+
+        with pilotest.tmpdir() as td:
+            mf = td / "test.manifest"
+
+            mf.write_text(
+                "aaa  ./a.txt\n"
+                "bbb  ./b.txt\n"
+            )
+
+            entries = manifest.load_manifest_entries(mf)
+
+            self.assertEqual(len(entries), 2)
+
+            self.assertEqual(
+                entries[0].path,
+                Path("a.txt"),
+            )
+
+            self.assertEqual(
+                entries[1].checksum,
+                "bbb",
+            )
+
+    def test_render_manifest_lines(self):
+
+        entries = [
+            manifest.ManifestEntry(
+                checksum="aaa",
+                path=Path("a.txt"),
+            ),
+            manifest.ManifestEntry(
+                checksum="bbb",
+                path=Path("b.txt"),
+            ),
+        ]
+
+        lines = list(
+            manifest.render_manifest_lines(entries)
+        )
+
+        self.assertEqual(
+            lines,
+            [
+                "aaa  ./a.txt",
+                "bbb  ./b.txt",
+            ]
+        )
