@@ -12,17 +12,40 @@ class CaptureSession:
     root: Path
     manifest: Path
 
+    def manifest_excludes(self):
+        return [Path(CAPTURE_MANIFEST)]
+
     def generate_manifest_lines(self):
-        return list(manifest.generate_manifest_lines(self.root))
+        exclude = self.manifest_excludes()
+        return list(manifest.generate_manifest_lines(self.root, exclude))
 
     def write_manifest(self, cx):
-        manifest.write_manifest(cx, self.root, self.manifest)
+        lines = self.generate_manifest_lines()
+        out = "\n".join(lines) + "\n" if lines else ""
+        self.manifest.write_text(out)
 
     def verify(self):
         if not self.manifest.exists():
             return False
         lines = self.manifest.read_text().splitlines()
         return manifest.verify_manifest_lines(self.root, lines)
+
+    def verify(self):
+        if not self.manifest.exists():
+            return False
+
+        lines = self.manifest.read_text().splitlines()
+
+        return manifest.verify_manifest_lines(
+            self.root,
+            lines,
+            exclude=self.manifest_excludes(),
+        )
+
+    def verify_if_present(self):
+        if not self.manifest.exists():
+            return True
+        return self.verify()
 
 
 def capture_manifest_path(root):

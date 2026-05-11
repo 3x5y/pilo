@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import capture
 from .. import checks
 from .. import mutation
 
@@ -66,3 +67,10 @@ def ingest_plan_mutations(plan):
                 )
             )
     return muts
+
+
+def ingestible_capture_files(files):
+    for path in files:
+        if path.name == capture.CAPTURE_MANIFEST:
+            continue
+        yield path

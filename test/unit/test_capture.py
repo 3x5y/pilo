@@ -78,13 +78,62 @@ class TestCaptureManifest(unittest.TestCase):
                 )
             )
 
+    def test_generate_manifest_lines_excludes_paths(self):
+
+        with pilotest.tmpdir() as td:
+
+            root = td / "capture"
+            root.mkdir()
+
+            data = root / "a.txt"
+            meta = root / "capture.manifest"
+
+            data.write_text("hello")
+            meta.write_text("metadata")
+
+            lines = list(
+                manifest.generate_manifest_lines(
+                    root,
+                    exclude=[Path("capture.manifest")],
+                )
+            )
+
+            self.assertEqual(len(lines), 1)
+            self.assertIn("./a.txt", lines[0])
+
+    def test_capture_session_manifest_excludes_self(self):
+
+        with pilotest.make_tmp_context() as cx:
+
+            root = cx.intake_path
+            root.mkdir()
+
+            path = root / "a.txt"
+            path.write_text("hello")
+
+            session = capture.capture_session(root)
+
+            session.write_manifest(cx)
+
+            lines = (
+                session.manifest
+                .read_text()
+                .splitlines()
+            )
+
+            self.assertEqual(len(lines), 1)
+            self.assertIn("./a.txt", lines[0])
+
 
 class TestCaptureCommand(unittest.TestCase):
 
     @patch("pilo.checks.require_dataset", return_value=True)
-    @patch("pilo.manifest.write_manifest")
-    def test_capture_writes_manifest(self, mock_manifest, *_):
+    @patch("pilo.front.capture.capture_session")
+    def test_capture_writes_manifest(self, mock_session, *_):
         mod = pilotest.import_command("capture")
+        ses = unittest.mock.Mock()
+        mock_session.return_value = ses
+
         with pilotest.make_tmp_context() as cx:
             src = Path(cx.path) / "source.txt"
             src.write_text("hello")
@@ -92,11 +141,11 @@ class TestCaptureCommand(unittest.TestCase):
             cx.intake_path.mkdir()
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
-        mock_manifest.assert_called_once()
+        ses.write_manifest.assert_called_once()
 
     @patch("pilo.checks.require_dataset", return_value=True)
-    @patch("pilo.manifest.write_manifest")
-    def test_manifest_written_inside_root(self, mock_manifest, *_):
+    @patch("pilo.front.capture.capture_session")
+    def test_manifest_written_inside_root(self, mock_session, *_):
         mod = pilotest.import_command("capture")
 
         with pilotest.make_tmp_context() as cx:
@@ -107,9 +156,7 @@ class TestCaptureCommand(unittest.TestCase):
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
 
-        args = mock_manifest.call_args[0]
-        manifest_path = args[2]
-        self.assertEqual(manifest_path.name, "capture.manifest")
+        mock_session.assert_called_once_with(cx.intake_path)
 
 
 class TestCaptureSession(unittest.TestCase):
@@ -184,3 +231,25 @@ class TestCaptureSession(unittest.TestCase):
             session = capture.capture_session(cx.intake_path)
             self.assertEqual(session.root, cx.intake_path)
             self.assertEqual(session.manifest.name, "capture.manifest")
+
+    def test_capture_session_verify_missing_manifest_is_allowed(self):
+
+        with pilotest.make_tmp_context() as cx:
+            root = cx.intake_path
+            root.mkdir()
+            path = root / "a.txt"
+            path.write_text("hello")
+            session = capture.capture_session(root)
+            self.assertTrue(session.verify_if_present())
+
+    def test_capture_session_verify_if_present_detects_corruption(self):
+
+        with pilotest.make_tmp_context() as cx:
+            root = cx.intake_path
+            root.mkdir()
+            path = root / "a.txt"
+            path.write_text("hello")
+            session = capture.capture_session(root)
+            session.write_manifest(cx)
+            path.write_text("corrupt")
+            self.assertFalse(session.verify_if_present())

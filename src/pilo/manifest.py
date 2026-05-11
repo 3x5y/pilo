@@ -69,15 +69,19 @@ def dataset_manifest_subset(dataset):
     return None
 
 
-def generate_manifest_lines(root: Path):
+def generate_manifest_lines(root: Path, exclude=None):
+    exclude = set(exclude or [])
     for path in sorted(fs.iter_files(root)):
         rel = path.relative_to(root)
+        if rel in exclude:
+            continue
         h = fs.sha256_file(path)
         yield f"{h}  ./{rel}"
 
 
-def verify_manifest_lines(root: Path, lines):
+def verify_manifest_lines(root: Path, lines, exclude=None):
     root = Path(root)
+    exclude = set(exclude or [])
 
     for line in lines:
         line = line.strip()
@@ -92,6 +96,10 @@ def verify_manifest_lines(root: Path, lines):
 
         path = root / rel
 
+        relpath = path.relative_to(root)
+        if relpath in exclude:
+            continue
+
         if not path.is_file():
             return False
 
@@ -101,6 +109,38 @@ def verify_manifest_lines(root: Path, lines):
             return False
 
     return True
+
+
+def verify_manifest_lines(root: Path, lines, exclude=None):
+    root = Path(root)
+    exclude = set(exclude or [])
+
+    expected = {}
+
+    for line in lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            checksum, rel = line.split("  ./", 1)
+        except ValueError:
+            return False
+
+        expected[Path(rel)] = checksum
+
+    actual = {}
+
+    for path in fs.iter_files(root):
+        rel = path.relative_to(root)
+
+        if rel in exclude:
+            continue
+
+        actual[rel] = fs.sha256_file(path)
+
+    return expected == actual
 
 
 def build_manifest_update_plan(cx, subsets):

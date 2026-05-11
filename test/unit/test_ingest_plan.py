@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo import mutation
+from pilo.front import capture
 from pilo.front import ingest
 import pilotest
 
@@ -327,3 +328,40 @@ class TestIngestOps(unittest.TestCase):
         )
 
         mock_exec_manifest.assert_called_once()
+
+    def test_ingestible_capture_files_excludes_manifest(self):
+        data = Path("/tmp/a.txt")
+        meta = Path("/tmp/capture.manifest")
+        files = list(ingest.ingestible_capture_files([data, meta]))
+        self.assertEqual(files, [data])
+
+    @patch("pilo.manifest.execute_manifest_update_plan")
+    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.front.ingest.execute_ingest_plan")
+    @patch("pilo.front.ingest.build_ingest_plan")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    def test_ingest_command_excludes_capture_manifest(
+        self,
+        _exists,
+        mock_build_ingest,
+        mock_exec_ingest,
+        mock_build_manifest,
+        mock_exec_manifest,
+    ):
+        mod = pilotest.import_command("ingest-pile")
+
+        with pilotest.make_tmp_context() as cx:
+            cx.intake_path.mkdir()
+            cx.pile_path.mkdir()
+
+            data = cx.intake_path / "a.txt"
+            data.write_text("hello")
+
+            session = capture.capture_session(cx.intake_path)
+            session.write_manifest(cx)
+
+            with patch("pilo.context.Context", return_value=cx):
+                mod.main()
+
+        files = mock_build_ingest.call_args[0][1]
+        self.assertEqual(files, [data])
