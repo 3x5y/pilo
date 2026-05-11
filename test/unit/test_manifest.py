@@ -367,3 +367,132 @@ class TestManifestEntries(unittest.TestCase):
                 "bbb  ./b.txt",
             ]
         )
+
+
+class TestManifestMutations(unittest.TestCase):
+
+    def test_manifest_add_entry_mutation(self):
+
+        mut = manifest.ManifestAddEntry(
+            subset="pile",
+            entry=manifest.ManifestEntry(
+                checksum="abc",
+                path=Path("in/a.txt"),
+            )
+        )
+
+        self.assertEqual(mut.subset, "pile")
+        self.assertEqual(
+            mut.entry.path,
+            Path("in/a.txt"),
+        )
+
+    def test_manifest_remove_entry_mutation(self):
+
+        mut = manifest.ManifestRemoveEntry(
+            subset="pile",
+            path=Path("in/a.txt"),
+        )
+
+        self.assertEqual(mut.subset, "pile")
+        self.assertEqual(mut.path, Path("in/a.txt"))
+
+    def test_apply_manifest_add_entry(self):
+
+        entries = []
+
+        mut = manifest.ManifestAddEntry(
+            subset="pile",
+            entry=manifest.ManifestEntry(
+                checksum="abc",
+                path=Path("in/a.txt"),
+            )
+        )
+
+        out = manifest.apply_manifest_mutations(
+            entries,
+            [mut],
+        )
+
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0].checksum, "abc")
+
+    def test_apply_manifest_remove_entry(self):
+
+        entries = [
+            manifest.ManifestEntry(
+                checksum="abc",
+                path=Path("in/a.txt"),
+            ),
+            manifest.ManifestEntry(
+                checksum="def",
+                path=Path("in/b.txt"),
+            ),
+        ]
+
+        mut = manifest.ManifestRemoveEntry(
+            subset="pile",
+            path=Path("in/a.txt"),
+        )
+
+        out = manifest.apply_manifest_mutations(
+            entries,
+            [mut],
+        )
+
+        self.assertEqual(len(out), 1)
+        self.assertEqual(
+            out[0].path,
+            Path("in/b.txt"),
+        )
+
+    def test_apply_manifest_add_replaces_existing_path(self):
+
+        entries = [
+            manifest.ManifestEntry(
+                checksum="old",
+                path=Path("in/a.txt"),
+            )
+        ]
+
+        mut = manifest.ManifestAddEntry(
+            subset="pile",
+            entry=manifest.ManifestEntry(
+                checksum="new",
+                path=Path("in/a.txt"),
+            )
+        )
+
+        out = manifest.apply_manifest_mutations(
+            entries,
+            [mut],
+        )
+
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0].checksum, "new")
+
+    def test_write_manifest_entries(self):
+
+        with pilotest.make_tmp_context() as cx:
+
+            out = cx.path / "test.manifest"
+
+            entries = [
+                manifest.ManifestEntry(
+                    checksum="abc",
+                    path=Path("in/a.txt"),
+                )
+            ]
+
+            manifest.write_manifest_entries(
+                cx,
+                out,
+                entries,
+            )
+
+            lines = out.read_text().splitlines()
+
+            self.assertEqual(
+                lines,
+                ["abc  ./in/a.txt"]
+            )

@@ -322,12 +322,9 @@ class TestIngestOps(unittest.TestCase):
         mock_build_ingest.assert_called_once()
         mock_exec_ingest.assert_called_once()
 
-        mock_build_manifest.assert_called_once_with(
-            cx,
-            ["pile"],
-        )
-
-        mock_exec_manifest.assert_called_once()
+        # no longer calls these
+        #mock_build_manifest.assert_called_once_with(cx, ["pile"])
+        #mock_exec_manifest.assert_called_once()
 
     def test_ingestible_capture_files_excludes_manifest(self):
         data = Path("/tmp/a.txt")
@@ -365,3 +362,44 @@ class TestIngestOps(unittest.TestCase):
 
         files = mock_build_ingest.call_args[0][1]
         self.assertEqual(files, [data])
+
+    @patch("pilo.manifest.execute_manifest_mutations")
+    @patch("pilo.front.ingest.ingest_manifest_mutations")
+    @patch("pilo.front.ingest.execute_ingest_plan")
+    @patch("pilo.front.ingest.build_ingest_plan")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    def test_ingest_command_updates_manifest_incrementally(
+        self,
+        _exists,
+        mock_build,
+        mock_exec,
+        mock_build_muts,
+        mock_exec_muts,
+    ):
+        cx = pilotest.make_context()
+
+        plan = ingest.IngestPlan(ops=[])
+
+        mock_build.return_value = plan
+        mock_build_muts.return_value = []
+
+        with patch("pilo.context.Context", return_value=cx):
+            mod = pilotest.import_command("ingest-pile")
+            mod.main()
+
+        mock_build_muts.assert_called_once_with(
+            plan.ops,
+            cx.pile_path,
+        )
+
+        manifest_path = (
+            cx.admin_path /
+            "manifest/pile.manifest"
+        )
+
+        mock_exec_muts.assert_called_once_with(
+            cx,
+            "pile",
+            manifest_path,
+            [],
+        )

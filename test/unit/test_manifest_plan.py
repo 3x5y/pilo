@@ -3,7 +3,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import context, manifest, mutation
+from pilo import context
+from pilo import manifest
+from pilo import mutation
+from pilo.front import ingest
 import pilotest
 
 
@@ -186,3 +189,89 @@ class TestManifestPlan(unittest.TestCase):
             sorted(names),
             ["collection", "pile"],
         )
+
+    @patch("pilo.manifest.write_manifest_entries")
+    @patch("pilo.manifest.load_manifest_entries")
+    def test_execute_manifest_mutations(
+        self,
+        mock_load,
+        mock_write,
+    ):
+        cx = pilotest.make_context()
+
+        manifest_path = (
+            cx.admin_path /
+            "manifest/pile.manifest"
+        )
+
+        mock_load.return_value = [
+            manifest.ManifestEntry(
+                checksum="old",
+                path=Path("in/old.txt"),
+            )
+        ]
+
+        muts = [
+            manifest.ManifestAddEntry(
+                subset="pile",
+                entry=manifest.ManifestEntry(
+                    checksum="new",
+                    path=Path("in/new.txt"),
+                )
+            )
+        ]
+
+        manifest.execute_manifest_mutations(
+            cx,
+            "pile",
+            manifest_path,
+            muts,
+        )
+
+        args = mock_write.call_args[0]
+
+        written = args[2]
+
+        self.assertEqual(len(written), 2)
+
+    @patch("pilo.fs.sha256_file", return_value="abc123")
+    def test_ingest_manifest_mutations_move(self, _):
+
+        op = ingest.IngestOp(
+            src=Path("/tmp/intake/a.txt"),
+            dst=Path("/pile/in/a.txt"),
+            dataset="tank/pile",
+            action="move",
+        )
+
+        muts = ingest.ingest_manifest_mutations(
+            [op],
+            Path("/pile"),
+        )
+
+        self.assertEqual(len(muts), 1)
+
+        mut = muts[0]
+
+        self.assertEqual(mut.subset, "pile")
+
+        self.assertEqual(
+            mut.entry.path,
+            Path("in/a.txt"),
+        )
+
+    def test_ingest_manifest_mutations_noop(self):
+
+        op = ingest.IngestOp(
+            src=Path("/tmp/intake/a.txt"),
+            dst=Path("/pile/in/a.txt"),
+            dataset="tank/pile",
+            action="noop",
+        )
+
+        muts = ingest.ingest_manifest_mutations(
+            [op],
+            Path("/pile"),
+        )
+
+        self.assertEqual(muts, [])

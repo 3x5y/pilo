@@ -3,6 +3,8 @@ from pathlib import Path
 
 from . import capture
 from .. import checks
+from .. import fs
+from .. import manifest
 from .. import mutation
 
 
@@ -74,3 +76,23 @@ def ingestible_capture_files(files):
         if path.name == capture.CAPTURE_MANIFEST:
             continue
         yield path
+
+
+def ingest_manifest_mutations(ops, pile_root):
+
+    muts = []
+    for op in ops:
+        if op.action != "move":
+            continue
+
+        rel = op.dst.relative_to(pile_root)
+        muts.append(
+            manifest.ManifestAddEntry(
+                subset="pile",
+                entry=manifest.ManifestEntry(
+                    checksum=fs.sha256_file(op.dst),
+                    path=rel,
+                )
+            )
+        )
+    return muts
