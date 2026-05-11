@@ -16,20 +16,13 @@ from .mutation_types import (
     SemanticMutation,
 )
 
-
-class MutationExecutor:
-
-    def __init__(self, cx):
-        self.cx = cx
-
-    def apply(self, mut):
-        raise NotImplementedError
-
-
-class LiveExecutor(MutationExecutor):
-    requires_write_access = True
-    def apply(self, mut):
-        apply_semantic_mutation(self.cx, mut)
+from .mutation_exec import (
+    MutationExecutor,
+    LiveExecutor,
+    execute_mutation,
+    execute_mutations,
+    execute_semantic_mutations,
+)
 
 
 class PreviewExecutor(MutationExecutor):
@@ -42,25 +35,6 @@ class PreviewExecutor(MutationExecutor):
     def apply(self, mut):
         e = event_for_mutation(mut)
         self.events.append(e)
-
-
-class exec_dispatch:
-
-    @staticmethod
-    def move(cx, mut :MoveMutation):
-        fs.safe_move(cx, mut.src, mut.dst)
-
-    @staticmethod
-    def copy(cx, mut: CopyMutation):
-        fs.safe_copy(cx, mut.src, mut.dst)
-
-    @staticmethod
-    def unlink(cx, mut: UnlinkMutation):
-        fs.safe_unlink(mut.path)
-
-    @staticmethod
-    def rmdir(cx, mut: RmdirMutation):
-        fs.safe_rmdir(mut.path)
 
 
 class render_dispatch:
@@ -114,33 +88,6 @@ def preview_execution(cx, mutations):
 def preview_execution_rendered(cx, mutations):
     events = preview_execution(cx, mutations)
     return render_events(events)
-
-
-def apply_semantic_mutation(cx, mut: SemanticMutation):
-    kind = mutation_kind(mut)
-    try:
-        func = getattr(exec_dispatch, kind)
-    except AttributeError:
-        error.fatal(f"unsupported mutation type: {type(mut).__name__}")
-    func(cx, mut)
-
-
-def execute_mutations(executor, mutations):
-
-    if executor.requires_write_access:
-        datasets = {m.dataset for m in mutations}
-        context = zfs.writable_datasets(datasets)
-    else:
-        context = nullcontext()
-
-    with context:
-        for mut in mutations:
-            executor.apply(mut)
-
-
-def execute_semantic_mutations(cx, mutations):
-    executor = LiveExecutor(cx)
-    execute_mutations(executor, mutations)
 
 
 def mutation_manifest_domains(mutations):

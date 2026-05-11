@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo import mutation
+from pilo import mutation_exec
 from pilo.front import ingest
 from pilo.front import promote
 from pilo.front import prune
@@ -124,7 +125,7 @@ class TestMutationExecutors(unittest.TestCase):
             dataset="tank/a",
         )
 
-        ex = mutation.LiveExecutor(cx)
+        ex = mutation_exec.LiveExecutor(cx)
 
         ex.apply(mut)
 
@@ -149,24 +150,6 @@ class TestMutationExecutors(unittest.TestCase):
         ex.apply(mut)
 
         mock_move.assert_not_called()
-
-    def __test_preview_executor_collects_rendered_output(self):
-        cx = pilotest.make_context()
-
-        mut = mutation.MoveMutation(
-            src=Path("/tmp/a"),
-            dst=Path("/tmp/b"),
-            dataset="tank/a",
-        )
-
-        ex = mutation.PreviewExecutor(cx)
-
-        ex.apply(mut)
-
-        self.assertEqual(
-            ex.rendered,
-            ["move /tmp/a -> /tmp/b"],
-        )
 
     @patch("pilo.zfs.writable_datasets")
     def test_preview_executor_skips_writable_context(

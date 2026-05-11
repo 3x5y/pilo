@@ -4,6 +4,7 @@ from unittest.mock import patch
 from pathlib import Path
 
 from pilo import mutation
+from pilo import mutation_exec
 from pilo.front import prune
 import pilotest
 
@@ -79,7 +80,7 @@ class TestPrunePlan(unittest.TestCase):
             dataset="tank/a/pile",
         )
 
-        mutation.apply_semantic_mutation(cx, mut)
+        mutation_exec.execute_mutation(cx, mut)
 
         mock_rmdir.assert_called_once()
 
