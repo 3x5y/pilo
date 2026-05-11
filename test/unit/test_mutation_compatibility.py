@@ -5,6 +5,8 @@ from pilo import mutation
 from pilo import mutation_events
 from pilo import mutation_exec
 from pilo import mutation_types
+from pilo import mutation_preview
+from pilo import mutation_render
 import pilotest
 
 
@@ -64,3 +66,18 @@ class TestManifestCompat(unittest.TestCase):
 
             mutation_exec.execute_mutations(ex, [mut])
             self.assertEqual(ex.seen, [mut])
+
+    def test_preview_execution_compatibility(self):
+
+        self.assertIs(
+            mutation.preview_execution,
+            mutation_preview.preview_execution,
+        )
+
+
+    def test_render_mutation_compatibility(self):
+
+        self.assertIs(
+            mutation.render_mutation,
+            mutation_render.render_mutation,
+        )

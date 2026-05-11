@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import mutation
+from pilo import mutation_types
 from pilo.front import capture
 from pilo.front import ingest
 import pilotest
@@ -79,8 +79,8 @@ class TestIngestOps(unittest.TestCase):
 
         self.assertEqual(len(muts), 2)
 
-        self.assertIsInstance(muts[0], mutation.MoveMutation)
-        self.assertIsInstance(muts[1], mutation.UnlinkMutation)
+        self.assertIsInstance(muts[0], mutation_types.MoveMutation)
+        self.assertIsInstance(muts[1], mutation_types.UnlinkMutation)
 
     def test_build_ingest_ops_new_file(self):
         cx = pilotest.make_context()
@@ -278,8 +278,8 @@ class TestIngestOps(unittest.TestCase):
 
         self.assertEqual(len(muts), 2)
 
-        self.assertIsInstance(muts[0], mutation.MoveMutation)
-        self.assertIsInstance(muts[1], mutation.UnlinkMutation)
+        self.assertIsInstance(muts[0], mutation_types.MoveMutation)
+        self.assertIsInstance(muts[1], mutation_types.UnlinkMutation)
 
     @patch("pilo.mutation.execute_semantic_mutations")
     def test_execute_uses_executor(self, mock_exec):
