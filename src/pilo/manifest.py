@@ -67,16 +67,6 @@ def manifest_subset_root(cx, subset):
     return policy.root_path
 
 
-def _dataset_manifest_subset(dataset):
-    if dataset.endswith("/pile"):
-        return "pile"
-    if "/static/collection" in dataset:
-        return "collection"
-    if "/static/filing" in dataset:
-        return "filing"
-    return None
-
-
 def dataset_manifest_subset(dataset):
     if dataset.endswith(MANIFEST_DATASET_PATTERNS["pile"]):
         return "pile"

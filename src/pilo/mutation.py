@@ -7,47 +7,14 @@ from . import fs
 from . import manifest
 from . import zfs
 
-
-@dataclass(frozen=True)
-class SemanticMutation:
-    action: str
-    src: Path | None
-    dst: Path | None
-    dataset: str
-
-
-@dataclass(frozen=True)
-class MoveMutation:
-    src: Path
-    dst: Path
-    dataset: str
-
-
-@dataclass(frozen=True)
-class CopyMutation:
-    src: Path
-    dst: Path
-    dataset: str
-
-
-@dataclass(frozen=True)
-class UnlinkMutation:
-    path: Path
-    dataset: str
-
-
-@dataclass(frozen=True)
-class RmdirMutation:
-    path: Path
-    dataset: str
-
-
-@dataclass(frozen=True)
-class OperationEvent:
-    kind: str
-    src: Path
-    dst: Path | None
-    dataset: str
+from .mutation_events import OperationEvent
+from .mutation_types import (
+    CopyMutation,
+    MoveMutation,
+    RmdirMutation,
+    UnlinkMutation,
+    SemanticMutation,
+)
 
 
 class MutationExecutor:
