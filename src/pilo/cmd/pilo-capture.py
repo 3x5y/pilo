@@ -6,7 +6,7 @@ from pathlib import Path
 from pilo import checks
 from pilo import context
 from pilo import error
-from pilo import manifest
+from pilo.front import capture
 
 
 def main():
@@ -34,11 +34,8 @@ def main():
     except Exception as e:
         error.fatal(str(e))
 
-    manifest.write_manifest(
-        cx,
-        cx.intake_path,
-        cx.intake_path / 'capture.manifest'
-    )
+    session = capture.capture_session(cx.intake_path)
+    session.write_manifest(cx)
 
 if __name__ == "__main__":
     error.run_main(main)
