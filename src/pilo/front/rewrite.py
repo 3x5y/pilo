@@ -12,7 +12,7 @@ from .. import paths
 from .. import policy
 from ..execution import (
     ExecutionPlan,
-    ManifestOperation,
+    ManifestStep,
 )
 
 
@@ -286,16 +286,17 @@ class RewriteScript:
 
 def rewrite_execution_plan(cx, plan, entries):
     manifest_path = cx.admin_path / "manifest/pile.manifest"
-    manifest_op = ManifestOperation(
+    manifest_step = ManifestStep(
         subset="pile",
         manifest_path=manifest_path,
-        mutations=rewrite_manifest_mutations(
-            plan,
-            cx.pile_path,
-            entries,
-        ),
+        build_mutations=lambda:
+            rewrite_manifest_mutations(
+                plan,
+                cx.pile_path,
+                entries,
+            ),
     )
     return ExecutionPlan(
         semantic_mutations=rewrite_plan_mutations(plan),
-        manifest_operations=[manifest_op],
+        manifest_steps=[manifest_step],
     )

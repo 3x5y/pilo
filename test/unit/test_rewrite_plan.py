@@ -163,11 +163,11 @@ class TestRewritePlan(unittest.TestCase):
 
         self.assertIsInstance(exec_plan, ExecutionPlan)
         self.assertEqual(len(exec_plan.semantic_mutations), 1)
-        self.assertEqual(len(exec_plan.manifest_operations), 1)
+        self.assertEqual(len(exec_plan.manifest_steps), 1)
 
     @patch("pilo.fs.sha256_file")
     @patch("pilo.checks.require_file")
-    def test_rewrite_execution_plan_contains_manifest_operation(self, *_):
+    def test_rewrite_execution_plan_contains_manifest_steps(self, *_):
 
         cx = pilotest.make_context()
 
@@ -188,8 +188,8 @@ class TestRewritePlan(unittest.TestCase):
 
         exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
 
-        mop = exec_plan.manifest_operations[0]
+        mop = exec_plan.manifest_steps[0]
         mpath = cx.admin_path / "manifest/pile.manifest"
         self.assertEqual(mop.subset, "pile")
         self.assertEqual(mop.manifest_path, mpath)
-        self.assertEqual(len(mop.mutations), 2)
+        self.assertEqual(len(mop.build_mutations()), 2)

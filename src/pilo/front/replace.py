@@ -8,7 +8,7 @@ from .. import mutation
 from .. import paths
 from ..execution import (
     ExecutionPlan,
-    ManifestOperation,
+    ManifestStep,
 )
 
 
@@ -68,15 +68,16 @@ def replace_manifest_mutations(plan, pile_root):
 
 def replace_execution_plan(cx, plan):
     manifest_path = cx.admin_path / "manifest/pile.manifest"
-    manifest_op = ManifestOperation(
+    manifest_step = ManifestStep(
         subset="pile",
         manifest_path=manifest_path,
-        mutations=replace_manifest_mutations(
-            plan,
-            cx.pile_path,
-        ),
+        build_mutations=lambda:
+            replace_manifest_mutations(
+                plan,
+                cx.pile_path,
+            ),
     )
     return ExecutionPlan(
         semantic_mutations=replace_plan_mutations(plan),
-        manifest_operations=[manifest_op],
+        manifest_steps=[manifest_step],
     )

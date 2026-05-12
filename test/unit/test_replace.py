@@ -204,10 +204,10 @@ class TestReplacePlan(unittest.TestCase):
 
         self.assertIsInstance(exec_plan, ExecutionPlan)
         self.assertEqual(len(exec_plan.semantic_mutations), 1)
-        self.assertEqual(len(exec_plan.manifest_operations), 1)
+        self.assertEqual(len(exec_plan.manifest_steps), 1)
 
     @patch("pilo.fs.sha256_file")
-    def test_replace_execution_plan_contains_manifest_operation(self, *_):
+    def test_replace_execution_plan_contains_manifest_steps(self, *_):
 
         cx = pilotest.make_context()
 
@@ -224,9 +224,9 @@ class TestReplacePlan(unittest.TestCase):
 
         exec_plan = replace.replace_execution_plan(cx, plan)
 
-        op = exec_plan.manifest_operations[0]
+        op = exec_plan.manifest_steps[0]
 
         mpath = cx.admin_path / "manifest/pile.manifest"
         self.assertEqual(op.subset, "pile")
         self.assertEqual(op.manifest_path, mpath)
-        self.assertEqual(len(op.mutations), 1)
+        self.assertEqual(len(op.build_mutations()), 1)
