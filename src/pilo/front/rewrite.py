@@ -4,6 +4,8 @@ from pathlib import Path
 
 from .. import checks
 from .. import error
+from .. import fs
+from .. import manifest_model
 from .. import mutation
 from .. import paths
 from .. import policy
@@ -129,6 +131,35 @@ def rewrite_plan_mutations(plan):
                 )
             )
     return mutations
+
+
+def rewrite_manifest_mutations(plan, pile_root):
+
+    muts = []
+
+    for op in plan.ops:
+
+        src_rel = op.src.path.relative_to(pile_root)
+        dst_rel = op.dst.path.relative_to(pile_root)
+
+        muts.append(
+            manifest_model.ManifestRemoveEntry(
+                subset="pile",
+                path=src_rel,
+            )
+        )
+
+        muts.append(
+            manifest_model.ManifestAddEntry(
+                subset="pile",
+                entry=manifest_model.ManifestEntry(
+                    checksum=fs.sha256_file(op.dst.path),
+                    path=dst_rel,
+                )
+            )
+        )
+
+    return muts
 
 
 def load_rewrite_lines(cx):

@@ -116,7 +116,7 @@ class TestRewritePlan(unittest.TestCase):
         rewrite.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.manifest_mutation.execute_manifest_mutations")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_uses_plan(

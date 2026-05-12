@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo import manifest_update
+from pilo import manifest_mutation
 from pilo.front import rewrite
 
 
@@ -34,9 +34,21 @@ def main():
 
     rewrite.execute_rewrite_plan(cx, plan)
 
-    doms = ["pile", "collection", "filing"]
-    plan = manifest_update.build_manifest_update_plan(cx, doms)
-    manifest_update.execute_manifest_update_plan(cx, plan)
+    #doms = ["pile", "collection", "filing"]
+    #plan = manifest_update.build_manifest_update_plan(cx, doms)
+    #manifest_update.execute_manifest_update_plan(cx, plan)
+
+    manifest_path = cx.admin_path / "manifest/pile.manifest"
+    muts = rewrite.rewrite_manifest_mutations(
+        plan,
+        cx.pile_path,
+    )
+    manifest_mutation.execute_manifest_mutations(
+        cx,
+        "pile",
+        manifest_path,
+        muts,
+    )
 
 
 if __name__ == "__main__":

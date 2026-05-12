@@ -4,6 +4,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch, call
 
+from pilo import paths
 from pilo.front import rewrite
 import pilotest
 
@@ -438,3 +439,48 @@ class TestRewriteScriptSerialization(unittest.TestCase):
             "#version 1",
         ]
         self.assertEqual(script.render_lines(), lines)
+
+
+class TestRewriteManifest(unittest.TestCase):
+
+    @patch("pilo.fs.sha256_file", return_value="abc123")
+    def test_rewrite_manifest_mutations_move(self, _):
+
+        src = paths.Resolved(
+            path=Path("/pile/in/old.txt"),
+            dataset="tank/pile",
+        )
+
+        dst = paths.Resolved(
+            path=Path("/pile/in/new.txt"),
+            dataset="tank/pile",
+        )
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/old.txt"),
+                dst=Path("in/new.txt"),
+            ),
+            src=src,
+            dst=dst,
+        )
+
+        plan = rewrite.RewritePlan(ops=[op])
+
+        muts = rewrite.rewrite_manifest_mutations(
+            plan,
+            Path("/pile"),
+        )
+
+        self.assertEqual(len(muts), 2)
+
+        remove = muts[0]
+        add = muts[1]
+
+        self.assertEqual(remove.subset, "pile")
+        self.assertEqual(remove.path, Path("in/old.txt"))
+
+        self.assertEqual(add.subset, "pile")
+        self.assertEqual(add.entry.path, Path("in/new.txt"))
+        self.assertEqual(add.entry.checksum, "abc123")
