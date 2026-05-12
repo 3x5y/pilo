@@ -11,6 +11,7 @@ from pilo import manifest
 from pilo import manifest_codec
 from pilo import manifest_model
 from pilo import manifest_mutation
+from pilo import manifest_policy
 from pilo import manifest_status
 from pilo import manifest_store
 from pilo import manifest_verify
@@ -483,24 +484,6 @@ class TestManifestMutation(unittest.TestCase):
 
 class TestManifestPlan(unittest.TestCase):
 
-    def test_manifest_subset_root(self):
-        cx = pilotest.make_context()
-
-        self.assertEqual(
-            manifest.manifest_subset_root(cx, "pile"),
-            cx.pile_path,
-        )
-
-        self.assertEqual(
-            manifest.manifest_subset_root(cx, "collection"),
-            cx.static_path / "collection",
-        )
-
-        self.assertEqual(
-            manifest.manifest_subset_root(cx, "filing"),
-            cx.static_path / "filing",
-        )
-
     def test_build_manifest_update_plan(self):
         cx = pilotest.make_context()
 
@@ -534,68 +517,6 @@ class TestManifestPlan(unittest.TestCase):
 
         mock_write.assert_called_once()
         mock_commit.assert_called_once()
-
-    def test_mutation_manifest_domains_for_pile(self):
-        muts = [
-            mutation.SemanticMutation(
-                action="move",
-                src=Path("/tmp/a"),
-                dst=Path("/tmp/b"),
-                dataset="tank/a/pile",
-            )
-        ]
-
-        doms = mutation.mutation_manifest_domains(muts)
-
-        self.assertEqual(doms, {"pile"})
-
-    def test_mutation_manifest_domains_for_collection(self):
-        muts = [
-            mutation.SemanticMutation(
-                action="copy",
-                src=Path("/tmp/a"),
-                dst=Path("/tmp/b"),
-                dataset="tank/a/static/collection",
-            )
-        ]
-
-        doms = mutation.mutation_manifest_domains(muts)
-
-        self.assertEqual(doms, {"collection"})
-
-    def test_mutation_manifest_domains_for_filing(self):
-        muts = [
-            mutation.SemanticMutation(
-                action="copy",
-                src=Path("/tmp/a"),
-                dst=Path("/tmp/b"),
-                dataset="tank/a/static/filing/docs",
-            )
-        ]
-
-        doms = mutation.mutation_manifest_domains(muts)
-
-        self.assertEqual(doms, {"filing"})
-
-    def test_mutation_manifest_domains_deduplicates(self):
-        muts = [
-            mutation.SemanticMutation(
-                action="move",
-                src=Path("/tmp/a"),
-                dst=Path("/tmp/b"),
-                dataset="tank/a/pile",
-            ),
-            mutation.SemanticMutation(
-                action="unlink",
-                src=Path("/tmp/c"),
-                dst=None,
-                dataset="tank/a/pile",
-            ),
-        ]
-
-        doms = mutation.mutation_manifest_domains(muts)
-
-        self.assertEqual(doms, {"pile"})
 
     def test_build_manifest_plan_for_mutations(self):
         cx = pilotest.make_context()
@@ -790,3 +711,98 @@ class TestManifestStore(unittest.TestCase):
             manifest_store.write_manifest_entries(cx, out, entries)
             text = out.read_text()
             self.assertEqual(text, "abc  ./in/a.txt\n")
+
+
+
+class TestManifestPolicy(unittest.TestCase):
+
+    def test_manifest_subset_root(self):
+        cx = pilotest.make_context()
+
+        self.assertEqual(
+            manifest_policy.manifest_subset_root(
+                cx,
+                "pile",
+            ),
+            cx.pile_path,
+        )
+
+        self.assertEqual(
+            manifest_policy.manifest_subset_root(
+                cx,
+                "collection",
+            ),
+            cx.static_path / "collection",
+        )
+
+        self.assertEqual(
+            manifest_policy.manifest_subset_root(
+                cx,
+                "filing",
+            ),
+            cx.static_path / "filing",
+        )
+
+    def test_dataset_manifest_subset_pile(self):
+
+        result = (
+            manifest_policy.dataset_manifest_subset(
+                "tank/a/pile"
+            )
+        )
+
+        self.assertEqual(result, "pile")
+
+    def test_dataset_manifest_subset_collection(self):
+
+        result = (
+            manifest_policy.dataset_manifest_subset(
+                "tank/a/static/collection"
+            )
+        )
+
+        self.assertEqual(result, "collection")
+
+    def test_dataset_manifest_subset_filing(self):
+
+        result = (
+            manifest_policy.dataset_manifest_subset(
+                "tank/a/static/filing/docs"
+            )
+        )
+
+        self.assertEqual(result, "filing")
+
+    def test_dataset_manifest_subset_unknown(self):
+
+        result = (
+            manifest_policy.dataset_manifest_subset(
+                "tank/a/unknown"
+            )
+        )
+
+        self.assertIsNone(result)
+
+    def test_mutation_manifest_domains(self):
+
+        muts = [
+            mutation.MoveMutation(
+                src=Path("/a"),
+                dst=Path("/b"),
+                dataset="tank/a/pile",
+            ),
+            mutation.CopyMutation(
+                src=Path("/c"),
+                dst=Path("/d"),
+                dataset="tank/a/static/collection",
+            ),
+        ]
+
+        result = mutation.mutation_manifest_domains(
+            muts
+        )
+
+        self.assertEqual(
+            result,
+            {"pile", "collection"},
+        )

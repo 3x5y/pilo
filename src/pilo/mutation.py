@@ -5,6 +5,7 @@ from pathlib import Path
 from . import error
 from . import fs
 from . import manifest
+from . import manifest_policy
 from . import zfs
 
 from .mutation_events import OperationEvent
@@ -42,7 +43,7 @@ from .mutation_render import (
 def mutation_manifest_domains(mutations):
     domains = set()
     for mut in mutations:
-       subset = manifest.dataset_manifest_subset(mut.dataset)
+       subset = manifest_policy.dataset_manifest_subset(mut.dataset)
        if subset:
            domains.add(subset)
     return domains

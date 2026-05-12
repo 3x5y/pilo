@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 
 from . import error
-from . import manifest
+from . import manifest_policy
 
 
 @dataclass(frozen=True)
@@ -16,9 +16,8 @@ class ManifestVerifyOp:
 def build_manifest_verify_plan(cx, subsets):
     def build(subset):
         m = cx.admin_path / "manifest" / f"{subset}.manifest"
-        return ManifestVerifyOp(subset=subset,
-                                root=manifest.manifest_subset_root(cx, subset),
-                                manifest=m)
+        root = manifest_policy.manifest_subset_root(cx, subset)
+        return ManifestVerifyOp(subset=subset, root=root, manifest=m)
     return [build(subset) for subset in subsets]
 
 
