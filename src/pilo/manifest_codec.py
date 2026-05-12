@@ -15,7 +15,6 @@ def parse_manifest_line(line):
     return ManifestEntry(checksum=checksum, path=Path(rel))
 
 
-
 def render_manifest_lines(entries):
     for entry in entries:
         yield render_manifest_entry(entry)

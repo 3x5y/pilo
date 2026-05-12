@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo import manifest
+from pilo import manifest_store
 from pilo.front import capture
 import pilotest
 
@@ -33,7 +34,7 @@ class TestCaptureManifest(unittest.TestCase):
             (root / "a.txt").write_text("aaa")
             out = root / "capture.manifest"
             cx = pilotest.make_context()
-            manifest.write_manifest(
+            manifest_store.write_manifest(
                 cx,
                 root,
                 out,

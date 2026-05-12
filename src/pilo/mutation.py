@@ -4,8 +4,8 @@ from pathlib import Path
 
 from . import error
 from . import fs
-from . import manifest
 from . import manifest_policy
+from . import manifest_update
 from . import zfs
 
 from .mutation_events import OperationEvent
@@ -51,6 +51,6 @@ def mutation_manifest_domains(mutations):
 
 def build_manifest_plan_for_mutations(cx, mutations):
     domains = sorted(mutation_manifest_domains(mutations))
-    return manifest.build_manifest_update_plan(cx, domains)
+    return manifest_update.build_manifest_update_plan(cx, domains)
 
 
