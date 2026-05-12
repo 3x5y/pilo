@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
-from .. import error
-from .. import manifest
+from . import error
+from . import manifest
 
 
 @dataclass(frozen=True)
