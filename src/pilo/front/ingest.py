@@ -4,7 +4,7 @@ from pathlib import Path
 from . import capture
 from .. import checks
 from .. import fs
-from .. import manifest
+from .. import manifest_model
 from .. import mutation
 
 
@@ -87,9 +87,9 @@ def ingest_manifest_mutations(ops, pile_root):
 
         rel = op.dst.relative_to(pile_root)
         muts.append(
-            manifest.ManifestAddEntry(
+            manifest_model.ManifestAddEntry(
                 subset="pile",
-                entry=manifest.ManifestEntry(
+                entry=manifest_model.ManifestEntry(
                     checksum=fs.sha256_file(op.dst),
                     path=rel,
                 )

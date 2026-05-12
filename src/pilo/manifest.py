@@ -5,19 +5,6 @@ from . import error
 from . import fs
 from . import paths
 
-from .manifest_model import (
-    ManifestEntry,
-    ManifestAddEntry,
-    ManifestRemoveEntry,
-)
-
-from .manifest_codec import (
-    render_manifest_entry,
-    parse_manifest_line,
-    render_manifest_lines,
-    load_manifest_entries,
-)
-
 from .manifest_store import (
     write_manifest_entries,
     write_manifest,
@@ -98,18 +85,3 @@ def execute_manifest_update_plan(cx, plan):
         commit_manifest_if_changed(cx, subset.manifest, msg)
 
 
-def apply_manifest_mutations(entries, muts):
-    by_path = {entry.path: entry for entry in entries}
-    for mut in muts:
-        if isinstance(mut, ManifestRemoveEntry):
-            by_path.pop(mut.path, None)
-        elif isinstance(mut, ManifestAddEntry):
-            by_path[mut.entry.path] = mut.entry
-    return [by_path[path] for path in sorted(by_path)]
-
-
-def execute_manifest_mutations(cx, subset, manifest_path, muts):
-    relevant = [mut for mut in muts if mut.subset == subset]
-    entries = load_manifest_entries(manifest_path)
-    updated = apply_manifest_mutations(entries, relevant)
-    write_manifest_entries(cx, manifest_path, updated)

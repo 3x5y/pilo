@@ -363,7 +363,7 @@ class TestIngestOps(unittest.TestCase):
         files = mock_build_ingest.call_args[0][1]
         self.assertEqual(files, [data])
 
-    @patch("pilo.manifest.execute_manifest_mutations")
+    @patch("pilo.manifest_mutation.execute_manifest_mutations")
     @patch("pilo.front.ingest.ingest_manifest_mutations")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
