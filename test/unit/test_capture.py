@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import manifest
 from pilo import manifest_store
+from pilo import manifest_verify
 from pilo.front import capture
 import pilotest
 
@@ -19,7 +19,7 @@ class TestCaptureManifest(unittest.TestCase):
             f = root / "a.txt"
             f.write_text("hello")
 
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             expected_hash = hashlib.sha256(b"hello").hexdigest()
             expected_lines = [f"{expected_hash}  ./a.txt"]
@@ -52,10 +52,10 @@ class TestCaptureManifest(unittest.TestCase):
             root.mkdir()
             path = root / "a.txt"
             path.write_text("hello")
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             self.assertTrue(
-                manifest.verify_manifest_lines(
+                manifest_verify.verify_manifest_lines(
                     root,
                     lines,
                 )
@@ -68,12 +68,12 @@ class TestCaptureManifest(unittest.TestCase):
             root.mkdir()
             path = root / "a.txt"
             path.write_text("hello")
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             path.write_text("corrupt")
 
             self.assertFalse(
-                manifest.verify_manifest_lines(
+                manifest_verify.verify_manifest_lines(
                     root,
                     lines,
                 )
@@ -93,7 +93,7 @@ class TestCaptureManifest(unittest.TestCase):
             meta.write_text("metadata")
 
             lines = list(
-                manifest.generate_manifest_lines(
+                manifest_verify.generate_manifest_lines(
                     root,
                     exclude=[Path("capture.manifest")],
                 )

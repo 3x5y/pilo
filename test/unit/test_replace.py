@@ -98,7 +98,7 @@ class TestReplacePlan(unittest.TestCase):
 
     @patch("pilo.front.replace.build_replace_plan")
     @patch("pilo.front.replace.execute_replace_plan")
-    @patch("pilo.manifest.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
     def test_replace_command_uses_plan(
         self,
         mock_upd,

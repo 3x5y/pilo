@@ -300,8 +300,8 @@ class TestIngestOps(unittest.TestCase):
 
         mock_exec.assert_called_once()
 
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -332,8 +332,8 @@ class TestIngestOps(unittest.TestCase):
         files = list(ingest.ingestible_capture_files([data, meta]))
         self.assertEqual(files, [data])
 
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)

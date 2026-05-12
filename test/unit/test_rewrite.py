@@ -12,8 +12,8 @@ class TestRewriteCommand(unittest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_reads_stdin_when_no_args(
@@ -38,8 +38,8 @@ class TestRewriteCommand(unittest.TestCase):
         mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_compat_arg_transport(
@@ -63,8 +63,8 @@ class TestRewriteCommand(unittest.TestCase):
         ])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_reads_script_file(
@@ -92,8 +92,8 @@ class TestRewriteCommand(unittest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_prefers_script_file_over_stdin(
@@ -126,8 +126,8 @@ class TestRewriteCommand(unittest.TestCase):
             Path(path).unlink(missing_ok=True)
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_preserves_inline_compatibility(
@@ -151,8 +151,8 @@ class TestRewriteCommand(unittest.TestCase):
         ])
 
     @patch("pilo.front.rewrite.RewriteScript.from_lines")
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_uses_script_model(
@@ -202,8 +202,8 @@ class TestRewriteCommand(unittest.TestCase):
         mock_execute.assert_not_called()
         mock_print.assert_called_once_with("move /tmp/a -> /tmp/b")
 
-    @patch("pilo.manifest.execute_manifest_update_plan")
-    @patch("pilo.manifest.build_manifest_update_plan")
+    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.manifest_update.build_manifest_update_plan")
     @patch("builtins.print")
     @patch("pilo.front.rewrite.preview_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")

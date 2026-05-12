@@ -34,10 +34,4 @@ def execute_manifest_update_plan(cx, plan):
         fs.ensure_parent_dir(cx, subset.manifest)
         manifest_store.write_manifest(cx, subset.root, subset.manifest)
         msg = f"{subset.name} manifest update"
-        commit_manifest_if_changed(cx, subset.manifest, msg)
-
-
-def commit_manifest_if_changed(cx, manifest, message):
-    repo = cx.admin_path / "manifest"
-    git.ensure_repo(cx, repo)
-    git.commit_if_changed(cx, repo, manifest, message)
+        manifest_store.commit_manifest_if_changed(cx, subset.manifest, msg)

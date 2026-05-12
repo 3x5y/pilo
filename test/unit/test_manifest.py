@@ -615,31 +615,6 @@ class TestManifestPolicy(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_mutation_manifest_domains(self):
-
-        muts = [
-            mutation.MoveMutation(
-                src=Path("/a"),
-                dst=Path("/b"),
-                dataset="tank/a/pile",
-            ),
-            mutation.CopyMutation(
-                src=Path("/c"),
-                dst=Path("/d"),
-                dataset="tank/a/static/collection",
-            ),
-        ]
-
-        result = mutation.mutation_manifest_domains(
-            muts
-        )
-
-        self.assertEqual(
-            result,
-            {"pile", "collection"},
-        )
-
-
 
 class TestManifestUpdate(unittest.TestCase):
 
@@ -657,7 +632,7 @@ class TestManifestUpdate(unittest.TestCase):
         )
 
     @patch("pilo.manifest_store.write_manifest")
-    @patch("pilo.manifest_update.commit_manifest_if_changed")
+    @patch("pilo.manifest_store.commit_manifest_if_changed")
     @patch("pilo.fs.ensure_parent_dir")
     def test_execute_manifest_update_plan(
         self,
@@ -719,7 +694,7 @@ class TestManifestUpdate(unittest.TestCase):
 
         mfile = Path("/tmp/test.manifest")
 
-        manifest_update.commit_manifest_if_changed(
+        manifest_store.commit_manifest_if_changed(
             cx,
             mfile,
             "test update",

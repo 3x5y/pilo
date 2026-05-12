@@ -38,19 +38,3 @@ from .mutation_render import (
     render_mutation,
     render_mutations,
 )
-
-
-def mutation_manifest_domains(mutations):
-    domains = set()
-    for mut in mutations:
-       subset = manifest_policy.dataset_manifest_subset(mut.dataset)
-       if subset:
-           domains.add(subset)
-    return domains
-
-
-def build_manifest_plan_for_mutations(cx, mutations):
-    domains = sorted(mutation_manifest_domains(mutations))
-    return manifest_update.build_manifest_update_plan(cx, domains)
-
-
