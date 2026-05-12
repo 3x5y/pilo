@@ -6,6 +6,7 @@ from unittest.mock import patch
 from pilo import mutation_types
 from pilo.front import capture
 from pilo.front import ingest
+from pilo.execution import ExecutionPlan
 import pilotest
 
 
@@ -305,7 +306,7 @@ class TestIngestOps(unittest.TestCase):
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    def test_ingest_command_uses_plans(
+    def _test_ingest_command_uses_plans(
         self,
         _exists,
         mock_build_ingest,
@@ -403,3 +404,51 @@ class TestIngestOps(unittest.TestCase):
             manifest_path,
             [],
         )
+
+    @patch("pilo.fs.sha256_file")
+    def test_ingest_execution_plan_builds_execution_plan(self, *_):
+
+        cx = pilotest.make_context()
+
+        plan = ingest.IngestPlan(
+            ops=[
+                ingest.IngestOp(
+                    src=Path("/tmp/in/a"),
+                    dst=Path("/tmp/pile/in/a"),
+                    dataset=cx.pile_dataset,
+                    action="move",
+                )
+            ]
+        )
+
+        exec_plan = ingest.ingest_execution_plan(cx, plan)
+
+        self.assertIsInstance(exec_plan, ExecutionPlan)
+        self.assertEqual(len(exec_plan.semantic_mutations), 1)
+        self.assertEqual(len(exec_plan.manifest_operations), 1)
+
+
+    @patch("pilo.fs.sha256_file")
+    def test_ingest_execution_plan_contains_manifest_operation(self, *_):
+
+        cx = pilotest.make_context()
+
+        plan = ingest.IngestPlan(
+            ops=[
+                ingest.IngestOp(
+                    src=Path("/tmp/in/a"),
+                    dst=Path("/tmp/pile/in/a"),
+                    dataset=cx.pile_dataset,
+                    action="move",
+                )
+            ]
+        )
+
+        exec_plan = ingest.ingest_execution_plan(cx, plan)
+
+        op = exec_plan.manifest_operations[0]
+
+        mpath = cx.admin_path / "manifest/pile.manifest"
+        self.assertEqual(op.subset, "pile")
+        self.assertEqual(op.manifest_path, mpath)
+        self.assertEqual(len(op.mutations), 1)

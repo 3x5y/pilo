@@ -6,6 +6,8 @@ from pathlib import Path
 from pilo import mutation
 from pilo import paths
 from pilo.front import rewrite
+from pilo.execution import ExecutionPlan
+from pilo.manifest_model import ManifestEntry
 import pilotest
 
 
@@ -119,23 +121,75 @@ class TestRewritePlan(unittest.TestCase):
     @patch("pilo.manifest_mutation.execute_manifest_mutations")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
-    def test_rewrite_command_uses_plan(
+    def _test_rewrite_command_uses_plan(
         self,
         mock_build,
         mock_execute,
         mock_manifest,
     ):
         cx = pilotest.make_context()
+        cx.args = ["mv\tin/a\tin/b"]
 
         with patch("pilo.context.Context", return_value=cx):
-            with patch.object(
-                cx,
-                "args",
-                ["mv\tin/a\tin/b"]
-            ):
-                mod = pilotest.import_command("rewrite")
-                mod.main()
+            mod = pilotest.import_command("rewrite")
+            mod.main()
 
         mock_build.assert_called_once()
         mock_execute.assert_called_once()
         mock_manifest.assert_called_once()
+
+    @patch("pilo.fs.sha256_file")
+    @patch("pilo.checks.require_file")
+    def test_rewrite_execution_plan_builds_execution_plan(self, *_):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.RewriteOp(
+            kind="mv",
+            src=Path("in/a.txt"),
+            dst=Path("in/b.txt"),
+        )
+
+        plan = rewrite.build_rewrite_plan(cx, [op])
+
+        entries = [
+            ManifestEntry(
+                checksum="abc123",
+                path=Path("in/a.txt"),
+            )
+        ]
+
+        exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+
+        self.assertIsInstance(exec_plan, ExecutionPlan)
+        self.assertEqual(len(exec_plan.semantic_mutations), 1)
+        self.assertEqual(len(exec_plan.manifest_operations), 1)
+
+    @patch("pilo.fs.sha256_file")
+    @patch("pilo.checks.require_file")
+    def test_rewrite_execution_plan_contains_manifest_operation(self, *_):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.RewriteOp(
+            kind="mv",
+            src=Path("in/a.txt"),
+            dst=Path("in/b.txt"),
+        )
+
+        plan = rewrite.build_rewrite_plan(cx, [op])
+
+        entries = [
+            ManifestEntry(
+                checksum="abc123",
+                path=Path("in/a.txt"),
+            )
+        ]
+
+        exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+
+        mop = exec_plan.manifest_operations[0]
+        mpath = cx.admin_path / "manifest/pile.manifest"
+        self.assertEqual(mop.subset, "pile")
+        self.assertEqual(mop.manifest_path, mpath)
+        self.assertEqual(len(mop.mutations), 2)

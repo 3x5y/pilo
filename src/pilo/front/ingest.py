@@ -6,6 +6,10 @@ from .. import checks
 from .. import fs
 from .. import manifest_model
 from .. import mutation
+from ..execution import (
+    ExecutionPlan,
+    ManifestOperation,
+)
 
 
 @dataclass(frozen=True)
@@ -90,9 +94,22 @@ def ingest_manifest_mutations(ops, pile_root):
             manifest_model.ManifestAddEntry(
                 subset="pile",
                 entry=manifest_model.ManifestEntry(
-                    checksum=fs.sha256_file(op.dst),
+                    checksum=fs.sha256_file(op.src),
                     path=rel,
                 )
             )
         )
     return muts
+
+
+def ingest_execution_plan(cx, plan):
+    manifest_path = cx.admin_path / "manifest/pile.manifest"
+    manifest_op = ManifestOperation(
+        subset="pile",
+        manifest_path=manifest_path,
+        mutations=ingest_manifest_mutations(plan.ops, cx.pile_path),
+    )
+    return ExecutionPlan(
+        semantic_mutations=ingest_plan_mutations(plan),
+        manifest_operations=[manifest_op],
+    )

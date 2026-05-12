@@ -2,6 +2,7 @@
 
 from pilo import context
 from pilo import error
+from pilo import execution
 from pilo import manifest_codec
 from pilo import manifest_mutation
 from pilo.front import rewrite
@@ -27,21 +28,10 @@ def main():
         print_preview(preview)
         return
 
-    rewrite.execute_rewrite_plan(cx, plan)
-
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     entries = manifest_codec.load_manifest_entries(manifest_path)
-    muts = rewrite.rewrite_manifest_mutations(
-        plan,
-        cx.pile_path,
-        entries,
-    )
-    manifest_mutation.execute_manifest_mutations(
-        cx,
-        "pile",
-        manifest_path,
-        muts,
-    )
+    exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+    execution.execute_plan(cx, exec_plan)
 
 
 if __name__ == "__main__":

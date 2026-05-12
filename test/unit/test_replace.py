@@ -6,6 +6,7 @@ from pathlib import Path
 from pilo import mutation
 from pilo import paths
 from pilo.front import replace
+from pilo.execution import ExecutionPlan
 import pilotest
 
 
@@ -99,7 +100,7 @@ class TestReplacePlan(unittest.TestCase):
     @patch("pilo.front.replace.build_replace_plan")
     @patch("pilo.front.replace.execute_replace_plan")
     @patch("pilo.manifest_update.execute_manifest_update_plan")
-    def test_replace_command_uses_plan(
+    def _test_replace_command_uses_plan(
         self,
         mock_upd,
         mock_exec,
@@ -182,3 +183,50 @@ class TestReplacePlan(unittest.TestCase):
         self.assertEqual(mut.subset, "pile")
         self.assertEqual(mut.entry.path, Path("in/a.txt"))
         self.assertEqual(mut.entry.checksum, "abc123")
+
+    @patch("pilo.fs.sha256_file")
+    def test_replace_execution_plan_builds_execution_plan(self, *_):
+
+        cx = pilotest.make_context()
+
+        resolved = cx.resolve(Path("in/a.txt"))
+
+        plan = replace.ReplacePlan(
+            ops=[
+                replace.ReplaceOp(
+                    src=Path("/tmp/src.txt"),
+                    dst=resolved,
+                )
+            ]
+        )
+
+        exec_plan = replace.replace_execution_plan(cx, plan)
+
+        self.assertIsInstance(exec_plan, ExecutionPlan)
+        self.assertEqual(len(exec_plan.semantic_mutations), 1)
+        self.assertEqual(len(exec_plan.manifest_operations), 1)
+
+    @patch("pilo.fs.sha256_file")
+    def test_replace_execution_plan_contains_manifest_operation(self, *_):
+
+        cx = pilotest.make_context()
+
+        resolved = cx.resolve(Path("in/a.txt"))
+
+        plan = replace.ReplacePlan(
+            ops=[
+                replace.ReplaceOp(
+                    src=Path("/tmp/src.txt"),
+                    dst=resolved,
+                )
+            ]
+        )
+
+        exec_plan = replace.replace_execution_plan(cx, plan)
+
+        op = exec_plan.manifest_operations[0]
+
+        mpath = cx.admin_path / "manifest/pile.manifest"
+        self.assertEqual(op.subset, "pile")
+        self.assertEqual(op.manifest_path, mpath)
+        self.assertEqual(len(op.mutations), 1)

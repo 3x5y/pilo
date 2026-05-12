@@ -6,6 +6,10 @@ from .. import fs
 from .. import manifest_model
 from .. import mutation
 from .. import paths
+from ..execution import (
+    ExecutionPlan,
+    ManifestOperation,
+)
 
 
 @dataclass(frozen=True)
@@ -60,3 +64,19 @@ def replace_manifest_mutations(plan, pile_root):
             )
         )
     return muts
+
+
+def replace_execution_plan(cx, plan):
+    manifest_path = cx.admin_path / "manifest/pile.manifest"
+    manifest_op = ManifestOperation(
+        subset="pile",
+        manifest_path=manifest_path,
+        mutations=replace_manifest_mutations(
+            plan,
+            cx.pile_path,
+        ),
+    )
+    return ExecutionPlan(
+        semantic_mutations=replace_plan_mutations(plan),
+        manifest_operations=[manifest_op],
+    )

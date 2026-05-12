@@ -3,6 +3,7 @@
 from pilo import checks
 from pilo import context
 from pilo import error
+from pilo import execution
 from pilo import fs
 from pilo import manifest_mutation
 from pilo.front import capture
@@ -29,11 +30,8 @@ def main():
     )
 
     plan = ingest.build_ingest_plan(cx, files)
-    ingest.execute_ingest_plan(cx, plan)
-
-    manifest_path = cx.admin_path / "manifest/pile.manifest"
-    muts = ingest.ingest_manifest_mutations(plan.ops, cx.pile_path)
-    manifest_mutation.execute_manifest_mutations(cx, "pile", manifest_path, muts)
+    exec_plan = ingest.ingest_execution_plan(cx, plan)
+    execution.execute_plan(cx, exec_plan)
 
 
 if __name__ == "__main__":

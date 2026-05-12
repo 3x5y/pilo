@@ -10,6 +10,10 @@ from .. import manifest_model
 from .. import mutation
 from .. import paths
 from .. import policy
+from ..execution import (
+    ExecutionPlan,
+    ManifestOperation,
+)
 
 
 SCRIPT_VERSION = 1
@@ -278,3 +282,20 @@ class RewriteScript:
 
     def render_text(self):
         return "\n".join(self.render_lines())
+
+
+def rewrite_execution_plan(cx, plan, entries):
+    manifest_path = cx.admin_path / "manifest/pile.manifest"
+    manifest_op = ManifestOperation(
+        subset="pile",
+        manifest_path=manifest_path,
+        mutations=rewrite_manifest_mutations(
+            plan,
+            cx.pile_path,
+            entries,
+        ),
+    )
+    return ExecutionPlan(
+        semantic_mutations=rewrite_plan_mutations(plan),
+        manifest_operations=[manifest_op],
+    )
