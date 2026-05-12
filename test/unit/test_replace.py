@@ -156,3 +156,29 @@ class TestReplacePlan(unittest.TestCase):
             mut.dataset,
             "tank/a/static/collection",
         )
+
+    @patch("pilo.fs.sha256_file", return_value="abc123")
+    def test_replace_manifest_mutations(self, _):
+
+        dst = paths.Resolved(
+            path=Path("/pile/in/a.txt"),
+            dataset="tank/pile",
+        )
+
+        op = replace.ReplaceOp(
+            src=Path("/tmp/new.txt"),
+            dst=dst,
+        )
+
+        plan = replace.ReplacePlan(ops=[op])
+
+        muts = replace.replace_manifest_mutations(
+            plan,
+            Path("/pile"),
+        )
+
+        self.assertEqual(len(muts), 1)
+        mut = muts[0]
+        self.assertEqual(mut.subset, "pile")
+        self.assertEqual(mut.entry.path, Path("in/a.txt"))
+        self.assertEqual(mut.entry.checksum, "abc123")

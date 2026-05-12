@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import checks
+from .. import fs
+from .. import manifest_model
 from .. import mutation
 from .. import paths
 
@@ -44,3 +46,17 @@ def replace_plan_mutations(plan):
     return [build(op) for op in plan.ops]
 
 
+def replace_manifest_mutations(plan, pile_root):
+    muts = []
+    for op in plan.ops:
+        rel = op.dst.path.relative_to(pile_root)
+        muts.append(
+            manifest_model.ManifestAddEntry(
+                subset="pile",
+                entry=manifest_model.ManifestEntry(
+                    checksum=fs.sha256_file(op.src),
+                    path=rel,
+                )
+            )
+        )
+    return muts
