@@ -8,7 +8,11 @@ from pathlib import Path
 from pilo import context
 from pilo import fs
 from pilo import manifest
+from pilo import manifest_codec
+from pilo import manifest_model
 from pilo import manifest_status
+from pilo import manifest_store
+from pilo import manifest_verify
 from pilo import mutation
 from pilo import status
 from pilo.front import ingest
@@ -41,7 +45,7 @@ class TestManifest(unittest.TestCase):
             (root / "z.txt").write_text("z")
             (root / "a.txt").write_text("a")
 
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             self.assertEqual(
                 [line.split("  ./")[1] for line in lines],
@@ -56,7 +60,7 @@ class TestManifest(unittest.TestCase):
             f = sub / "x.txt"
             f.write_text("abc")
 
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             self.assertEqual(len(lines), 1)
             line = lines[0]
@@ -66,7 +70,7 @@ class TestManifest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
 
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             self.assertEqual(lines, [])
 
@@ -75,30 +79,30 @@ class TestManifest(unittest.TestCase):
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
-            self.assertTrue(manifest.verify_manifest_lines(root, lines))
+            self.assertTrue(manifest_verify.verify_manifest_lines(root, lines))
 
     def test_verify_manifest_lines_detects_mismatch(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
             f.write_text("changed")
 
-            self.assertFalse(manifest.verify_manifest_lines(root, lines))
+            self.assertFalse(manifest_verify.verify_manifest_lines(root, lines))
 
     def test_verify_manifest_lines_detects_missing_file(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(manifest.generate_manifest_lines(root))
+            lines = list(manifest_verify.generate_manifest_lines(root))
 
             f.unlink()
 
-            self.assertFalse(manifest.verify_manifest_lines(root, lines))
+            self.assertFalse(manifest_verify.verify_manifest_lines(root, lines))
 
     def test_manifest_verify_op_model(self):
         op = manifest_status.ManifestVerifyOp(
@@ -264,7 +268,7 @@ class TestManifestEntries(unittest.TestCase):
 
     def test_manifest_entry_model(self):
 
-        entry = manifest.ManifestEntry(
+        entry = manifest_model.ManifestEntry(
             checksum="abc123",
             path=Path("a.txt"),
         )
@@ -274,12 +278,12 @@ class TestManifestEntries(unittest.TestCase):
 
     def test_render_manifest_entry(self):
 
-        entry = manifest.ManifestEntry(
+        entry = manifest_model.ManifestEntry(
             checksum="deadbeef",
             path=Path("dir/file.txt"),
         )
 
-        line = manifest.render_manifest_entry(entry)
+        line = manifest_codec.render_manifest_entry(entry)
 
         self.assertEqual(
             line,
@@ -288,7 +292,7 @@ class TestManifestEntries(unittest.TestCase):
 
     def test_parse_manifest_line(self):
 
-        entry = manifest.parse_manifest_line(
+        entry = manifest_codec.parse_manifest_line(
             "abc123  ./dir/file.txt"
         )
 
@@ -301,7 +305,7 @@ class TestManifestEntries(unittest.TestCase):
     def test_parse_manifest_line_rejects_invalid(self):
 
         with self.assertRaises(ValueError):
-            manifest.parse_manifest_line(
+            manifest_codec.parse_manifest_line(
                 "invalid line"
             )
 
@@ -315,7 +319,7 @@ class TestManifestEntries(unittest.TestCase):
             path.write_text("hello")
 
             entries = list(
-                manifest.generate_manifest_entries(root)
+                manifest_verify.generate_manifest_entries(root)
             )
 
             self.assertEqual(len(entries), 1)
@@ -334,7 +338,7 @@ class TestManifestEntries(unittest.TestCase):
                 "bbb  ./b.txt\n"
             )
 
-            entries = manifest.load_manifest_entries(mf)
+            entries = manifest_codec.load_manifest_entries(mf)
 
             self.assertEqual(len(entries), 2)
 
@@ -351,18 +355,18 @@ class TestManifestEntries(unittest.TestCase):
     def test_render_manifest_lines(self):
 
         entries = [
-            manifest.ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="aaa",
                 path=Path("a.txt"),
             ),
-            manifest.ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="bbb",
                 path=Path("b.txt"),
             ),
         ]
 
         lines = list(
-            manifest.render_manifest_lines(entries)
+            manifest_codec.render_manifest_lines(entries)
         )
 
         self.assertEqual(
@@ -378,9 +382,9 @@ class TestManifestMutations(unittest.TestCase):
 
     def test_manifest_add_entry_mutation(self):
 
-        mut = manifest.ManifestAddEntry(
+        mut = manifest_model.ManifestAddEntry(
             subset="pile",
-            entry=manifest.ManifestEntry(
+            entry=manifest_model.ManifestEntry(
                 checksum="abc",
                 path=Path("in/a.txt"),
             )
@@ -394,7 +398,7 @@ class TestManifestMutations(unittest.TestCase):
 
     def test_manifest_remove_entry_mutation(self):
 
-        mut = manifest.ManifestRemoveEntry(
+        mut = manifest_model.ManifestRemoveEntry(
             subset="pile",
             path=Path("in/a.txt"),
         )
@@ -406,9 +410,9 @@ class TestManifestMutations(unittest.TestCase):
 
         entries = []
 
-        mut = manifest.ManifestAddEntry(
+        mut = manifest_model.ManifestAddEntry(
             subset="pile",
-            entry=manifest.ManifestEntry(
+            entry=manifest_model.ManifestEntry(
                 checksum="abc",
                 path=Path("in/a.txt"),
             )
@@ -425,17 +429,17 @@ class TestManifestMutations(unittest.TestCase):
     def test_apply_manifest_remove_entry(self):
 
         entries = [
-            manifest.ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="abc",
                 path=Path("in/a.txt"),
             ),
-            manifest.ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="def",
                 path=Path("in/b.txt"),
             ),
         ]
 
-        mut = manifest.ManifestRemoveEntry(
+        mut = manifest_model.ManifestRemoveEntry(
             subset="pile",
             path=Path("in/a.txt"),
         )
@@ -454,15 +458,15 @@ class TestManifestMutations(unittest.TestCase):
     def test_apply_manifest_add_replaces_existing_path(self):
 
         entries = [
-            manifest.ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="old",
                 path=Path("in/a.txt"),
             )
         ]
 
-        mut = manifest.ManifestAddEntry(
+        mut = manifest_model.ManifestAddEntry(
             subset="pile",
-            entry=manifest.ManifestEntry(
+            entry=manifest_model.ManifestEntry(
                 checksum="new",
                 path=Path("in/a.txt"),
             )
@@ -475,32 +479,6 @@ class TestManifestMutations(unittest.TestCase):
 
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0].checksum, "new")
-
-    def test_write_manifest_entries(self):
-
-        with pilotest.make_tmp_context() as cx:
-
-            out = cx.path / "test.manifest"
-
-            entries = [
-                manifest.ManifestEntry(
-                    checksum="abc",
-                    path=Path("in/a.txt"),
-                )
-            ]
-
-            manifest.write_manifest_entries(
-                cx,
-                out,
-                entries,
-            )
-
-            lines = out.read_text().splitlines()
-
-            self.assertEqual(
-                lines,
-                ["abc  ./in/a.txt"]
-            )
 
 class TestManifestPlan(unittest.TestCase):
 
@@ -554,43 +532,6 @@ class TestManifestPlan(unittest.TestCase):
         manifest.execute_manifest_update_plan(cx, plan)
 
         mock_write.assert_called_once()
-        mock_commit.assert_called_once()
-
-    def test_write_manifest(self):
-        cx = pilotest.make_context()
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-
-            (root / "a.txt").write_text("hello")
-
-            mfile = root / "test.manifest"
-
-            manifest.write_manifest(cx, root, mfile)
-
-            self.assertTrue(mfile.exists())
-
-            text = mfile.read_text()
-
-            self.assertIn("./a.txt", text)
-
-    @patch("pilo.git.commit_if_changed")
-    @patch("pilo.git.ensure_repo")
-    def test_commit_manifest_if_changed(
-        self,
-        mock_repo,
-        mock_commit,
-    ):
-        cx = pilotest.make_context()
-
-        mfile = Path("/tmp/test.manifest")
-
-        manifest.commit_manifest_if_changed(
-            cx,
-            mfile,
-            "test update",
-        )
-
-        mock_repo.assert_called_once()
         mock_commit.assert_called_once()
 
     def test_mutation_manifest_domains_for_pile(self):
@@ -697,16 +638,16 @@ class TestManifestPlan(unittest.TestCase):
         )
 
         mock_load.return_value = [
-            manifest.ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="old",
                 path=Path("in/old.txt"),
             )
         ]
 
         muts = [
-            manifest.ManifestAddEntry(
+            manifest_model.ManifestAddEntry(
                 subset="pile",
-                entry=manifest.ManifestEntry(
+                entry=manifest_model.ManifestEntry(
                     checksum="new",
                     path=Path("in/new.txt"),
                 )
@@ -767,3 +708,84 @@ class TestManifestPlan(unittest.TestCase):
         )
 
         self.assertEqual(muts, [])
+
+
+class TestManifestStore(unittest.TestCase):
+    def test_write_manifest_entries(self):
+
+        with pilotest.make_tmp_context() as cx:
+
+            out = cx.path / "test.manifest"
+
+            entries = [
+                manifest_model.ManifestEntry(
+                    checksum="abc",
+                    path=Path("in/a.txt"),
+                )
+            ]
+
+            manifest_store.write_manifest_entries(
+                cx,
+                out,
+                entries,
+            )
+
+            lines = out.read_text().splitlines()
+
+            self.assertEqual(
+                lines,
+                ["abc  ./in/a.txt"]
+            )
+
+    def test_write_manifest(self):
+        cx = pilotest.make_context()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+
+            (root / "a.txt").write_text("hello")
+
+            mfile = root / "test.manifest"
+
+            manifest_store.write_manifest(cx, root, mfile)
+
+            self.assertTrue(mfile.exists())
+
+            text = mfile.read_text()
+
+            self.assertIn("./a.txt", text)
+
+    @patch("pilo.git.commit_if_changed")
+    @patch("pilo.git.ensure_repo")
+    def test_commit_manifest_if_changed(
+        self,
+        mock_repo,
+        mock_commit,
+    ):
+        cx = pilotest.make_context()
+
+        mfile = Path("/tmp/test.manifest")
+
+        manifest_store.commit_manifest_if_changed(
+            cx,
+            mfile,
+            "test update",
+        )
+
+        mock_repo.assert_called_once()
+        mock_commit.assert_called_once()
+
+    def test_write_manifest_entries_overwrites_existing(self):
+
+        with pilotest.make_tmp_context() as cx:
+            out = cx.path / "test.manifest"
+            out.write_text("old data\n")
+            entries = [
+                manifest_model.ManifestEntry(
+                    checksum="abc",
+                    path=Path("in/a.txt"),
+                )
+            ]
+
+            manifest_store.write_manifest_entries(cx, out, entries)
+            text = out.read_text()
+            self.assertEqual(text, "abc  ./in/a.txt\n")

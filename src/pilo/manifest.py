@@ -1,13 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
-import shutil
-import tempfile
 
 from . import error
 from . import fs
-from . import git
 from . import paths
-from . import util
 
 from .manifest_model import (
     ManifestEntry,
@@ -20,6 +16,12 @@ from .manifest_codec import (
     parse_manifest_line,
     render_manifest_lines,
     load_manifest_entries,
+)
+
+from .manifest_store import (
+    write_manifest_entries,
+    write_manifest,
+    commit_manifest_if_changed,
 )
 
 from .manifest_verify import (
@@ -96,17 +98,6 @@ def execute_manifest_update_plan(cx, plan):
         commit_manifest_if_changed(cx, subset.manifest, msg)
 
 
-def write_manifest(cx, root: Path, manifest: Path):
-    entries = list(generate_manifest_entries(root))
-    write_manifest_entries(cx, manifest, entries)
-
-
-def commit_manifest_if_changed(cx, manifest, message):
-    repo = cx.admin_path / "manifest"
-    git.ensure_repo(cx, repo)
-    git.commit_if_changed(cx, repo, manifest, message)
-
-
 def apply_manifest_mutations(entries, muts):
     by_path = {entry.path: entry for entry in entries}
     for mut in muts:
@@ -115,19 +106,6 @@ def apply_manifest_mutations(entries, muts):
         elif isinstance(mut, ManifestAddEntry):
             by_path[mut.entry.path] = mut.entry
     return [by_path[path] for path in sorted(by_path)]
-
-
-def write_manifest_entries(cx, manifest_path, entries):
-
-    with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-        for line in render_manifest_lines(entries):
-            tmp.write(line + "\n")
-
-    fs.ensure_parent_dir(cx, manifest_path)
-    shutil.move(tmp_path, manifest_path)
-    fs.ensure_owned(cx, manifest_path)
-    manifest_path.chmod(0o644)
 
 
 def execute_manifest_mutations(cx, subset, manifest_path, muts):
