@@ -23,21 +23,11 @@ def main():
     plan = rewrite.build_rewrite_plan(cx, ops)
 
     if rewrite.is_preview_mode(cx):
-
-        preview = rewrite.preview_rewrite_plan(
-            cx,
-            plan,
-        )
-
+        preview = rewrite.preview_rewrite_plan(cx, plan)
         print_preview(preview)
-
         return
 
     rewrite.execute_rewrite_plan(cx, plan)
-
-    #doms = ["pile", "collection", "filing"]
-    #plan = manifest_update.build_manifest_update_plan(cx, doms)
-    #manifest_update.execute_manifest_update_plan(cx, plan)
 
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     entries = manifest_codec.load_manifest_entries(manifest_path)

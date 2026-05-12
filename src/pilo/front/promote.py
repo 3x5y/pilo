@@ -6,6 +6,8 @@ from .. import checks
 from .. import error
 from .. import fs
 from .. import mutation
+from .. import manifest_model
+from .. import manifest_policy
 
 
 @dataclass(frozen=True)
@@ -117,3 +119,36 @@ def promote_plan_mutations(plan):
     return [build(op) for op in plan.ops]
 
 
+def promote_manifest_mutations(ops, pile_root, collection_root, filing_root):
+
+    muts = []
+
+    for op in ops:
+        if op.action == "copy":
+            subset = manifest_policy.dataset_manifest_subset(op.dataset)
+            if subset == "collection":
+                rel = op.dst.relative_to(collection_root)
+            elif subset == "filing":
+                rel = op.dst.relative_to(filing_root)
+            else:
+                continue
+            muts.append(
+                manifest_model.ManifestAddEntry(
+                    subset=subset,
+                    entry=manifest_model.ManifestEntry(
+                        checksum=fs.sha256_file(op.dst),
+                        path=rel,
+                    )
+                )
+            )
+
+        elif op.action == "unlink":
+            rel = op.src.relative_to(pile_root)
+            muts.append(
+                manifest_model.ManifestRemoveEntry(
+                    subset="pile",
+                    path=rel,
+                )
+            )
+
+    return muts

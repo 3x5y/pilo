@@ -5,7 +5,6 @@ file=test.txt
 mkfile original $file
 capture_file $file
 pilo ingest-pile
-pilo manifest-update
 with_writable $PILE \
     sh -c "echo corruption > /$PILE/in/$file"
 

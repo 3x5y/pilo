@@ -21,3 +21,5 @@ def execute_manifest_mutations(cx, subset, manifest_path, muts):
     entries = manifest_codec.load_manifest_entries(manifest_path)
     updated = apply_manifest_mutations(entries, relevant)
     manifest_store.write_manifest_entries(cx, manifest_path, updated)
+    msg = f"{subset} manifest update"
+    manifest_store.commit_manifest_if_changed(cx, manifest_path, msg)

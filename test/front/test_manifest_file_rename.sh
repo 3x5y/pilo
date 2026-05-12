@@ -7,9 +7,7 @@ capture_file $file
 pilo ingest-pile
 
 # reorganise
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/sort/$file
-pilo manifest-update
+pilo rewrite "mv	in/$file	sort/$file"
 
 manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
 assert_grep " \./sort/$file$" < $manifest

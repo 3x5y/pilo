@@ -116,3 +116,131 @@ class TestPromotePlan(unittest.TestCase):
                             plan = promote.build_promote_plan(cx)
 
         self.assertEqual(plan.ops[0].action, "unlink")
+
+
+
+    @patch("pilo.fs.sha256_file", return_value="abc123")
+    def test_promote_manifest_mutations_collection_copy(self, _):
+
+        op = promote.PromoteOp(
+            action="copy",
+            src=Path("/pile/out/collection/a.txt"),
+            dst=Path("/static/collection/a.txt"),
+            dataset="tank/static/collection",
+        )
+
+        muts = promote.promote_manifest_mutations(
+            [op],
+            Path("/pile"),
+            Path("/static/collection"),
+            Path("/static/filing"),
+        )
+
+        self.assertEqual(len(muts), 1)
+
+        mut = muts[0]
+
+        self.assertEqual(mut.subset, "collection")
+
+        self.assertEqual(
+            mut.entry.path,
+            Path("a.txt"),
+        )
+
+        self.assertEqual(
+            mut.entry.checksum,
+            "abc123",
+        )
+
+    @patch("pilo.fs.sha256_file", return_value="fff999")
+    def test_promote_manifest_mutations_filing_copy(self, _):
+
+        op = promote.PromoteOp(
+            action="copy",
+            src=Path("/pile/out/filing/docs/x.pdf"),
+            dst=Path("/static/filing/docs/x.pdf"),
+            dataset="tank/static/filing/docs",
+        )
+
+        muts = promote.promote_manifest_mutations(
+            [op],
+            Path("/pile"),
+            Path("/static/collection"),
+            Path("/static/filing"),
+        )
+
+        self.assertEqual(len(muts), 1)
+
+        mut = muts[0]
+
+        self.assertEqual(mut.subset, "filing")
+
+        self.assertEqual(
+            mut.entry.path,
+            Path("docs/x.pdf"),
+        )
+
+    def test_promote_manifest_mutations_unlink_removes_pile_entry(self):
+
+        op = promote.PromoteOp(
+            action="unlink",
+            src=Path("/pile/out/collection/a.txt"),
+            dst=None,
+            dataset="tank/pile",
+        )
+
+        muts = promote.promote_manifest_mutations(
+            [op],
+            Path("/pile"),
+            Path("/static/collection"),
+            Path("/static/filing"),
+        )
+
+        self.assertEqual(len(muts), 1)
+
+        mut = muts[0]
+
+        self.assertEqual(mut.subset, "pile")
+
+        self.assertEqual(
+            mut.path,
+            Path("out/collection/a.txt"),
+        )
+
+    @patch("pilo.fs.sha256_file", return_value="abc123")
+    def test_promote_manifest_mutations_mixed_operations(self, _):
+
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=Path("/pile/out/collection/a.txt"),
+                dst=Path("/static/collection/a.txt"),
+                dataset="tank/static/collection",
+            ),
+
+            promote.PromoteOp(
+                action="unlink",
+                src=Path("/pile/out/collection/a.txt"),
+                dst=None,
+                dataset="tank/pile",
+            ),
+        ]
+
+        muts = promote.promote_manifest_mutations(
+            ops,
+            Path("/pile"),
+            Path("/static/collection"),
+            Path("/static/filing"),
+        )
+
+        self.assertEqual(len(muts), 2)
+
+        self.assertEqual(
+            type(muts[0]).__name__,
+            "ManifestAddEntry",
+        )
+
+        self.assertEqual(
+            type(muts[1]).__name__,
+            "ManifestRemoveEntry",
+        )
