@@ -380,6 +380,35 @@ class TestManifestEntries(unittest.TestCase):
             ]
         )
 
+    def test_find_manifest_entry_by_path(self):
+
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="aaa",
+                path=Path("in/a.txt"),
+            ),
+            manifest_model.ManifestEntry(
+                checksum="bbb",
+                path=Path("in/b.txt"),
+            ),
+        ]
+
+        entry = manifest_codec.find_manifest_entry(
+            entries,
+            Path("in/b.txt"),
+        )
+
+        self.assertEqual(entry.checksum, "bbb")
+
+    def test_find_manifest_entry_missing(self):
+
+        entries = []
+        entry = manifest_codec.find_manifest_entry(
+            entries,
+            Path("missing.txt"),
+        )
+        self.assertIsNone(entry)
+
 
 class TestManifestMutation(unittest.TestCase):
 

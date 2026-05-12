@@ -5,6 +5,7 @@ from pathlib import Path
 from .. import checks
 from .. import error
 from .. import fs
+from .. import manifest_codec
 from .. import manifest_model
 from .. import mutation
 from .. import paths
@@ -133,7 +134,7 @@ def rewrite_plan_mutations(plan):
     return mutations
 
 
-def rewrite_manifest_mutations(plan, pile_root):
+def rewrite_manifest_mutations(plan, pile_root, entries):
 
     muts = []
 
@@ -141,6 +142,16 @@ def rewrite_manifest_mutations(plan, pile_root):
 
         src_rel = op.src.path.relative_to(pile_root)
         dst_rel = op.dst.path.relative_to(pile_root)
+
+        existing = manifest_codec.find_manifest_entry(
+            entries,
+            src_rel,
+        )
+
+        if existing is None:
+            error.fatal(
+                f"manifest entry missing: {src_rel}"
+            )
 
         muts.append(
             manifest_model.ManifestRemoveEntry(
@@ -153,7 +164,7 @@ def rewrite_manifest_mutations(plan, pile_root):
             manifest_model.ManifestAddEntry(
                 subset="pile",
                 entry=manifest_model.ManifestEntry(
-                    checksum=fs.sha256_file(op.dst.path),
+                    checksum=existing.checksum,
                     path=dst_rel,
                 )
             )

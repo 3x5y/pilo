@@ -33,3 +33,10 @@ def load_manifest_entries(path):
         entries.append(parse_manifest_line(line))
 
     return entries
+
+
+def find_manifest_entry(entries, path):
+    for entry in entries:
+        if entry.path == path:
+            return entry
+    return None

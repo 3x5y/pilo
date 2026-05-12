@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch, call
 
 from pilo import paths
+from pilo import manifest_model
 from pilo.front import rewrite
 import pilotest
 
@@ -467,10 +468,17 @@ class TestRewriteManifest(unittest.TestCase):
         )
 
         plan = rewrite.RewritePlan(ops=[op])
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path("in/old.txt"),
+            )
+        ]
 
         muts = rewrite.rewrite_manifest_mutations(
             plan,
             Path("/pile"),
+            entries,
         )
 
         self.assertEqual(len(muts), 2)
@@ -484,3 +492,47 @@ class TestRewriteManifest(unittest.TestCase):
         self.assertEqual(add.subset, "pile")
         self.assertEqual(add.entry.path, Path("in/new.txt"))
         self.assertEqual(add.entry.checksum, "abc123")
+
+    def test_rewrite_manifest_mutations_reuse_checksum(self):
+
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="existing",
+                path=Path("in/old.txt"),
+            )
+        ]
+
+        src = paths.Resolved(
+            path=Path("/pile/in/old.txt"),
+            dataset="tank/pile",
+        )
+
+        dst = paths.Resolved(
+            path=Path("/pile/in/new.txt"),
+            dataset="tank/pile",
+        )
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/old.txt"),
+                dst=Path("in/new.txt"),
+            ),
+            src=src,
+            dst=dst,
+        )
+
+        plan = rewrite.RewritePlan(ops=[op])
+
+        muts = rewrite.rewrite_manifest_mutations(
+            plan,
+            Path("/pile"),
+            entries,
+        )
+
+        add = muts[1]
+
+        self.assertEqual(
+            add.entry.checksum,
+            "existing",
+        )

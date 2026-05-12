@@ -2,6 +2,7 @@
 
 from pilo import context
 from pilo import error
+from pilo import manifest_codec
 from pilo import manifest_mutation
 from pilo.front import rewrite
 
@@ -39,9 +40,11 @@ def main():
     #manifest_update.execute_manifest_update_plan(cx, plan)
 
     manifest_path = cx.admin_path / "manifest/pile.manifest"
+    entries = manifest_codec.load_manifest_entries(manifest_path)
     muts = rewrite.rewrite_manifest_mutations(
         plan,
         cx.pile_path,
+        entries,
     )
     manifest_mutation.execute_manifest_mutations(
         cx,
