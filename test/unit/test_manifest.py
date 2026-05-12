@@ -380,35 +380,6 @@ class TestManifestEntries(unittest.TestCase):
             ]
         )
 
-    def test_find_manifest_entry_by_path(self):
-
-        entries = [
-            manifest_model.ManifestEntry(
-                checksum="aaa",
-                path=Path("in/a.txt"),
-            ),
-            manifest_model.ManifestEntry(
-                checksum="bbb",
-                path=Path("in/b.txt"),
-            ),
-        ]
-
-        entry = manifest_codec.find_manifest_entry(
-            entries,
-            Path("in/b.txt"),
-        )
-
-        self.assertEqual(entry.checksum, "bbb")
-
-    def test_find_manifest_entry_missing(self):
-
-        entries = []
-        entry = manifest_codec.find_manifest_entry(
-            entries,
-            Path("missing.txt"),
-        )
-        self.assertIsNone(entry)
-
 
 class TestManifestMutation(unittest.TestCase):
 
@@ -574,7 +545,6 @@ class TestManifestStore(unittest.TestCase):
             self.assertEqual(text, "abc  ./in/a.txt\n")
 
 
-
 class TestManifestPolicy(unittest.TestCase):
 
     def test_manifest_subset_root(self):
@@ -732,3 +702,50 @@ class TestManifestUpdate(unittest.TestCase):
         mock_repo.assert_called_once()
 
         mock_commit.assert_called_once()
+
+
+class TestManifestIndex(unittest.TestCase):
+
+    def test_lookup_returns_entry(self):
+
+        entry = manifest_model.ManifestEntry(
+            checksum="abc123",
+            path=Path("in/a.txt"),
+        )
+        index = manifest_model.ManifestIndex([entry])
+        result = index.lookup(Path("in/a.txt"))
+
+        self.assertEqual(result, entry)
+
+    def test_lookup_missing_returns_none(self):
+        index = manifest_model.ManifestIndex([])
+        result = index.lookup(Path("missing.txt"))
+        self.assertIsNone(result)
+
+
+    def test_require_returns_entry(self):
+        entry = manifest_model.ManifestEntry(
+            checksum="abc123",
+            path=Path("in/a.txt"),
+        )
+        index = manifest_model.ManifestIndex([entry])
+        result = index.require(Path("in/a.txt"))
+        self.assertEqual(result, entry)
+
+    def test_require_missing_fails(self):
+        index = manifest_model.ManifestIndex([])
+        with pilotest.assert_fatal(self):
+            index.require(Path("missing.txt"))
+
+    def test_duplicate_paths_last_entry_wins(self):
+        old = manifest_model.ManifestEntry(
+            checksum="old",
+            path=Path("in/a.txt"),
+        )
+        new = manifest_model.ManifestEntry(
+            checksum="new",
+            path=Path("in/a.txt"),
+        )
+        index = manifest_model.ManifestIndex([old, new])
+        result = index.lookup(Path("in/a.txt"))
+        self.assertEqual(result, new)

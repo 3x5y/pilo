@@ -140,6 +140,7 @@ def rewrite_plan_mutations(plan):
 
 def rewrite_manifest_mutations(plan, pile_root, entries):
 
+    index = manifest_model.ManifestIndex(entries)
     muts = []
 
     for op in plan.ops:
@@ -147,10 +148,7 @@ def rewrite_manifest_mutations(plan, pile_root, entries):
         src_rel = op.src.path.relative_to(pile_root)
         dst_rel = op.dst.path.relative_to(pile_root)
 
-        existing = manifest_codec.find_manifest_entry(
-            entries,
-            src_rel,
-        )
+        existing = index.require(src_rel)
 
         if existing is None:
             error.fatal(
