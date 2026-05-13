@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import checks
+from .. import checksum
 from .. import fs
 from .. import manifest_model
 from .. import mutation
@@ -54,11 +55,12 @@ def replace_manifest_mutations(plan, pile_root):
     muts = []
     for op in plan.ops:
         rel = op.dst.path.relative_to(pile_root)
+        acquired = checksum.generate_checksum(op.src)
         muts.append(
             manifest_model.ManifestAddEntry(
                 subset="pile",
                 entry=manifest_model.ManifestEntry(
-                    checksum=fs.sha256_file(op.src),
+                    checksum=acquired.checksum,
                     path=rel,
                 )
             )

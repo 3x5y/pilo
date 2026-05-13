@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from pilo import manifest_model
 from pilo import mutation_types
 from pilo.front import capture
 from pilo.front import ingest
@@ -452,3 +453,39 @@ class TestIngestOps(pilotest.TestCase):
         self.assertEqual(op.subset, "pile")
         self.assertEqual(op.manifest_path, mpath)
         self.assertEqual(len(op.build_mutations()), 1)
+
+    @patch("pilo.checksum.generate_checksum")
+    def test_ingest_manifest_mutations_use_acquisition_layer(
+        self,
+        mock_generate,
+    ):
+
+        cx = pilotest.make_context()
+
+        mock_generate.return_value = (
+            manifest_model.ProvenancedChecksum(
+                path=Path("/tmp/a"),
+                checksum="abc123",
+                provenance=(
+                    manifest_model
+                    .ChecksumProvenance
+                    .GENERATED
+                ),
+            )
+        )
+
+        op = ingest.IngestOp(
+            src=Path("/tmp/in/a"),
+            dst=Path("/tmp/pile/in/a"),
+            dataset=cx.pile_dataset,
+            action="move",
+        )
+
+        ingest.ingest_manifest_mutations(
+            [op],
+            cx.pile_path,
+        )
+
+        mock_generate.assert_called_once_with(
+            Path("/tmp/pile/in/a")
+        )

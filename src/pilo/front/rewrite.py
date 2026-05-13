@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import checks
+from .. import checksum
 from .. import error
 from .. import fs
 from .. import manifest_codec
@@ -316,22 +317,21 @@ def rewrite_preflight_steps(plan, pile_root, entries):
     return steps
 
 
-
-
 def rewrite_verified_checksums(plan, pile_root, entries):
     verified = []
     for op in plan.ops:
         src_rel = op.src.path.relative_to(pile_root)
         existing = entries.require(src_rel)
+        verified_item = checksum.verify_checksum(
+            op.src.path,
+            existing.checksum,
+        )
+
         verified.append(
             manifest_model.ProvenancedChecksum(
                 path=src_rel,
-                checksum=existing.checksum,
-                provenance=(
-                    manifest_model
-                    .ChecksumProvenance
-                    .VERIFIED
-                ),
+                checksum=verified_item.checksum,
+                provenance=verified_item.provenance,
             )
         )
     return manifest_model.VerifiedChecksumIndex(verified)

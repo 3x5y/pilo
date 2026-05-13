@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
+from pilo import checksum
 from pilo import context
 from pilo import fs
 from pilo import manifest
@@ -282,6 +283,23 @@ class TestManifest(pilotest.TestCase):
         self.assertEqual(item.provenance,
                          manifest_model.ChecksumProvenance.GENERATED)
 
+    def test_reuse_manifest_checksum_marks_manifest(self):
+
+        entry = manifest_model.ManifestEntry(
+            checksum="abc123",
+            path=Path("a.txt"),
+        )
+
+        item = checksum.reuse_manifest_checksum(entry)
+
+        self.assertEqual(
+            item.provenance,
+            (
+                manifest_model
+                .ChecksumProvenance
+                .MANIFEST
+            ),
+        )
 
 class TestManifestEntries(pilotest.TestCase):
 
