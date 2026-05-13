@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -6,8 +7,11 @@ from pilo.execution import (
     ExecutionPlan,
     ManifestOperation,
     ManifestStep,
+    VerifyChecksumStep,
     execute_plan,
+    execute_verify_checksum_step,
 )
+
 
 import pilotest
 
@@ -103,3 +107,100 @@ class TestExecutionPlan(pilotest.TestCase):
             Path("/tmp/p.manifest"),
             muts,
         )
+
+
+    @patch("pilo.mutation_exec.execute_semantic_mutations")
+    @patch("pilo.execution.execute_verify_checksum_step")
+    def test_preflight_executes_before_mutations(
+        self,
+        mock_verify,
+        mock_mutate,
+    ):
+
+        order = []
+
+        def verify(*args, **kwargs):
+            order.append("verify")
+
+        def mutate(*args, **kwargs):
+            order.append("mutate")
+
+        mock_verify.side_effect = verify
+        mock_mutate.side_effect = mutate
+
+        cx = pilotest.make_context()
+        plan = ExecutionPlan(
+            preflight_steps=[
+                VerifyChecksumStep(
+                    path=Path("/tmp/a"),
+                    expected_checksum="abc",
+                )
+            ],
+            semantic_mutations=["x"],
+        )
+
+        execute_plan(cx, plan)
+
+        self.assertEqual(order, ["verify", "mutate"])
+
+
+    @patch("pilo.mutation_exec.execute_semantic_mutations")
+    @patch("pilo.execution.execute_verify_checksum_step")
+    def test_preflight_failure_prevents_mutation(
+        self,
+        mock_verify,
+        mock_mutate,
+    ):
+
+        def fail(*args, **kwargs):
+            raise SystemExit(1)
+
+        mock_verify.side_effect = fail
+
+        cx = pilotest.make_context()
+
+        plan = ExecutionPlan(
+            preflight_steps=[
+                VerifyChecksumStep(
+                    path=Path("/tmp/a"),
+                    expected_checksum="bad",
+                )
+            ],
+            semantic_mutations=["x"],
+        )
+
+        with self.assertRaises(SystemExit):
+            execute_plan(cx, plan)
+
+        mock_mutate.assert_not_called()
+
+
+class TestVerifyChecksumStep(pilotest.TestCase):
+
+    def test_verify_checksum_step_accepts_matching_checksum(self):
+
+        with tempfile.TemporaryDirectory() as td:
+
+            path = Path(td) / "a.txt"
+            path.write_text("hello")
+
+            step = VerifyChecksumStep(
+                path=path,
+                expected_checksum=
+                    "2cf24dba5fb0a30e26e83b2ac5b9e29"
+                    "e1b161e5c1fa7425e73043362938b9824",
+            )
+
+            execute_verify_checksum_step(step)
+
+    def test_verify_checksum_step_fails_on_mismatch(self):
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "a.txt"
+            path.write_text("hello")
+            step = VerifyChecksumStep(
+                path=path,
+                expected_checksum="bad",
+            )
+            with pilotest.assert_fatal(self):
+                execute_verify_checksum_step(step)

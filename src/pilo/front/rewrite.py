@@ -13,6 +13,7 @@ from .. import policy
 from ..execution import (
     ExecutionPlan,
     ManifestStep,
+    VerifyChecksumStep,
 )
 
 
@@ -294,7 +295,27 @@ def rewrite_execution_plan(cx, plan, entries):
                 entries,
             ),
     )
+    preflight_steps= rewrite_preflight_steps(plan, cx.pile_path, entries)
     return ExecutionPlan(
+        preflight_steps=preflight_steps,
         semantic_mutations=rewrite_plan_mutations(plan),
         manifest_steps=[manifest_step],
     )
+
+
+def rewrite_preflight_steps(plan, pile_root, entries):
+
+    index = manifest_model.ManifestIndex(entries)
+    steps = []
+
+    for op in plan.ops:
+        src_rel = op.src.path.relative_to(pile_root)
+        existing = index.require(src_rel)
+        steps.append(
+            VerifyChecksumStep(
+                path=op.src.path,
+                expected_checksum=
+                    existing.checksum,
+            )
+        )
+    return steps

@@ -3,10 +3,10 @@ import unittest
 from unittest.mock import patch, call
 from pathlib import Path
 
+from pilo import execution
 from pilo import mutation
 from pilo import paths
 from pilo.front import rewrite
-from pilo.execution import ExecutionPlan
 from pilo.manifest_model import ManifestEntry
 import pilotest
 
@@ -161,7 +161,7 @@ class TestRewritePlan(pilotest.TestCase):
 
         exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
 
-        self.assertIsInstance(exec_plan, ExecutionPlan)
+        self.assertIsInstance(exec_plan, execution.ExecutionPlan)
         self.assertEqual(len(exec_plan.semantic_mutations), 1)
         self.assertEqual(len(exec_plan.manifest_steps), 1)
 
@@ -193,3 +193,31 @@ class TestRewritePlan(pilotest.TestCase):
         self.assertEqual(mop.subset, "pile")
         self.assertEqual(mop.manifest_path, mpath)
         self.assertEqual(len(mop.build_mutations()), 2)
+
+
+    @patch("pilo.checks.require_file")
+    def test_rewrite_execution_plan_builds_checksum_verification(self, *_):
+
+        cx = pilotest.make_context()
+        op = rewrite.RewriteOp(
+            kind="mv",
+            src=Path("in/a.txt"),
+            dst=Path("in/b.txt"),
+        )
+        plan = rewrite.build_rewrite_plan(cx, [op])
+        entries = [
+            ManifestEntry(
+                checksum="abc123",
+                path=Path("in/a.txt"),
+            )
+        ]
+        exec_plan = rewrite.rewrite_execution_plan(
+            cx,
+            plan,
+            entries,
+        )
+
+        self.assertEqual(len(exec_plan.preflight_steps), 1)
+        step = exec_plan.preflight_steps[0]
+        self.assertIsInstance(step, execution.VerifyChecksumStep)
+        self.assertEqual(step.expected_checksum, "abc123")
