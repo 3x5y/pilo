@@ -11,7 +11,7 @@ from pilo.manifest_model import ManifestEntry
 import pilotest
 
 
-class TestRewritePlan(unittest.TestCase):
+class TestRewritePlan(pilotest.TestCase):
 
     def test_build_rewrite_plan(self):
         with pilotest.make_tmp_context() as cx:

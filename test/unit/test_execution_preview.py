@@ -10,7 +10,7 @@ from pilo.front import prune
 import pilotest
 
 
-class TestExecutionPreview(unittest.TestCase):
+class TestExecutionPreview(pilotest.TestCase):
 
     def test_render_move_mutation(self):
         muts = [
@@ -113,7 +113,7 @@ class TestExecutionPreview(unittest.TestCase):
 
 
 
-class TestMutationExecutors(unittest.TestCase):
+class TestMutationExecutors(pilotest.TestCase):
 
     @patch("pilo.fs.safe_move")
     def test_live_executor_moves(self, mock_move):

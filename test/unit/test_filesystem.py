@@ -5,7 +5,7 @@ from pilo import fs
 import pilotest
 
 
-class TestFilesystemPrimitives(unittest.TestCase):
+class TestFilesystemPrimitives(pilotest.TestCase):
 
     def test_ensure_parent_dir_creates_parents(self):
         with pilotest.tmpdir() as root:

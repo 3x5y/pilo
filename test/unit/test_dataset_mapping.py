@@ -4,7 +4,7 @@ from pilo.context import DatasetMapping
 import pilotest
 
 
-class TestDatasetMapping(unittest.TestCase):
+class TestDatasetMapping(pilotest.TestCase):
     def test_root_mapping(self):
         m = DatasetMapping("tank/a", "backup/a")
         self.assertEqual(m.map("tank/a"), "backup/a")

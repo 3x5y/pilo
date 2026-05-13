@@ -5,7 +5,7 @@ from pilo.back import restore
 import pilotest
 
 
-class TestRestorePlan(unittest.TestCase):
+class TestRestorePlan(pilotest.TestCase):
 
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists", return_value=False)

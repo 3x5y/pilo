@@ -18,7 +18,7 @@ RESET='\e[0m'
 RESULT=0
 
 env_setup() {
-    TMP_ROOT=$(mktemp -d /tmp/test.XXXXXXXX)
+    TMP_ROOT=$(mktemp -d /tmp/pilo.test.XXXXXXXX)
     chmod a+rx $TMP_ROOT
     USAGE=$(df /tmp | grep -E -o '[0-9]+% /tmp')
     printf "[SETUP] %s TMP_ROOT=%s\n" "$USAGE" "$TMP_ROOT"
@@ -121,7 +121,7 @@ test_teardown() {
 }
 
 run_tests() {
-    tmplist=$(mktemp /tmp/test.list.XXXXXXXX)
+    tmplist=$(mktemp /tmp/pilo.testlist.XXXXXXXX)
     trap "rm -f $tmplist" EXIT
     find "$@" -type f -name 'test_*.sh' | LC_COLLATE=C sort > $tmplist
     while IFS= read -r test_file
@@ -144,7 +144,7 @@ run_tests() {
 
 cmd_clean() {
     zpool_cleanup
-    for d in /tmp/test.* /tmp/pilo.*
+    for d in /tmp/pilo.*
     do
         echo clean $d
         rm -rf $d

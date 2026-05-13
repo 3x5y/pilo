@@ -2,9 +2,10 @@ import unittest
 from pathlib import Path
 
 from pilo import mutation
+import pilotest
 
 
-class TestOperationEvents(unittest.TestCase):
+class TestOperationEvents(pilotest.TestCase):
 
     def test_move_event(self):
         mut = mutation.MoveMutation(

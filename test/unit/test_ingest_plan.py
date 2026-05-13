@@ -10,7 +10,7 @@ from pilo.execution import ExecutionPlan
 import pilotest
 
 
-class TestIngestOps(unittest.TestCase):
+class TestIngestOps(pilotest.TestCase):
 
     def test_ingest_plan_model(self):
         plan = ingest.IngestPlan(

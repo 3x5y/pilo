@@ -9,7 +9,7 @@ from pilo import mutation_types
 import pilotest
 
 
-class TestMutationTypes(unittest.TestCase):
+class TestMutationTypes(pilotest.TestCase):
 
     def test_move_mutation(self):
         m = mutation_types.MoveMutation(
@@ -49,7 +49,7 @@ class TestMutationTypes(unittest.TestCase):
         self.assertEqual(m.path, Path("/tmp/a"))
 
 
-class TestSemanticMutation(unittest.TestCase):
+class TestSemanticMutation(pilotest.TestCase):
 
     def test_semantic_mutation_model(self):
         mut = mutation_types.MoveMutation(
@@ -221,7 +221,7 @@ class TestSemanticMutation(unittest.TestCase):
         )
 
 
-class TestMutationRender(unittest.TestCase):
+class TestMutationRender(pilotest.TestCase):
 
     def test_render_move(self):
         mut = mutation_types.MoveMutation(

@@ -6,7 +6,7 @@ from pilo import paths
 import pilotest
 
 
-class TestLogicalPaths(unittest.TestCase):
+class TestLogicalPaths(pilotest.TestCase):
 
     def test_parse_pile_path(self):
         lp = paths.parse_logical_path(Path("in/a.txt"))
@@ -85,7 +85,7 @@ class TestLogicalPaths(unittest.TestCase):
             paths.parse_logical_path(Path("random/file.txt"))
 
 
-class TestStructuredLogicalParsing(unittest.TestCase):
+class TestStructuredLogicalParsing(pilotest.TestCase):
 
     def test_try_parse_logical_path_returns_logical_path(self):
         lp = paths.try_parse_logical_path(
@@ -115,7 +115,7 @@ class TestStructuredLogicalParsing(unittest.TestCase):
             )
 
 
-class TestLogicalNamespace(unittest.TestCase):
+class TestLogicalNamespace(pilotest.TestCase):
 
     def test_namespace_for_pile_path(self):
         result = paths.logical_namespace(Path("in/a.txt"))

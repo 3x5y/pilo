@@ -6,7 +6,7 @@ from pilo.front import rewrite
 import pilotest
 
 
-class TestRewriteOperationModel(unittest.TestCase):
+class TestRewriteOperationModel(pilotest.TestCase):
 
     def test_parse_move_op(self):
         ops = rewrite.parse_rewrite_ops([

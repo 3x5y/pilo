@@ -10,7 +10,7 @@ from pilo.front import rewrite
 import pilotest
 
 
-class TestRewriteCommand(unittest.TestCase):
+class TestRewriteCommand(pilotest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
@@ -27,17 +27,17 @@ class TestRewriteCommand(unittest.TestCase):
         mock_parse,
         stdin,
     ):
-        cx = pilotest.make_context()
-        cx.args = []
+        with pilotest.make_tmp_context() as cx:
+            cx.args = []
 
-        stdin.write("mv\tin/a\tin/b\n")
-        stdin.seek(0)
-        mod = pilotest.import_command("rewrite")
+            stdin.write("mv\tin/a\tin/b\n")
+            stdin.seek(0)
+            mod = pilotest.import_command("rewrite")
 
-        with patch("pilo.context.Context", return_value=cx):
-            mod.main()
+            with patch("pilo.context.Context", return_value=cx):
+                mod.main()
 
-        mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
+            mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
     @patch("pilo.manifest_update.execute_manifest_update_plan")
@@ -52,17 +52,17 @@ class TestRewriteCommand(unittest.TestCase):
         mock_manifest_exec,
         mock_parse,
     ):
-        cx = pilotest.make_context()
-        cx.args = ["mv\tin/a\tin/b\nmv\tin/c\tin/d"]
-        mod = pilotest.import_command("rewrite")
+        with pilotest.make_tmp_context() as cx:
+            cx.args = ["mv\tin/a\tin/b\nmv\tin/c\tin/d"]
+            mod = pilotest.import_command("rewrite")
 
-        with patch("pilo.context.Context", return_value=cx):
-            mod.main()
+            with patch("pilo.context.Context", return_value=cx):
+                mod.main()
 
-        mock_parse.assert_called_once_with([
-            "mv\tin/a\tin/b",
-            "mv\tin/c\tin/d",
-        ])
+            mock_parse.assert_called_once_with([
+                "mv\tin/a\tin/b",
+                "mv\tin/c\tin/d",
+            ])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
     @patch("pilo.manifest_update.execute_manifest_update_plan")
@@ -80,17 +80,17 @@ class TestRewriteCommand(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w+", delete=False) as f:
             f.write("mv\tin/a\tin/b\n")
             path = f.name
-        cx = pilotest.make_context()
-        cx.args = [path]
-        mod = pilotest.import_command("rewrite")
-        try:
-            with patch("pilo.context.Context", return_value=cx):
-                mod.main()
+        with pilotest.make_tmp_context() as cx:
+            cx.args = [path]
+            mod = pilotest.import_command("rewrite")
+            try:
+                with patch("pilo.context.Context", return_value=cx):
+                    mod.main()
 
-            mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
+                mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
 
-        finally:
-            Path(path).unlink(missing_ok=True)
+            finally:
+                Path(path).unlink(missing_ok=True)
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
@@ -114,18 +114,19 @@ class TestRewriteCommand(unittest.TestCase):
             f.write("mv\tin/file\tin/dst\n")
             path = f.name
 
-        cx = pilotest.make_context()
-        cx.args = [path]
         mod = pilotest.import_command("rewrite")
 
-        try:
-            with patch("pilo.context.Context", return_value=cx):
-                mod.main()
+        with pilotest.make_tmp_context() as cx:
+            cx.args = [path]
 
-            mock_parse.assert_called_once_with(["mv\tin/file\tin/dst"])
+            try:
+                with patch("pilo.context.Context", return_value=cx):
+                    mod.main()
 
-        finally:
-            Path(path).unlink(missing_ok=True)
+                mock_parse.assert_called_once_with(["mv\tin/file\tin/dst"])
+
+            finally:
+                Path(path).unlink(missing_ok=True)
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
     @patch("pilo.manifest_update.execute_manifest_update_plan")
@@ -140,17 +141,17 @@ class TestRewriteCommand(unittest.TestCase):
         mock_manifest_exec,
         mock_parse,
     ):
-        cx = pilotest.make_context()
-        cx.args = ["mv\tin/a\tin/b\nmv\tin/c\tin/d"]
-        mod = pilotest.import_command("rewrite")
+        with pilotest.make_tmp_context() as cx:
+            cx.args = ["mv\tin/a\tin/b\nmv\tin/c\tin/d"]
+            mod = pilotest.import_command("rewrite")
 
-        with patch("pilo.context.Context", return_value=cx):
-            mod.main()
+            with patch("pilo.context.Context", return_value=cx):
+                mod.main()
 
-        mock_parse.assert_called_once_with([
-            "mv\tin/a\tin/b",
-            "mv\tin/c\tin/d",
-        ])
+            mock_parse.assert_called_once_with([
+                "mv\tin/a\tin/b",
+                "mv\tin/c\tin/d",
+            ])
 
     @patch("pilo.front.rewrite.RewriteScript.from_lines")
     @patch("pilo.manifest_update.execute_manifest_update_plan")
@@ -165,20 +166,20 @@ class TestRewriteCommand(unittest.TestCase):
         mock_manifest_exec,
         mock_script,
     ):
-        cx = pilotest.make_context()
-        cx.args = ["mv\tin/a\tin/b"]
+        with pilotest.make_tmp_context() as cx:
+            cx.args = ["mv\tin/a\tin/b"]
 
-        script = unittest.mock.Mock()
-        script.parse_ops.return_value = []
-        mock_script.return_value = script
+            script = unittest.mock.Mock()
+            script.parse_ops.return_value = []
+            mock_script.return_value = script
 
-        mod = pilotest.import_command("rewrite")
-        with patch("pilo.context.Context", return_value=cx):
-            mod.main()
+            mod = pilotest.import_command("rewrite")
+            with patch("pilo.context.Context", return_value=cx):
+                mod.main()
 
-        mock_script.assert_called_once_with(["mv\tin/a\tin/b"])
+            mock_script.assert_called_once_with(["mv\tin/a\tin/b"])
 
-        script.parse_ops.assert_called_once_with()
+            script.parse_ops.assert_called_once_with()
 
     @patch("builtins.print")
     @patch("pilo.front.rewrite.preview_rewrite_plan")
@@ -261,7 +262,7 @@ class TestRewriteCommand(unittest.TestCase):
         self.assertEqual(mock_print.call_args_list, arg_list)
 
 
-class TestRewriteValidateCommand(unittest.TestCase):
+class TestRewriteValidateCommand(pilotest.TestCase):
 
     @patch("builtins.print")
     @patch("pilo.front.rewrite.build_rewrite_plan")
@@ -323,7 +324,7 @@ class TestRewriteValidateCommand(unittest.TestCase):
                 mod.main()
 
 
-class TestRewriteScript(unittest.TestCase):
+class TestRewriteScript(pilotest.TestCase):
 
     def test_script_from_lines(self):
         script = rewrite.RewriteScript.from_lines([
@@ -366,7 +367,7 @@ class TestRewriteScript(unittest.TestCase):
         self.assertEqual(len(ops), 1)
 
 
-class TestRewriteScriptVersioning(unittest.TestCase):
+class TestRewriteScriptVersioning(pilotest.TestCase):
 
     def test_parse_versioned_script(self):
         script = rewrite.RewriteScript.from_lines([
@@ -416,7 +417,7 @@ class TestRewriteScriptVersioning(unittest.TestCase):
             script.parse_ops()
 
 
-class TestRewriteScriptSerialization(unittest.TestCase):
+class TestRewriteScriptSerialization(pilotest.TestCase):
 
     def test_render_versioned_script(self):
         script = rewrite.RewriteScript.from_ops([
@@ -442,7 +443,7 @@ class TestRewriteScriptSerialization(unittest.TestCase):
         self.assertEqual(script.render_lines(), lines)
 
 
-class TestRewriteManifest(unittest.TestCase):
+class TestRewriteManifest(pilotest.TestCase):
 
     @patch("pilo.fs.sha256_file", return_value="abc123")
     def test_rewrite_manifest_mutations_move(self, _):

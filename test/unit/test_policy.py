@@ -5,7 +5,7 @@ from pilo import policy
 import pilotest
 
 
-class TestPolicy(unittest.TestCase):
+class TestPolicy(pilotest.TestCase):
 
     def test_require_child_dataset_accepts_child(self):
         policy.require_child_dataset("tank/a/static", "tank/a")

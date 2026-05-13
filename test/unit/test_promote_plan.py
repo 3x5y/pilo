@@ -9,7 +9,7 @@ from pilo.front import promote
 import pilotest
 
 
-class TestPromotePlan(unittest.TestCase):
+class TestPromotePlan(pilotest.TestCase):
 
     def test_promote_op_model(self):
         op = promote.PromoteOp(

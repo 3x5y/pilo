@@ -2,9 +2,10 @@ import unittest
 from unittest.mock import patch, call
 
 from pilo.zfs import writable_datasets
+import pilotest
 
 
-class TestWritableDatasets(unittest.TestCase):
+class TestWritableDatasets(pilotest.TestCase):
 
     @patch("pilo.zfs.set_readonly")
     @patch("pilo.zfs.get_readonly")

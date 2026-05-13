@@ -10,7 +10,7 @@ from pilo import mutation_render
 import pilotest
 
 
-class TestManifestCompat(unittest.TestCase):
+class TestManifestCompat(pilotest.TestCase):
 
     def test_move_mutation_compatibility_alias(self):
         mut = mutation.MoveMutation(

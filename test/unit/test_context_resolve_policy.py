@@ -6,7 +6,7 @@ from pilo import paths
 import pilotest
 
 
-class TestContextResolvePolicy(unittest.TestCase):
+class TestContextResolvePolicy(pilotest.TestCase):
 
     def test_resolve_delegates_to_storage_policy(self):
         cx = pilotest.make_context()

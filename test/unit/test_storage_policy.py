@@ -7,7 +7,7 @@ from pilo.context import StoragePolicy
 import pilotest
 
 
-class TestStoragePolicy(unittest.TestCase):
+class TestStoragePolicy(pilotest.TestCase):
 
     def test_pile_policy(self):
         cx = pilotest.make_context()
@@ -59,7 +59,7 @@ class TestStoragePolicy(unittest.TestCase):
         self.assertEqual(result, "tank/a/static/filing/books")
 
 
-class TestContextStoragePolicy(unittest.TestCase):
+class TestContextStoragePolicy(pilotest.TestCase):
 
     def test_context_returns_pile_policy(self):
         cx = pilotest.make_context()
@@ -83,7 +83,7 @@ class TestContextStoragePolicy(unittest.TestCase):
         self.assertEqual(sp.root_dataset, "tank/a/static/filing")
 
 
-class TestManifestSubsetPolicy(unittest.TestCase):
+class TestManifestSubsetPolicy(pilotest.TestCase):
 
     def test_manifest_subset_pile_uses_pile_policy(self):
         cx = pilotest.make_context()

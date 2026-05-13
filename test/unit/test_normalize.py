@@ -4,11 +4,10 @@ from unittest.mock import patch
 
 from pilo import normalize
 from pilo.back import recover
-
 import pilotest
 
 
-class TestNormalize(unittest.TestCase):
+class TestNormalize(pilotest.TestCase):
 
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
@@ -87,7 +86,7 @@ class TestNormalize(unittest.TestCase):
 
 
 
-class TestDatasetContracts(unittest.TestCase):
+class TestDatasetContracts(pilotest.TestCase):
 
     def test_contract_registry_order(self):
         names = [

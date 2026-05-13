@@ -3,9 +3,10 @@ from unittest.mock import patch
 
 from pilo import util
 from pilo.back import snapshot
+import pilotest
 
 
-class TestSnapshotPolicy(unittest.TestCase):
+class TestSnapshotPolicy(pilotest.TestCase):
 
     def test_policy_builds_name(self):
         policy = snapshot.SnapshotPolicy(prefix="r")

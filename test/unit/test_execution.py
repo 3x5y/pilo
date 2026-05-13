@@ -12,7 +12,7 @@ from pilo.execution import (
 import pilotest
 
 
-class TestExecutionPlan(unittest.TestCase):
+class TestExecutionPlan(pilotest.TestCase):
     @patch("pilo.mutation_exec.execute_semantic_mutations")
     @patch("pilo.manifest_mutation.execute_manifest_mutations")
     def _test_execute_plan_executes_mutations_first(self, mock_man, mock_sem):
@@ -60,6 +60,7 @@ class TestExecutionPlan(unittest.TestCase):
     def test_manifest_step_builds_after_mutations(self, mock_man, mock_sem):
 
         order = []
+
         def build():
             order.append("build")
             return []
@@ -68,6 +69,7 @@ class TestExecutionPlan(unittest.TestCase):
             order.append("semantic")
 
         mock_sem.side_effect = semantic
+
         cx = pilotest.make_context()
         step = ManifestStep(
             subset="pile",

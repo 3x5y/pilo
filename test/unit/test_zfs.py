@@ -3,9 +3,10 @@ import unittest
 from unittest.mock import patch, Mock
 
 from pilo import zfs
+import pilotest
 
 
-class TestZfsRun(unittest.TestCase):
+class TestZfsRun(pilotest.TestCase):
 
     @patch("subprocess.run")
     def test_zfs_run_default_check_true(self, run):

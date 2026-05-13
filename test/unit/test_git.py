@@ -6,7 +6,7 @@ from pilo import git
 import pilotest
 
 
-class TestGitHelpers(unittest.TestCase):
+class TestGitHelpers(pilotest.TestCase):
 
     @patch("pilo.git.as_user")
     def test_git_commit_if_changed_adds_file(self, as_user):

@@ -9,7 +9,7 @@ from pilo.front import prune
 import pilotest
 
 
-class TestPrunePlan(unittest.TestCase):
+class TestPrunePlan(pilotest.TestCase):
 
     def test_prune_op_model(self):
         op = prune.PruneOp(

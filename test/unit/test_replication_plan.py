@@ -5,7 +5,7 @@ from pilo.back import replication as repl
 import pilotest
 
 
-class TestReplicationPlan(unittest.TestCase):
+class TestReplicationPlan(pilotest.TestCase):
 
     @patch('pilo.checks.require_dataset')
     @patch("pilo.zfs.latest_snapshot")

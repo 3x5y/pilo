@@ -9,7 +9,7 @@ from pilo.front import capture
 import pilotest
 
 
-class TestCaptureManifest(unittest.TestCase):
+class TestCaptureManifest(pilotest.TestCase):
 
     def test_generate_capture_manifest_lines(self):
 
@@ -126,7 +126,7 @@ class TestCaptureManifest(unittest.TestCase):
             self.assertIn("./a.txt", lines[0])
 
 
-class TestCaptureCommand(unittest.TestCase):
+class TestCaptureCommand(pilotest.TestCase):
 
     @patch("pilo.checks.require_dataset", return_value=True)
     @patch("pilo.front.capture.capture_session")
@@ -160,7 +160,7 @@ class TestCaptureCommand(unittest.TestCase):
         mock_session.assert_called_once_with(cx.intake_path)
 
 
-class TestCaptureSession(unittest.TestCase):
+class TestCaptureSession(pilotest.TestCase):
 
     def test_capture_session_model(self):
 

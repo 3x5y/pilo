@@ -81,3 +81,20 @@ def make_tmp_context():
 def tmpdir():
     with tempfile.TemporaryDirectory() as td:
         yield Path(td)
+
+
+class TestCase(unittest.TestCase):
+
+    def tearDown(self):
+        check = 'admin intake pile static'.split()
+        tmp = Path('/tmp')
+        for x in check:
+            d = tmp / x
+            if d.exists():
+                import os, shutil
+                print()
+                print("test didn't clean up")
+                print(self)
+                print(d)
+                shutil.rmtree(d)
+                os._exit(1)

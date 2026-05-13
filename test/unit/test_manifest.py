@@ -22,7 +22,7 @@ from pilo.front import ingest
 import pilotest
 
 
-class TestManifest(unittest.TestCase):
+class TestManifest(pilotest.TestCase):
 
     def test_sha256_file_matches_hashlib(self):
         with tempfile.TemporaryDirectory() as td:
@@ -267,7 +267,7 @@ class TestManifest(unittest.TestCase):
         )
 
 
-class TestManifestEntries(unittest.TestCase):
+class TestManifestEntries(pilotest.TestCase):
 
     def test_manifest_entry_model(self):
 
@@ -381,7 +381,7 @@ class TestManifestEntries(unittest.TestCase):
         )
 
 
-class TestManifestMutation(unittest.TestCase):
+class TestManifestMutation(pilotest.TestCase):
 
     def test_manifest_add_entry_mutation(self):
 
@@ -484,7 +484,7 @@ class TestManifestMutation(unittest.TestCase):
         self.assertEqual(out[0].checksum, "new")
 
 
-class TestManifestStore(unittest.TestCase):
+class TestManifestStore(pilotest.TestCase):
     def test_write_manifest_entries(self):
 
         with pilotest.make_tmp_context() as cx:
@@ -545,7 +545,7 @@ class TestManifestStore(unittest.TestCase):
             self.assertEqual(text, "abc  ./in/a.txt\n")
 
 
-class TestManifestPolicy(unittest.TestCase):
+class TestManifestPolicy(pilotest.TestCase):
 
     def test_manifest_subset_root(self):
         cx = pilotest.make_context()
@@ -615,7 +615,7 @@ class TestManifestPolicy(unittest.TestCase):
         self.assertIsNone(result)
 
 
-class TestManifestUpdate(unittest.TestCase):
+class TestManifestUpdate(pilotest.TestCase):
 
     def test_build_manifest_update_plan(self):
         cx = pilotest.make_context()
@@ -704,7 +704,7 @@ class TestManifestUpdate(unittest.TestCase):
         mock_commit.assert_called_once()
 
 
-class TestManifestIndex(unittest.TestCase):
+class TestManifestIndex(pilotest.TestCase):
 
     def test_lookup_returns_entry(self):
 

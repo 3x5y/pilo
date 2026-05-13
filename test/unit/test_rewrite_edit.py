@@ -7,7 +7,7 @@ from unittest.mock import mock_open
 import pilotest
 
 
-class TestRewriteEdit(unittest.TestCase):
+class TestRewriteEdit(pilotest.TestCase):
 
     def test_build_script_lines(self):
         mod = pilotest.import_command("rewrite-edit")

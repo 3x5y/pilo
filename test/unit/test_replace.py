@@ -10,7 +10,7 @@ from pilo.execution import ExecutionPlan
 import pilotest
 
 
-class TestReplacePlan(unittest.TestCase):
+class TestReplacePlan(pilotest.TestCase):
 
     @patch("pilo.checks.require_dataset")
     def test_build_replace_plan(self, *_):

@@ -7,7 +7,7 @@ from pilo import checks
 import pilotest
 
 
-class TestChecks(unittest.TestCase):
+class TestChecks(pilotest.TestCase):
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_require_dataset_ok(self, _):

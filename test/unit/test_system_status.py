@@ -6,7 +6,7 @@ from pilo import status
 import pilotest
 
 
-class TestSystemStatusModel(unittest.TestCase):
+class TestSystemStatusModel(pilotest.TestCase):
 
     def test_empty_status_is_ok(self):
         st = status.SystemStatus()
@@ -185,7 +185,7 @@ class TestSystemStatusModel(unittest.TestCase):
         self.assertEqual(mock_manifest.call_count, 3)
 
 
-class TestStatusRegistry(unittest.TestCase):
+class TestStatusRegistry(pilotest.TestCase):
 
     def test_status_checks_order(self):
         names = [

@@ -3,9 +3,10 @@ import io
 import unittest
 
 from pilo import error
+import pilotest
 
 
-class TestErrors(unittest.TestCase):
+class TestErrors(pilotest.TestCase):
 
     def test_fatal_error_model(self):
         err = error.FatalError("bad things")
