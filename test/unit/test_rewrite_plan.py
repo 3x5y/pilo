@@ -4,10 +4,10 @@ from unittest.mock import patch, call
 from pathlib import Path
 
 from pilo import execution
+from pilo import manifest_model
 from pilo import mutation
 from pilo import paths
 from pilo.front import rewrite
-from pilo.manifest_model import ManifestEntry
 import pilotest
 
 
@@ -153,7 +153,7 @@ class TestRewritePlan(pilotest.TestCase):
         plan = rewrite.build_rewrite_plan(cx, [op])
 
         entries = [
-            ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -180,7 +180,7 @@ class TestRewritePlan(pilotest.TestCase):
         plan = rewrite.build_rewrite_plan(cx, [op])
 
         entries = [
-            ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -206,7 +206,7 @@ class TestRewritePlan(pilotest.TestCase):
         )
         plan = rewrite.build_rewrite_plan(cx, [op])
         entries = [
-            ManifestEntry(
+            manifest_model.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -221,3 +221,169 @@ class TestRewritePlan(pilotest.TestCase):
         step = exec_plan.preflight_steps[0]
         self.assertIsInstance(step, execution.VerifyChecksumStep)
         self.assertEqual(step.expected_checksum, "abc123")
+
+    def test_rewrite_manifest_mutations_use_verified_checksums(self):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/a.txt"),
+                dst=Path("in/b.txt"),
+            ),
+            src=cx.resolve(Path("in/a.txt")),
+            dst=cx.resolve(Path("in/b.txt")),
+        )
+
+        plan = rewrite.RewritePlan(ops=[op])
+
+        verified = {
+            Path("in/a.txt"): manifest_model.VerifiedChecksum(
+                path=Path("in/a.txt"),
+                checksum="abc123",
+            )
+        }
+
+        muts = rewrite.rewrite_manifest_mutations(
+            plan,
+            cx.pile_path,
+            verified,
+        )
+
+        add = muts[1]
+
+        self.assertEqual(add.entry.checksum, "abc123")
+
+    @patch("pilo.fs.sha256_file")
+    def test_rewrite_verified_checksums_reuses_manifest_entries(
+        self,
+        mock_sha,
+    ):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/a.txt"),
+                dst=Path("in/b.txt"),
+            ),
+            src=cx.resolve(Path("in/a.txt")),
+            dst=cx.resolve(Path("in/b.txt")),
+        )
+
+        plan = rewrite.RewritePlan(ops=[op])
+
+        entries = manifest_model.ManifestIndex([
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path("in/a.txt"),
+            )
+        ])
+
+        verified = rewrite.rewrite_verified_checksums(
+            plan,
+            cx.pile_path,
+            entries,
+        )
+
+        item = verified.require(Path("in/a.txt"))
+        self.assertEqual(item.checksum, "abc123")
+        mock_sha.assert_not_called()
+
+    def test_rewrite_verified_checksums_missing_entry_fails(self):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/a.txt"),
+                dst=Path("in/b.txt"),
+            ),
+            src=cx.resolve(Path("in/a.txt")),
+            dst=cx.resolve(Path("in/b.txt")),
+        )
+
+        plan = rewrite.RewritePlan(ops=[op])
+        entries = manifest_model.ManifestIndex([])
+
+        with pilotest.assert_fatal(self):
+            rewrite.rewrite_verified_checksums(plan, cx.pile_path, entries)
+
+    @patch("pilo.checks.require_file")
+    @patch("pilo.front.rewrite.rewrite_manifest_mutations")
+    def test_rewrite_execution_plan_uses_verified_checksums(
+        self,
+        mock_manifest,
+        *_
+    ):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.RewriteOp(
+            kind="mv",
+            src=Path("in/a.txt"),
+            dst=Path("in/b.txt"),
+        )
+
+        plan = rewrite.build_rewrite_plan(cx, [op])
+
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path("in/a.txt"),
+            )
+        ]
+
+        exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+        exec_plan.manifest_steps[0].build_mutations()
+        verified = mock_manifest.call_args[0][2]
+
+        self.assertIsInstance(verified, manifest_model.VerifiedChecksumIndex)
+
+    @patch("pilo.fs.sha256_file")
+    def test_rewrite_manifest_mutations_do_not_rehash(
+        self,
+        mock_sha,
+    ):
+
+        verified = (
+            manifest_model.VerifiedChecksumIndex([
+                manifest_model.VerifiedChecksum(
+                    path=Path("in/old.txt"),
+                    checksum="existing",
+                )
+            ])
+        )
+
+        src = paths.Resolved(
+            path=Path("/pile/in/old.txt"),
+            dataset="tank/pile",
+        )
+
+        dst = paths.Resolved(
+            path=Path("/pile/in/new.txt"),
+            dataset="tank/pile",
+        )
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/old.txt"),
+                dst=Path("in/new.txt"),
+            ),
+            src=src,
+            dst=dst,
+        )
+
+        plan = rewrite.RewritePlan(ops=[op])
+
+        rewrite.rewrite_manifest_mutations(
+            plan,
+            Path("/pile"),
+            verified,
+        )
+
+        mock_sha.assert_not_called()

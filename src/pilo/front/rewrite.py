@@ -139,35 +139,28 @@ def rewrite_plan_mutations(plan):
     return mutations
 
 
-def rewrite_manifest_mutations(plan, pile_root, entries):
+def rewrite_manifest_mutations(plan, pile_root, verified):
 
-    index = manifest_model.ManifestIndex(entries)
+    # compat
+    verified = manifest_model.as_verified_checksum_index(verified)
     muts = []
 
     for op in plan.ops:
 
         src_rel = op.src.path.relative_to(pile_root)
         dst_rel = op.dst.path.relative_to(pile_root)
-
-        existing = index.require(src_rel)
-
-        if existing is None:
-            error.fatal(
-                f"manifest entry missing: {src_rel}"
-            )
-
+        continuity = verified.require(src_rel)
         muts.append(
             manifest_model.ManifestRemoveEntry(
                 subset="pile",
                 path=src_rel,
             )
         )
-
         muts.append(
             manifest_model.ManifestAddEntry(
                 subset="pile",
                 entry=manifest_model.ManifestEntry(
-                    checksum=existing.checksum,
+                    checksum=continuity.checksum,
                     path=dst_rel,
                 )
             )
@@ -284,6 +277,8 @@ class RewriteScript:
 
 
 def rewrite_execution_plan(cx, plan, entries):
+    index = manifest_model.as_manifest_index(entries)
+    verified = rewrite_verified_checksums(plan, cx.pile_path, index)
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     manifest_step = ManifestStep(
         subset="pile",
@@ -292,7 +287,7 @@ def rewrite_execution_plan(cx, plan, entries):
             rewrite_manifest_mutations(
                 plan,
                 cx.pile_path,
-                entries,
+                verified,
             ),
     )
     preflight_steps= rewrite_preflight_steps(plan, cx.pile_path, entries)
@@ -305,7 +300,7 @@ def rewrite_execution_plan(cx, plan, entries):
 
 def rewrite_preflight_steps(plan, pile_root, entries):
 
-    index = manifest_model.ManifestIndex(entries)
+    index = manifest_model.as_manifest_index(entries)
     steps = []
 
     for op in plan.ops:
@@ -319,3 +314,19 @@ def rewrite_preflight_steps(plan, pile_root, entries):
             )
         )
     return steps
+
+
+
+
+def rewrite_verified_checksums(plan, pile_root, entries):
+    verified = []
+    for op in plan.ops:
+        src_rel = op.src.path.relative_to(pile_root)
+        existing = entries.require(src_rel)
+        verified.append(
+            manifest_model.VerifiedChecksum(
+                path=src_rel,
+                checksum=existing.checksum,
+            )
+        )
+    return manifest_model.VerifiedChecksumIndex(verified)

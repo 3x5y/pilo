@@ -23,6 +23,12 @@ class ManifestRemoveEntry:
 
 
 
+@dataclass(frozen=True)
+class VerifiedChecksum:
+    path: Path
+    checksum: str
+
+
 class ManifestIndex:
 
     def __init__(self, entries):
@@ -38,3 +44,41 @@ class ManifestIndex:
         if entry is None:
             error.fatal(f"manifest entry missing: {path}")
         return entry
+
+
+class VerifiedChecksumIndex:
+
+    def __init__(self, checksums):
+        self._checksums = {}
+
+        for item in checksums:
+            self._checksums[item.path] = item
+
+    def lookup(self, path: Path):
+        return self._checksums.get(path)
+
+    def require(self, path: Path):
+        item = self.lookup(path)
+
+        if item is None:
+            error.fatal(
+                f"verified checksum missing: {path}"
+            )
+
+        return item
+
+
+# compat helpers
+
+def as_manifest_index(entries):
+    if isinstance(entries, ManifestIndex):
+        return entries
+    return ManifestIndex(entries)
+
+
+def as_verified_checksum_index(items):
+    if isinstance(items, VerifiedChecksumIndex):
+        return items
+    if isinstance(items, dict):
+        items = items.values()
+    return VerifiedChecksumIndex(items)
