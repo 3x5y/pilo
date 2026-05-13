@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .. import checks
 from .. import checksum
+from .. import continuity
 from .. import error
 from .. import fs
 from .. import manifest_codec
@@ -170,6 +171,26 @@ def rewrite_manifest_mutations(plan, pile_root, verified):
     return muts
 
 
+def rewrite_manifest_mutations(plan, pile_root, verified):
+
+    mappings = []
+
+    for op in plan.ops:
+        src_rel = op.src.path.relative_to(pile_root)
+        dst_rel = op.dst.path.relative_to(pile_root)
+        mappings.append((src_rel, dst_rel))
+
+    transfers = continuity.build_continuity_transfers(
+        mappings,
+        verified,
+    )
+
+    return continuity.continuity_manifest_mutations(
+        "pile",
+        transfers,
+    )
+
+
 def load_rewrite_lines(cx):
     args = rewrite_script_args(cx)
     if args:
@@ -318,6 +339,10 @@ def rewrite_preflight_steps(plan, pile_root, entries):
 
 
 def rewrite_verified_checksums(plan, pile_root, entries):
+    return rewrite_acquire_checksums(plan, pile_root, entries)
+
+
+def rewrite_acquire_checksums(plan, pile_root, entries):
     verified = []
     for op in plan.ops:
         src_rel = op.src.path.relative_to(pile_root)

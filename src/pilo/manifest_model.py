@@ -65,9 +65,9 @@ class VerifiedChecksumIndex:
 
     def __init__(self, checksums):
         self._checksums = {}
-
         for item in checksums:
-            self._checksums[item.path] = item
+            normalized = as_provenanced_checksum(item)
+            self._checksums[normalized.path] = normalized
 
     def lookup(self, path: Path):
         return self._checksums.get(path)
@@ -106,4 +106,33 @@ def generated_checksum(path, checksum):
         provenance=(
             ChecksumProvenance.GENERATED
         ),
+    )
+
+
+def as_provenanced_checksum(item):
+
+    if isinstance(item, ProvenancedChecksum):
+        return item
+
+    if isinstance(item, VerifiedChecksum):
+        return ProvenancedChecksum(
+            path=item.path,
+            checksum=item.checksum,
+            provenance=(
+                ChecksumProvenance.VERIFIED
+            ),
+        )
+
+    if isinstance(item, ManifestEntry):
+        return ProvenancedChecksum(
+            path=item.path,
+            checksum=item.checksum,
+            provenance=(
+                ChecksumProvenance.MANIFEST
+            ),
+        )
+
+    error.fatal(
+        f"unsupported checksum item: "
+        f"{type(item).__name__}"
     )

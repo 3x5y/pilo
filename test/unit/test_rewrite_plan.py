@@ -495,3 +495,34 @@ class TestRewritePlan(pilotest.TestCase):
         )
 
         mock_verify.assert_called_once()
+
+    @patch("pilo.continuity.continuity_manifest_mutations")
+    @patch("pilo.continuity.build_continuity_transfers")
+    def test_rewrite_manifest_mutations_use_continuity_layer(
+        self,
+        mock_build,
+        mock_manifest,
+    ):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/a.txt"),
+                dst=Path("in/b.txt"),
+            ),
+            src=cx.resolve(Path("in/a.txt")),
+            dst=cx.resolve(Path("in/b.txt")),
+        )
+
+        plan = rewrite.RewritePlan([op])
+
+        rewrite.rewrite_manifest_mutations(
+            plan,
+            cx.pile_path,
+            [],
+        )
+
+        mock_build.assert_called_once()
+        mock_manifest.assert_called_once()
