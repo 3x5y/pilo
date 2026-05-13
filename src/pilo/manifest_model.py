@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 from . import error
@@ -27,6 +28,20 @@ class ManifestRemoveEntry:
 class VerifiedChecksum:
     path: Path
     checksum: str
+
+
+class ChecksumProvenance(Enum):
+    MANIFEST = "manifest"
+    VERIFIED = "verified"
+    GENERATED = "generated"
+    def foo(): pass
+
+
+@dataclass(frozen=True)
+class ProvenancedChecksum:
+    path: Path
+    checksum: str
+    provenance: ChecksumProvenance
 
 
 class ManifestIndex:
@@ -82,3 +97,13 @@ def as_verified_checksum_index(items):
     if isinstance(items, dict):
         items = items.values()
     return VerifiedChecksumIndex(items)
+
+
+def generated_checksum(path, checksum):
+    return ProvenancedChecksum(
+        path=path,
+        checksum=checksum,
+        provenance=(
+            ChecksumProvenance.GENERATED
+        ),
+    )

@@ -39,3 +39,10 @@ def require_file(path):
 def require_no_conflict(src, dst):
     if dst.is_file() and not fs.files_equal(src, dst):
         error.fatal(f"destination conflict: {dst}")
+
+
+def require_verified(checksum):
+    from pilo.manifest_model import ChecksumProvenance
+    if checksum.provenance != ChecksumProvenance.VERIFIED:
+        error.fatal("checksum continuity not verified")
+    return checksum

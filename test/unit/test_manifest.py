@@ -266,6 +266,22 @@ class TestManifest(pilotest.TestCase):
             "OK: manifest: pile verified"
         )
 
+    def test_checksum_provenance_values(self):
+        p = manifest_model.ChecksumProvenance
+        self.assertEqual(p.MANIFEST.value, "manifest")
+        self.assertEqual(p.VERIFIED.value, "verified")
+        self.assertEqual(p.GENERATED.value, "generated")
+
+    def test_generated_checksum_helper(self):
+
+        item = manifest_model.generated_checksum(
+            Path("a.txt"),
+            "abc123",
+        )
+
+        self.assertEqual(item.provenance,
+                         manifest_model.ChecksumProvenance.GENERATED)
+
 
 class TestManifestEntries(pilotest.TestCase):
 

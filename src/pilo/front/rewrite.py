@@ -324,9 +324,14 @@ def rewrite_verified_checksums(plan, pile_root, entries):
         src_rel = op.src.path.relative_to(pile_root)
         existing = entries.require(src_rel)
         verified.append(
-            manifest_model.VerifiedChecksum(
+            manifest_model.ProvenancedChecksum(
                 path=src_rel,
                 checksum=existing.checksum,
+                provenance=(
+                    manifest_model
+                    .ChecksumProvenance
+                    .VERIFIED
+                ),
             )
         )
     return manifest_model.VerifiedChecksumIndex(verified)

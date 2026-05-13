@@ -387,3 +387,37 @@ class TestRewritePlan(pilotest.TestCase):
         )
 
         mock_sha.assert_not_called()
+
+    def test_rewrite_verified_checksums_mark_verified(self):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.ResolvedRewriteOp(
+            op=rewrite.RewriteOp(
+                kind="mv",
+                src=Path("in/a.txt"),
+                dst=Path("in/b.txt"),
+            ),
+            src=cx.resolve(Path("in/a.txt")),
+            dst=cx.resolve(Path("in/b.txt")),
+        )
+
+        plan = rewrite.RewritePlan([op])
+
+        entries = manifest_model.ManifestIndex([
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path("in/a.txt"),
+            )
+        ])
+
+        verified = rewrite.rewrite_verified_checksums(
+            plan,
+            cx.pile_path,
+            entries,
+        )
+
+        item = verified.require(Path("in/a.txt"))
+
+        self.assertEqual(item.provenance,
+                         manifest_model.ChecksumProvenance.VERIFIED)
