@@ -6,10 +6,8 @@ archive=filing/2099
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mkdir -p /$PILE/out/$archive
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/$archive/$file
+printf "mv\tin/$file\tout/$archive/$file" \
+    | pilo rewrite
 
 # dataset does NOT exist
 capture_status pilo static-promote

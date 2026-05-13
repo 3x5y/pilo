@@ -2,7 +2,8 @@
 
 from pilo import context
 from pilo import error
-from pilo import manifest_mutation
+from pilo import execution
+from pilo import manifest_codec
 from pilo.front import promote
 
 
@@ -11,23 +12,18 @@ def main():
     plan = promote.build_promote_plan(cx)
     if not plan:
         return
-    promote.execute_promote_plan(cx, plan)
 
-    muts = promote.promote_manifest_mutations(
-        plan.ops,
-        cx.pile_path,
-        cx.static_path / "collection",
-        cx.static_path / "filing",
-    )
-
-    for subset in ("pile", "collection", "filing"):
-        manifest_path = cx.admin_path / "manifest" / f"{subset}.manifest"
-        manifest_mutation.execute_manifest_mutations(
+    manifest_path = cx.admin_path / "manifest/pile.manifest"
+    entries = manifest_codec.load_manifest_entries(manifest_path)
+    exec_plan = (
+        promote.promote_execution_plan(
             cx,
-            subset,
-            manifest_path,
-            muts,
+            plan,
+            entries,
         )
+    )
+    execution.execute_plan(cx, exec_plan)
+
 
 if __name__ == "__main__":
     error.run_main(main)

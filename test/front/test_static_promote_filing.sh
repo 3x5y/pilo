@@ -6,10 +6,8 @@ archive=filing/2025
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mkdir -p /$PILE/out/$archive
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/$archive/$file
+printf "mv\tin/$file\tout/$archive/$file" \
+    | pilo rewrite
 zfs create -p $STATIC/$archive
 
 pilo static-promote

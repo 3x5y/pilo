@@ -6,8 +6,9 @@ mkfile data $file
 capture_file $file
 pilo ingest-pile
 
-# NB tabs!!
-capture_status pilo rewrite "mv	in/$file	../evil.txt"
+script=$(printf "mv\tin/$file\t../evil.txt")
+
+capture_status pilo rewrite "$script"
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep traversal not allowed

@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 
-capture_status pilo rewrite "mv	in/a.txt	sort/a.txt	extra"
+script=$(printf "mv\tin/a.txt\tsort/a.txt\textra stuff")
+capture_status pilo rewrite "$script"
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep "invalid command"

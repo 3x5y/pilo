@@ -10,14 +10,10 @@ mkfile b $b
 capture_file $a
 capture_file $b
 pilo ingest-pile
-with_writable $PILE \
-    mkdir -p /$PILE/out/$archive_a
-with_writable $PILE \
-    mv /$PILE/in/$a /$PILE/out/$archive_a/$a
-with_writable $PILE \
-    mkdir -p /$PILE/out/$archive_b
-with_writable $PILE \
-    mv /$PILE/in/$b /$PILE/out/$archive_b/$b
+printf "mv\tin/$a\tout/$archive_a/$a" \
+    | pilo rewrite
+printf "mv\tin/$b\tout/$archive_b/$b" \
+    | pilo rewrite
 zfs create -p -o readonly=on $STATIC/$archive_a
 zfs create -p -o readonly=on $STATIC/$archive_b
 

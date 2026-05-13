@@ -8,7 +8,6 @@ from pathlib import Path
 from pilo import checksum
 from pilo import context
 from pilo import fs
-from pilo import manifest
 from pilo import manifest_codec
 from pilo import manifest_model
 from pilo import manifest_mutation

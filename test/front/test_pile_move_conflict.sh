@@ -6,16 +6,15 @@ mkfile good $file
 capture_file $file
 pilo ingest-pile
 
-# NB tabs!!
-pilo rewrite "mv	in/$file	sort/$file"
+script=$(printf "mv\tin/$file\tsort/$file")
+pilo rewrite "$script"
 
 # recreate conflicting source
 mkfile bad $file
 capture_file $file
 pilo ingest-pile
 
-# NB tabs!!
-capture_status pilo rewrite "mv	in/$file	sort/$file"
+capture_status pilo rewrite "$script"
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep conflict

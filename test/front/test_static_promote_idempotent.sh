@@ -6,17 +6,15 @@ dst=collection/a
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mkdir -p /$PILE/out/$dst
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/$dst
+printf "mv\tin/$file\tout/$dst/$file" \
+    | pilo rewrite
 pilo static-promote
 # reintroduce identical
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/$dst
+printf "mv\tin/$file\tout/$dst/$file" \
+    | pilo rewrite
 
 pilo static-promote
 

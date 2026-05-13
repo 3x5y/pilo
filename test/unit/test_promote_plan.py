@@ -3,6 +3,8 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
+from pilo import execution
+from pilo import manifest_model
 from pilo import mutation
 from pilo import paths
 from pilo.front import promote
@@ -244,3 +246,93 @@ class TestPromotePlan(pilotest.TestCase):
             type(muts[1]).__name__,
             "ManifestRemoveEntry",
         )
+
+    def test_promote_builds_execution_plan(self):
+
+        cx = pilotest.make_context()
+
+        src = cx.pile_path / "out/collection/a.txt"
+
+        plan = promote.PromotePlan(
+            ops=[
+                promote.PromoteOp(
+                    action="copy",
+                    src=src,
+                    dst=Path("/tmp/static/collection/a.txt"),
+                    dataset="tank/static/collection",
+                ),
+                promote.PromoteOp(
+                    action="unlink",
+                    src=src,
+                    dst=None,
+                    dataset="tank/pile",
+                ),
+            ]
+        )
+
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path("out/collection/a.txt"),
+            )
+        ]
+
+        exec_plan = promote.promote_execution_plan(
+            cx,
+            plan,
+            entries,
+        )
+
+        self.assertIsInstance(exec_plan, execution.ExecutionPlan)
+        self.assertEqual(len(exec_plan.semantic_mutations), 2)
+        self.assertEqual(len(exec_plan.preflight_steps), 1)
+        self.assertEqual(len(exec_plan.manifest_steps), 3)
+
+    def test_promote_preflight_steps_verify_copy_sources(self):
+
+        cx = pilotest.make_context()
+        src = cx.pile_path / "out/collection/a.txt"
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=src,
+                dst=Path("/tmp/static/collection/a.txt"),
+                dataset="tank/static/collection",
+            ),
+            promote.PromoteOp(
+                action="unlink",
+                src=src,
+                dst=None,
+                dataset="tank/pile",
+            ),
+        ]
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path("out/collection/a.txt"),
+            )
+        ]
+        steps = promote.promote_preflight_steps(
+            ops,
+            cx.pile_path,
+            entries,
+        )
+
+        self.assertEqual(len(steps), 1)
+        step = steps[0]
+        self.assertIsInstance(step, execution.VerifyChecksumStep)
+        self.assertEqual(step.path, src)
+        self.assertEqual(step.expected_checksum, "abc123")
+
+    def test_promote_manifest_steps_build_all_subsets(self):
+
+        cx = pilotest.make_context()
+        plan = promote.PromotePlan(ops=[])
+        steps = promote.promote_manifest_steps(
+            cx,
+            plan,
+        )
+
+        self.assertEqual(len(steps), 3)
+        subsets = [step.subset for step in steps]
+        self.assertEqual(subsets, ["pile", "collection", "filing"])

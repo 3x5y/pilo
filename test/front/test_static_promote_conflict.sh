@@ -5,15 +5,15 @@ file=conflict.txt
 mkfile good $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/collection
+printf "mv\tin/$file\tout/collection/$file" \
+    | pilo rewrite
 pilo static-promote
 # reintroduce conflicting version
 mkfile bad $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/collection
+printf "mv\tin/$file\tout/collection/$file" \
+    | pilo rewrite
 
 capture_status pilo static-promote
 

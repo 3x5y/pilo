@@ -5,8 +5,8 @@ file=manifest-item.txt
 mkfile important $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/collection/$file
+printf "mv\tin/$file\tout/collection/$file" \
+    | pilo rewrite
 
 pilo static-promote
 

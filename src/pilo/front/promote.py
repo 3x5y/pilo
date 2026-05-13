@@ -8,6 +8,11 @@ from .. import fs
 from .. import mutation
 from .. import manifest_model
 from .. import manifest_policy
+from ..execution import (
+    ExecutionPlan,
+    ManifestStep,
+    VerifyChecksumStep,
+)
 
 
 @dataclass(frozen=True)
@@ -152,3 +157,69 @@ def promote_manifest_mutations(ops, pile_root, collection_root, filing_root):
             )
 
     return muts
+
+
+def promote_preflight_steps(ops, pile_root, entries):
+
+    index = manifest_model.as_manifest_index(entries)
+    steps = []
+
+    for op in ops:
+        if op.action != "copy":
+            continue
+        rel = op.src.relative_to(pile_root)
+        existing = index.require(rel)
+        steps.append(
+            VerifyChecksumStep(
+                path=op.src,
+                expected_checksum=(
+                    existing.checksum
+                ),
+            )
+        )
+    return steps
+
+
+def promote_manifest_steps(cx, plan):
+
+    subsets = ("pile", "collection", "filing")
+    steps = []
+
+    for subset in subsets:
+        manifest_path =  cx.admin_path / "manifest" / f"{subset}.manifest"
+        steps.append(
+            ManifestStep(
+                subset=subset,
+                manifest_path=manifest_path,
+                build_mutations=lambda:
+                    promote_manifest_mutations(
+                        plan.ops,
+                        cx.pile_path,
+                        cx.static_path / "collection",
+                        cx.static_path / "filing",
+                    ),
+            )
+        )
+    return steps
+
+
+def promote_execution_plan(cx, plan, pile_entries):
+
+    return ExecutionPlan(
+        preflight_steps=(
+            promote_preflight_steps(
+                plan.ops,
+                cx.pile_path,
+                pile_entries,
+            )
+        ),
+        semantic_mutations=(
+            promote_plan_mutations(plan)
+        ),
+        manifest_steps=(
+            promote_manifest_steps(
+                cx,
+                plan,
+            )
+        ),
+    )

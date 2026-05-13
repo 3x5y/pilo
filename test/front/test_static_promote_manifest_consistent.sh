@@ -5,7 +5,8 @@ file=new-file.txt
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-pilo rewrite "$(printf "mv\tin/$file\tout/collection/$file")"
+printf "mv\tin/$file\tout/collection/$file" \
+    | pilo rewrite
 
 pilo static-promote
 

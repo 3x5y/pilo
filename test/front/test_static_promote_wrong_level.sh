@@ -5,8 +5,8 @@ file=bad.txt
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/filing/$file
+printf "mv\tin/$file\tout/filing/$file" \
+    | pilo rewrite
 
 capture_status pilo static-promote
 

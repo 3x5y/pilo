@@ -7,7 +7,8 @@ capture_file $file
 pilo ingest-pile
 
 # NB tabs!!
-pilo rewrite "mv	in/$file	sort/2025/a/$file"
+printf "mv\tin/$file\tsort/2025/a/$file" \
+    | pilo rewrite
 
 assert_file_exists /$PILE/sort/2025/a/$file
 assert_not_exists /$PILE/in/$file

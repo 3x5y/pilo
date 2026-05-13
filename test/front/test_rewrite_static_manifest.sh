@@ -15,7 +15,7 @@ with_writable $PILE \
 
 pilo static-promote
 
-script=$(printf "mv\tcollection/file.txt\tcollection/x.txt\n")
-pilo rewrite "$script"
+printf "mv\tcollection/file.txt\tcollection/x.txt" \
+    | pilo rewrite
 
 assert_manifest_valid collection "$PILO_STATIC_PATH"/collection

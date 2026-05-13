@@ -6,10 +6,8 @@ dir=a/b
 mkfile data $file
 capture_file $file
 pilo ingest-pile
-with_writable $PILE \
-    mkdir -p /$PILE/out/collection/$dir
-with_writable $PILE \
-    mv /$PILE/in/$file /$PILE/out/collection/$dir/$file
+printf "mv\tin/$file\tout/collection/$dir/$file" \
+    | pilo rewrite
 
 pilo static-promote
 
