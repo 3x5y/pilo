@@ -442,6 +442,23 @@ class TestRewriteScriptSerialization(pilotest.TestCase):
         ]
         self.assertEqual(script.render_lines(), lines)
 
+    def test_rewrite_script_serializes_remove(self):
+
+        script = rewrite.RewriteScript.from_ops([
+            rewrite.RewriteOp(
+                kind="rm",
+                src=Path("in/a.txt"),
+                dst=None,
+            )
+        ])
+
+        self.assertEqual(
+            script.render_lines(),
+            [
+                "#version 1",
+                "rm\tin/a.txt",
+            ]
+        )
 
 class TestRewriteManifest(pilotest.TestCase):
 

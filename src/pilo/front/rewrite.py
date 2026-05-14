@@ -32,43 +32,12 @@ class RewriteOp:
 class ResolvedRewriteOp:
     op: RewriteOp
     src: paths.Resolved
-    dst: paths.Resolved
+    dst: paths.Resolved | None
 
 
 @dataclass(frozen=True)
 class RewritePlan:
     ops: list[ResolvedRewriteOp]
-
-
-def parse_rewrite_ops(lines):
-    ops = []
-
-    for line in lines:
-        line = line.strip()
-
-        if not line:
-            continue
-
-        parts = line.split("\t")
-
-        if len(parts) != 3:
-            error.fatal(f"invalid command: {line}")
-
-        kind, src, dst = parts
-
-        if kind != "mv":
-            error.fatal(f"unsupported operation: '{kind}'")
-
-        src_p = Path(src)
-        dst_p = Path(dst)
-
-        policy.require_relative_path(src_p)
-        policy.require_relative_path(dst_p)
-
-        op = RewriteOp( kind=kind, src=src_p, dst=dst_p)
-        ops.append(op)
-
-    return ops
 
 
 def parse_rewrite_ops(lines):
@@ -227,6 +196,42 @@ def build_manifest_mutations(ops, pile_root, verified):
     return muts
 
 
+def build_manifest_mutations(ops, pile_root, verified):
+
+    mappings = []
+    removals = []
+
+    for op in ops:
+        src_rel = op.src.path.relative_to(pile_root)
+        if op.op.kind == "mv":
+            dst_rel = op.dst.path.relative_to(pile_root)
+            mappings.append(
+                continuity.ContinuityMapping(
+                    src_subset="pile",
+                    dst_subset="pile",
+                    src=src_rel,
+                    dst=dst_rel,
+                )
+            )
+        elif op.op.kind == "rm":
+            removals.append(
+                continuity.ContinuityRemoval(
+                    subset="pile",
+                    path=src_rel,
+                )
+            )
+        else:
+            error.fatal(
+                f"unsupported rewrite operation: "
+                f"{op.op.kind}"
+            )
+
+    muts = continuity.build_transfer_mutations(mappings, verified)
+    muts.extend(continuity.build_removal_mutations(removals))
+
+    return muts
+
+
 def load_rewrite_lines(cx):
     args = rewrite_script_args(cx)
     if args:
@@ -269,19 +274,28 @@ class RewriteScript:
 
     @classmethod
     def from_ops(cls, ops):
-
-        lines = [
-            f"#version {SCRIPT_VERSION}"
-        ]
-
+        lines = [f"#version {SCRIPT_VERSION}"]
         for op in ops:
-            lines.append(
-                "\t".join([
-                    op.kind,
-                    str(op.src),
-                    str(op.dst),
-                ])
-            )
+            if op.kind == "mv":
+                lines.append(
+                    "\t".join([
+                        op.kind,
+                        str(op.src),
+                        str(op.dst),
+                    ])
+                )
+            elif op.kind == "rm":
+                lines.append(
+                    "\t".join([
+                        op.kind,
+                        str(op.src),
+                    ])
+                )
+            else:
+                error.fatal(
+                    f"unsupported rewrite operation: "
+                    f"{op.kind}"
+                )
 
         return cls(lines=lines)
 

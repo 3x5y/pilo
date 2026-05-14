@@ -253,3 +253,27 @@ class TestRewriteOperationModel(pilotest.TestCase):
 
         self.assertEqual(mut.subset, "pile")
         self.assertEqual(mut.path, Path("in/a.txt"))
+
+    def test_build_fs_mutations_remove(self):
+        with pilotest.make_tmp_context() as cx:
+
+            src = cx.pile_path / "in/a.txt"
+            src.parent.mkdir(parents=True)
+            src.write_text("AAA")
+
+            op = rewrite.RewriteOp(
+                kind="rm",
+                src=Path("in/a.txt"),
+                dst=None,
+            )
+
+            plan = rewrite.build_rewrite_plan(cx, [op])
+
+            muts = rewrite.build_fs_mutations(plan)
+
+            self.assertEqual(len(muts), 1)
+
+            mut = muts[0]
+
+            self.assertEqual(type(mut).__name__, "UnlinkMutation")
+            self.assertEqual(mut.path, src)

@@ -24,9 +24,27 @@ class ContinuityTransfer:
     provenance: manifest_model.ChecksumProvenance
 
 
+@dataclass(frozen=True)
+class ContinuityRemoval:
+    subset: str
+    path: Path
+
+
 def build_transfer_mutations(mappings, verified):
     transfers = build_transfers(mappings, verified)
     return build_mutations(transfers)
+
+
+def build_removal_mutations(removals):
+    muts = []
+    for removal in removals:
+        muts.append(
+            manifest_policy.build_removal(
+                removal.subset,
+                removal.path,
+            )
+        )
+    return muts
 
 
 def build_transfers(mappings, verified):
