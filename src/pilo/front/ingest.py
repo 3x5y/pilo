@@ -115,6 +115,6 @@ def ingest_execution_plan(cx, plan):
             ),
     )
     return ExecutionPlan(
-        semantic_mutations=ingest_plan_mutations(plan),
+        filesystem_steps=ingest_plan_mutations(plan),
         manifest_steps=[manifest_step],
     )

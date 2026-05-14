@@ -33,7 +33,7 @@ class TestExecutionPlan(pilotest.TestCase):
 
         cx = pilotest.make_context()
         plan = ExecutionPlan(
-            semantic_mutations=["dummy"],
+            filesystem_steps=["dummy"],
             manifest_operations=[
                 ManifestOperation(
                     subset="pile",
@@ -81,7 +81,7 @@ class TestExecutionPlan(pilotest.TestCase):
             build_mutations=build,
         )
         plan = ExecutionPlan(
-            semantic_mutations=["x"],
+            filesystem_steps=["x"],
             manifest_steps=[step],
         )
         execute_plan(cx, plan)
@@ -136,7 +136,7 @@ class TestExecutionPlan(pilotest.TestCase):
                     expected_checksum="abc",
                 )
             ],
-            semantic_mutations=["x"],
+            filesystem_steps=["x"],
         )
 
         execute_plan(cx, plan)
@@ -166,7 +166,7 @@ class TestExecutionPlan(pilotest.TestCase):
                     expected_checksum="bad",
                 )
             ],
-            semantic_mutations=["x"],
+            filesystem_steps=["x"],
         )
 
         with self.assertRaises(SystemExit):

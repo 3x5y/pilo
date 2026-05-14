@@ -258,7 +258,7 @@ def rewrite_execution_plan(cx, plan, entries):
     preflight_steps= rewrite_preflight_steps(plan, cx.pile_path, entries)
     return ExecutionPlan(
         preflight_steps=preflight_steps,
-        semantic_mutations=rewrite_plan_mutations(plan),
+        filesystem_steps=rewrite_plan_mutations(plan),
         manifest_steps=[manifest_step],
     )
 

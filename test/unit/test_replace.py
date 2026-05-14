@@ -203,7 +203,7 @@ class TestReplacePlan(pilotest.TestCase):
         exec_plan = replace.replace_execution_plan(cx, plan)
 
         self.assertIsInstance(exec_plan, ExecutionPlan)
-        self.assertEqual(len(exec_plan.semantic_mutations), 1)
+        self.assertEqual(len(exec_plan.filesystem_steps), 1)
         self.assertEqual(len(exec_plan.manifest_steps), 1)
 
     @patch("pilo.fs.sha256_file")

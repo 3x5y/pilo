@@ -79,6 +79,6 @@ def replace_execution_plan(cx, plan):
             ),
     )
     return ExecutionPlan(
-        semantic_mutations=replace_plan_mutations(plan),
+        filesystem_steps=replace_plan_mutations(plan),
         manifest_steps=[manifest_step],
     )

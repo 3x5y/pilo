@@ -162,7 +162,7 @@ class TestRewritePlan(pilotest.TestCase):
         exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
 
         self.assertIsInstance(exec_plan, execution.ExecutionPlan)
-        self.assertEqual(len(exec_plan.semantic_mutations), 1)
+        self.assertEqual(len(exec_plan.filesystem_steps), 1)
         self.assertEqual(len(exec_plan.manifest_steps), 1)
 
     @patch("pilo.checksum.verify_checksum")

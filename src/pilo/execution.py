@@ -19,7 +19,7 @@ class ExecutionPhase(Enum):
 @dataclass(frozen=True)
 class ExecutionPlan:
     preflight_steps: list = field(default_factory=list)
-    semantic_mutations: list = field(default_factory=list)
+    filesystem_steps: list = field(default_factory=list)
     manifest_steps: list = field(default_factory=list)
 
 
@@ -47,8 +47,8 @@ def execute_plan(cx, plan):
 
     execute_preflight_steps(plan.preflight_steps)
 
-    if plan.semantic_mutations:
-        mutation_exec.execute_semantic_mutations(cx, plan.semantic_mutations)
+    if plan.filesystem_steps:
+        mutation_exec.execute_semantic_mutations(cx, plan.filesystem_steps)
 
     for step in plan.manifest_steps:
         muts = step.build_mutations()
