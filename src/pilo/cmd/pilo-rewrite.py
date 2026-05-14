@@ -27,6 +27,8 @@ def main():
         print_preview(preview)
         return
 
+    rewrite.require_delete_permission(cx, plan.ops)
+
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     entries = manifest_codec.load_manifest_entries(manifest_path)
     exec_plan = rewrite.build_exec_plan(cx, plan, entries)

@@ -248,6 +248,23 @@ def load_rewrite_script(cx):
     return RewriteScript.from_lines(lines)
 
 
+def has_delete_flag(cx):
+    return "--delete" in cx.args
+
+
+def require_delete_permission(cx, ops):
+
+    if has_delete_flag(cx):
+        return
+
+    for op in ops:
+        if op.op.kind == "rm":
+            error.fatal(
+                "rewrite contains removals; "
+                "rerun with --delete"
+            )
+
+
 def is_preview_mode(cx):
     return (
         len(cx.args) >= 1
@@ -257,6 +274,8 @@ def is_preview_mode(cx):
 
 def rewrite_script_args(cx):
     if is_preview_mode(cx):
+        return cx.args[1:]
+    if has_delete_flag(cx):
         return cx.args[1:]
     return cx.args
 

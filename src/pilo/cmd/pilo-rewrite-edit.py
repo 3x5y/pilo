@@ -171,8 +171,10 @@ def write_script_file(path, script):
         f.write(script)
 
 
-def execute_script(script):
+def execute_script(script, args):
     cmd = "pilo rewrite".split()
+    if "--delete" in args:
+        cmd.append("--delete")
     args = [script]
     return subprocess.run(cmd + args)
 
@@ -186,7 +188,7 @@ def edit_file(tmp, before, args):
         if not has_apply(args):
             return
 
-    result = execute_script(script)
+    result = execute_script(script, args)
     sys.exit(result.returncode)
 
 
