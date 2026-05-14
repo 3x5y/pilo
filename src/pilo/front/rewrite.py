@@ -125,11 +125,11 @@ def build_fs_mutations(plan):
     return mutations
 
 
-def rewrite_manifest_mutations(plan, pile_root, verified):
+def build_manifest_mutations(ops, pile_root, verified):
 
     mappings = []
 
-    for op in plan.ops:
+    for op in ops:
         src_rel = op.src.path.relative_to(pile_root)
         dst_rel = op.dst.path.relative_to(pile_root)
         m = continuity.ContinuityMapping(
@@ -238,15 +238,14 @@ class RewriteScript:
 
 
 def build_exec_plan(cx, plan, entries):
-    index = manifest_model.as_manifest_index(entries)
-    verified = build_checksum_index(plan, cx.pile_path, index)
+    verified = build_checksum_index(plan.ops, cx.pile_path, entries)
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     manifest_step = ManifestStep(
         subset="pile",
         manifest_path=manifest_path,
         build_mutations=lambda:
-            rewrite_manifest_mutations(
-                plan,
+            build_manifest_mutations(
+                plan.ops,
                 cx.pile_path,
                 verified,
             ),
@@ -277,20 +276,8 @@ def build_preflight_steps(plan, pile_root, entries):
     return steps
 
 
-def build_checksum_index(plan, pile_root, entries):
-    verified = []
-    for op in plan.ops:
-        src_rel = op.src.path.relative_to(pile_root)
-        existing = entries.require(src_rel)
-        verified_item = checksum.verify_checksum(
-            op.src.path,
-            existing.checksum,
-        )
-        verified.append(
-            manifest_model.ProvenancedChecksum(
-                path=src_rel,
-                checksum=verified_item.checksum,
-                provenance=verified_item.provenance,
-            )
-        )
-    return manifest_model.ChecksumIndex(verified)
+def build_checksum_index(ops, pile_root, entries):
+    index = manifest_model.as_manifest_index(entries)
+    pairs = [(op.src.path.relative_to(pile_root), op.src.path)
+             for op in ops]
+    return continuity.acquire_verified_checksums(pairs, index)

@@ -452,12 +452,10 @@ class TestRewriteManifest(pilotest.TestCase):
             path=Path("/pile/in/old.txt"),
             dataset="tank/pile",
         )
-
         dst = paths.Resolved(
             path=Path("/pile/in/new.txt"),
             dataset="tank/pile",
         )
-
         op = rewrite.ResolvedRewriteOp(
             op=rewrite.RewriteOp(
                 kind="mv",
@@ -467,17 +465,14 @@ class TestRewriteManifest(pilotest.TestCase):
             src=src,
             dst=dst,
         )
-
-        plan = rewrite.RewritePlan(ops=[op])
         entries = [
             manifest_model.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/old.txt"),
             )
         ]
-
-        muts = rewrite.rewrite_manifest_mutations(
-            plan,
+        muts = rewrite.build_manifest_mutations(
+            [op],
             Path("/pile"),
             entries,
         )
@@ -489,7 +484,6 @@ class TestRewriteManifest(pilotest.TestCase):
 
         self.assertEqual(remove.subset, "pile")
         self.assertEqual(remove.path, Path("in/old.txt"))
-
         self.assertEqual(add.subset, "pile")
         self.assertEqual(add.entry.path, Path("in/new.txt"))
         self.assertEqual(add.entry.checksum, "abc123")
@@ -523,10 +517,8 @@ class TestRewriteManifest(pilotest.TestCase):
             dst=dst,
         )
 
-        plan = rewrite.RewritePlan(ops=[op])
-
-        muts = rewrite.rewrite_manifest_mutations(
-            plan,
+        muts = rewrite.build_manifest_mutations(
+            [op],
             Path("/pile"),
             entries,
         )

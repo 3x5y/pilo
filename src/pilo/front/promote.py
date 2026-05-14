@@ -178,11 +178,7 @@ def build_manifest_steps(cx, plan, pile_entries, verified):
 
 
 def build_exec_plan(cx, plan, pile_entries):
-    verified = build_checksum_index(
-        plan.ops,
-        cx.pile_path,
-        pile_entries,
-    )
+    verified = build_checksum_index(plan.ops, cx.pile_path, pile_entries)
     preflight_steps = build_preflight_steps(
         plan.ops,
         cx.pile_path,
@@ -199,30 +195,10 @@ def build_exec_plan(cx, plan, pile_entries):
 
 
 def build_checksum_index(ops, pile_root, entries):
-
     index = manifest_model.as_manifest_index(entries)
-    verified = []
-
-    for op in ops:
-        if op.action != "copy":
-            continue
-        rel = op.src.relative_to(pile_root)
-        existing = index.require(rel)
-        verified_item = (
-            checksum.verify_checksum(
-                op.src,
-                existing.checksum,
-            )
-        )
-        verified.append(
-            manifest_model
-            .ProvenancedChecksum(
-                path=rel,
-                checksum=verified_item.checksum,
-                provenance=verified_item.provenance,
-            )
-        )
-    return manifest_model.ChecksumIndex(verified)
+    pairs = [(op.src.relative_to(pile_root), op.src)
+             for op in ops if op.action == "copy"]
+    return continuity.acquire_verified_checksums(pairs, entries)
 
 
 def promote_continuity_mappings(

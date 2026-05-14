@@ -66,7 +66,7 @@ class TestPrunePlan(pilotest.TestCase):
             ]
         )
 
-        muts = prune.prune_mutations(plan)
+        muts = prune.build_prune_mutations(plan)
 
         self.assertEqual(len(muts), 1)
         self.assertIsInstance(muts[0], mutation.RmdirMutation)

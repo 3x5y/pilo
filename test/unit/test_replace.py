@@ -165,18 +165,13 @@ class TestReplacePlan(pilotest.TestCase):
             path=Path("/pile/in/a.txt"),
             dataset="tank/pile",
         )
-
         op = replace.ReplaceOp(
             src=Path("/tmp/new.txt"),
             dst=dst,
         )
-
         plan = replace.ReplacePlan(ops=[op])
 
-        muts = replace.replace_manifest_mutations(
-            plan,
-            Path("/pile"),
-        )
+        muts = replace.build_manifest_mutations(plan, Path("/pile"))
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]

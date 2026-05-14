@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import checksum
 from . import manifest_model
 
 
@@ -14,7 +15,6 @@ class ContinuityMapping:
 
 @dataclass(frozen=True)
 class ContinuityTransfer:
-
     src_subset: str
     dst_subset: str
     src: Path
@@ -66,3 +66,36 @@ def build_mutations(transfers):
             )
         )
     return muts
+
+
+def acquire_verified_checksums(paths, entries):
+
+    index = manifest_model.as_manifest_index(entries)
+    verified = []
+
+    for rel_path, real_path in paths:
+        existing = index.require(rel_path)
+        verified_item = checksum.verify_checksum(real_path, existing.checksum)
+        verified.append(
+            manifest_model.ProvenancedChecksum(
+                path=rel_path,
+                checksum=verified_item.checksum,
+                provenance=verified_item.provenance,
+            )
+        )
+    return manifest_model.ChecksumIndex(verified)
+
+
+def acquire_generated_checksums(paths):
+
+    generated = []
+    for rel_path, real_path in paths:
+        item = checksum.generate_checksum(real_path)
+        generated.append(
+            manifest_model.ProvenancedChecksum(
+                path=rel_path,
+                checksum=item.checksum,
+                provenance=item.provenance,
+            )
+        )
+    return manifest_model.ChecksumIndex(generated)

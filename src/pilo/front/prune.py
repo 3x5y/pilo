@@ -43,7 +43,7 @@ def build_prune_plan(root, dataset):
     return PrunePlan(ops=ops)
 
 
-def prune_mutations(plan):
+def build_prune_mutations(plan):
     def build(op):
         return mutation.RmdirMutation(path=op.path,
                                       dataset=op.dataset)
@@ -51,10 +51,10 @@ def prune_mutations(plan):
 
 
 def preview_prune_plan(cx, plan):
-    muts = prune_mutations(plan)
+    muts = build_prune_mutations(plan)
     return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_prune_plan(cx, ops):
-    mut = prune_mutations(ops)
+    mut = build_prune_mutations(ops)
     mutation.execute_fs_mutations(cx, mut)

@@ -4,6 +4,7 @@ from pathlib import Path
 from . import capture
 from .. import checks
 from .. import checksum
+from .. import continuity
 from .. import manifest_model
 from .. import mutation
 from ..execution import (
@@ -82,20 +83,24 @@ def ingestible_capture_files(files):
         yield path
 
 
-def ingest_manifest_mutations(ops, pile_root):
+def build_manifest_mutations(ops, pile_root):
 
+    pairs = [(op.dst.relative_to(pile_root), op.dst)
+            for op in ops if op.action == "move"]
+    checksums = continuity.acquire_generated_checksums(pairs)
+    index = manifest_model.as_checksum_index(checksums)
     muts = []
     for op in ops:
         if op.action != "move":
             continue
 
         rel = op.dst.relative_to(pile_root)
-        acquired = checksum.generate_checksum(op.dst)
+        item = index.require(rel)
         muts.append(
             manifest_model.ManifestAddEntry(
                 subset="pile",
                 entry=manifest_model.ManifestEntry(
-                    checksum=acquired.checksum,
+                    checksum=item.checksum,
                     path=rel,
                 )
             )
@@ -109,7 +114,7 @@ def build_exec_plan(cx, plan):
         subset="pile",
         manifest_path=manifest_path,
         build_mutations=lambda:
-            ingest_manifest_mutations(
+            build_manifest_mutations(
                 plan.ops,
                 cx.pile_path,
             ),

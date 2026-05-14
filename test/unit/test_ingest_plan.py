@@ -366,7 +366,7 @@ class TestIngestOps(pilotest.TestCase):
         self.assertEqual(files, [data])
 
     @patch("pilo.manifest_mutation.execute_manifest_mutations")
-    @patch("pilo.front.ingest.ingest_manifest_mutations")
+    @patch("pilo.front.ingest.build_manifest_mutations")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -481,7 +481,7 @@ class TestIngestOps(pilotest.TestCase):
             action="move",
         )
 
-        ingest.ingest_manifest_mutations(
+        ingest.build_manifest_mutations(
             [op],
             cx.pile_path,
         )

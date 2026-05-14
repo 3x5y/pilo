@@ -216,9 +216,6 @@ class TestRewritePlan(pilotest.TestCase):
             src=cx.resolve(Path("in/a.txt")),
             dst=cx.resolve(Path("in/b.txt")),
         )
-
-        plan = rewrite.RewritePlan(ops=[op])
-
         verified = {
             Path("in/a.txt"):
                 manifest_model.ProvenancedChecksum(
@@ -229,15 +226,13 @@ class TestRewritePlan(pilotest.TestCase):
                     ),
                 )
         }
-
-        muts = rewrite.rewrite_manifest_mutations(
-            plan,
+        muts = rewrite.build_manifest_mutations(
+            [op],
             cx.pile_path,
             verified,
         )
 
         add = muts[1]
-
         self.assertEqual(add.entry.checksum, "abc123")
 
     @patch("pilo.checksum.verify_checksum")
@@ -269,8 +264,6 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        plan = rewrite.RewritePlan(ops=[op])
-
         entries = manifest_model.ManifestIndex([
             manifest_model.ManifestEntry(
                 checksum="abc123",
@@ -279,7 +272,7 @@ class TestRewritePlan(pilotest.TestCase):
         ])
 
         verified = rewrite.build_checksum_index(
-            plan,
+            [op],
             cx.pile_path,
             entries,
         )
@@ -294,7 +287,6 @@ class TestRewritePlan(pilotest.TestCase):
     def test_rewrite_verified_checksums_missing_entry_fails(self):
 
         cx = pilotest.make_context()
-
         op = rewrite.ResolvedRewriteOp(
             op=rewrite.RewriteOp(
                 kind="mv",
@@ -304,16 +296,14 @@ class TestRewritePlan(pilotest.TestCase):
             src=cx.resolve(Path("in/a.txt")),
             dst=cx.resolve(Path("in/b.txt")),
         )
-
-        plan = rewrite.RewritePlan(ops=[op])
         entries = manifest_model.ManifestIndex([])
 
         with pilotest.assert_fatal(self):
-            rewrite.build_checksum_index(plan, cx.pile_path, entries)
+            rewrite.build_checksum_index([op], cx.pile_path, entries)
 
     @patch("pilo.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
-    @patch("pilo.front.rewrite.rewrite_manifest_mutations")
+    @patch("pilo.front.rewrite.build_manifest_mutations")
     def test_rewrite_execution_plan_uses_verified_checksums(
         self,
         mock_manifest,
@@ -360,17 +350,14 @@ class TestRewritePlan(pilotest.TestCase):
                 )
             ])
         )
-
         src = paths.Resolved(
             path=Path("/pile/in/old.txt"),
             dataset="tank/pile",
         )
-
         dst = paths.Resolved(
             path=Path("/pile/in/new.txt"),
             dataset="tank/pile",
         )
-
         op = rewrite.ResolvedRewriteOp(
             op=rewrite.RewriteOp(
                 kind="mv",
@@ -380,11 +367,8 @@ class TestRewritePlan(pilotest.TestCase):
             src=src,
             dst=dst,
         )
-
-        plan = rewrite.RewritePlan(ops=[op])
-
-        rewrite.rewrite_manifest_mutations(
-            plan,
+        rewrite.build_manifest_mutations(
+            [op],
             Path("/pile"),
             verified,
         )
@@ -416,8 +400,6 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        plan = rewrite.RewritePlan([op])
-
         entries = manifest_model.ManifestIndex([
             manifest_model.ManifestEntry(
                 checksum="abc123",
@@ -426,7 +408,7 @@ class TestRewritePlan(pilotest.TestCase):
         ])
 
         verified = rewrite.build_checksum_index(
-            plan,
+            [op],
             cx.pile_path,
             entries,
         )
@@ -466,8 +448,6 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        plan = rewrite.RewritePlan([op])
-
         entries = manifest_model.ManifestIndex([
             manifest_model.ManifestEntry(
                 checksum="abc123",
@@ -476,7 +456,7 @@ class TestRewritePlan(pilotest.TestCase):
         ])
 
         rewrite.build_checksum_index(
-            plan,
+            [op],
             cx.pile_path,
             entries,
         )
@@ -503,10 +483,8 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        plan = rewrite.RewritePlan([op])
-
-        rewrite.rewrite_manifest_mutations(
-            plan,
+        rewrite.build_manifest_mutations(
+            [op],
             cx.pile_path,
             [],
         )

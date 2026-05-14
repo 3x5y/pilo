@@ -3,6 +3,7 @@ from pathlib import Path
 
 from .. import checks
 from .. import checksum
+from .. import continuity
 from .. import manifest_model
 from .. import mutation
 from .. import paths
@@ -50,16 +51,17 @@ def build_fs_mutations(plan):
     return [build(op) for op in plan.ops]
 
 
-def replace_manifest_mutations(plan, pile_root):
+def build_manifest_mutations(plan, pile_root):
+    index = build_checksum_index(plan.ops, pile_root)
     muts = []
     for op in plan.ops:
         rel = op.dst.path.relative_to(pile_root)
-        acquired = checksum.generate_checksum(op.src)
+        item = index.require(rel)
         muts.append(
             manifest_model.ManifestAddEntry(
                 subset="pile",
                 entry=manifest_model.ManifestEntry(
-                    checksum=acquired.checksum,
+                    checksum=item.checksum,
                     path=rel,
                 )
             )
@@ -67,16 +69,19 @@ def replace_manifest_mutations(plan, pile_root):
     return muts
 
 
+def build_checksum_index(ops, pile_root):
+    pairs = [(op.dst.path.relative_to(pile_root), op.src)
+             for op in ops]
+    checksums = continuity.acquire_generated_checksums(pairs)
+    return manifest_model.as_checksum_index(checksums)
+
+
 def build_exec_plan(cx, plan):
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     manifest_step = ManifestStep(
         subset="pile",
         manifest_path=manifest_path,
-        build_mutations=lambda:
-            replace_manifest_mutations(
-                plan,
-                cx.pile_path,
-            ),
+        build_mutations=lambda:build_manifest_mutations(plan, cx.pile_path)
     )
     return ExecutionPlan(
         filesystem_steps=build_fs_mutations(plan),
