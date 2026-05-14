@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 from pilo.execution import (
     ExecutionPlan,
-    ManifestOperation,
     ManifestStep,
     VerifyChecksumStep,
     execute_plan,
@@ -17,36 +16,6 @@ import pilotest
 
 
 class TestExecutionPlan(pilotest.TestCase):
-    @patch("pilo.mutation_exec.execute_fs_mutations")
-    @patch("pilo.manifest_mutation.execute_manifest_mutations")
-    def _test_execute_plan_executes_mutations_first(self, mock_man, mock_sem):
-
-        order = []
-        def semantic(*args, **kw):
-            order.append("semantic")
-
-        def manifest(*args, **kw):
-            order.append("manifest")
-
-        mock_sem.side_effect = semantic
-        mock_man.side_effect = manifest
-
-        cx = pilotest.make_context()
-        plan = ExecutionPlan(
-            filesystem_steps=["dummy"],
-            manifest_operations=[
-                ManifestOperation(
-                    subset="pile",
-                    manifest_path=Path("/tmp/pile.manifest"),
-                    mutations=[],
-                )
-            ],
-        )
-        execute_plan(cx, plan)
-
-        self.assertEqual(order, ["semantic", "manifest"])
-
-        
     @patch("pilo.mutation.execute_fs_mutations")
     @patch("pilo.manifest_mutation.execute_manifest_mutations")
     def test_execute_plan_skips_empty_sections(self,

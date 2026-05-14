@@ -24,13 +24,6 @@ class ExecutionPlan:
 
 
 @dataclass(frozen=True)
-class ManifestOperation:
-    subset: str
-    manifest_path: Path
-    mutations: list
-
-
-@dataclass(frozen=True)
 class ManifestStep:
     subset: str
     manifest_path: Path
