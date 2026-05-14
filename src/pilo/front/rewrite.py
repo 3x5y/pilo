@@ -7,6 +7,7 @@ from .. import checksum
 from .. import continuity
 from .. import error
 from .. import manifest_model
+from .. import manifest_policy
 from .. import mutation
 from .. import paths
 from .. import policy
@@ -24,7 +25,7 @@ SCRIPT_VERSION = 1
 class RewriteOp:
     kind: str
     src: Path
-    dst: Path
+    dst: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -70,16 +71,78 @@ def parse_rewrite_ops(lines):
     return ops
 
 
+def parse_rewrite_ops(lines):
+    ops = []
+
+    for line in lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        parts = line.split("\t")
+        kind = parts[0]
+
+        if kind == "mv":
+
+            if len(parts) != 3:
+                error.fatal(f"invalid command: {line}")
+
+            _, src, dst = parts
+
+            src_p = Path(src)
+            dst_p = Path(dst)
+
+            policy.require_relative_path(src_p)
+            policy.require_relative_path(dst_p)
+
+            op = RewriteOp(kind="mv", src=src_p, dst=dst_p)
+            ops.append(op)
+
+        elif kind == "rm":
+
+            if len(parts) != 2:
+                error.fatal(f"invalid command: {line}")
+
+            _, src = parts
+
+            src_p = Path(src)
+            policy.require_relative_path(src_p)
+            op = RewriteOp(kind="rm", src=src_p)
+            ops.append(op)
+
+        else:
+            error.fatal(f"unsupported operation: '{kind}'")
+
+    return ops
+
+
 def resolve_rewrite_op(cx, op: RewriteOp):
     src = cx.resolve(op.src)
-    dst = cx.resolve(op.dst)
+    dst = cx.resolve(op.dst) if op.dst is not None else None
     return ResolvedRewriteOp(src=src, dst=dst, op=op)
 
 
-def validate_rewrite_op(cx, op: ResolvedRewriteOp):
+def validate_move_op(cx, op):
     policy.require_same_domain(op.op.src, op.op.dst)
     checks.require_file(op.src.path)
     checks.require_no_conflict(op.src.path, op.dst.path)
+
+
+def validate_remove_op(cx, op):
+    checks.require_file(op.src.path)
+
+
+def validate_rewrite_op(cx, op):
+    if op.op.kind == "mv":
+        validate_move_op(cx, op)
+    elif op.op.kind == "rm":
+        validate_remove_op(cx, op)
+    else:
+        error.fatal(
+            f"unsupported rewrite op: "
+            f"{op.op.kind}"
+        )
 
 
 def validate_rewrite_ops(cx, ops):
@@ -89,10 +152,11 @@ def validate_rewrite_ops(cx, ops):
     for op in ops:
         if op.op.src in seen_src:
             error.fatal(f"duplicate source in script: {op.op.src}")
-        if op.op.dst in seen_dst:
-            error.fatal(f"destination conflict in script: {op.op.dst}")
         seen_src.add(op.op.src)
-        seen_dst.add(op.op.dst)
+        if op.op.dst is not None:
+            if op.op.dst in seen_dst:
+                error.fatal(f"destination conflict in script: {op.op.dst}")
+            seen_dst.add(op.op.dst)
         validate_rewrite_op(cx, op)
 
 
@@ -115,32 +179,52 @@ def execute_rewrite_plan(cx, plan):
 def build_fs_mutations(plan):
     mutations = []
     for op in plan.ops:
-        mutations.append(
-            mutation.MoveMutation(
-                src=op.src.path,
-                dst=op.dst.path,
-                dataset=op.src.dataset,
+        if op.op.kind == "mv":
+            mutations.append(
+                mutation.MoveMutation(
+                    src=op.src.path,
+                    dst=op.dst.path,
+                    dataset=op.src.dataset,
+                )
             )
-        )
+        elif op.op.kind == "rm":
+            mutations.append(
+                mutation.UnlinkMutation(
+                    path=op.src.path,
+                    dataset=op.src.dataset,
+                )
+            )
+        else:
+            error.fatal(
+                f"unsupported rewrite op: "
+                f"{op.op.kind}"
+            )
     return mutations
 
 
 def build_manifest_mutations(ops, pile_root, verified):
 
-    mappings = []
-
+    muts = []
     for op in ops:
         src_rel = op.src.path.relative_to(pile_root)
-        dst_rel = op.dst.path.relative_to(pile_root)
-        m = continuity.ContinuityMapping(
-            src_subset="pile",
-            dst_subset="pile",
-            src=src_rel,
-            dst=dst_rel,
-        )
-        mappings.append(m)
-
-    return continuity.build_transfer_mutations(mappings, verified)
+        if op.op.kind == "mv":
+            dst_rel = op.dst.path.relative_to(pile_root)
+            mapping = continuity.ContinuityMapping(
+                src_subset="pile",
+                dst_subset="pile",
+                src=src_rel,
+                dst=dst_rel,
+            )
+            tm = continuity.build_transfer_mutations([mapping], verified)
+            muts.extend(tm)
+        elif op.op.kind == "rm":
+            muts.append(manifest_policy.build_removal("pile", src_rel))
+        else:
+            error.fatal(
+                f"unsupported rewrite op: "
+                f"{op.op.kind}"
+            )
+    return muts
 
 
 def load_rewrite_lines(cx):
@@ -265,18 +349,17 @@ def build_preflight_steps(plan, pile_root, entries):
     for op in plan.ops:
         src_rel = op.src.path.relative_to(pile_root)
         existing = index.require(src_rel)
-        steps.append(
-            VerifyChecksumStep(
-                path=op.src.path,
-                expected_checksum=
-                    existing.checksum,
-            )
+        step = VerifyChecksumStep(
+            path=op.src.path,
+            expected_checksum=existing.checksum,
         )
+        steps.append(step)
     return steps
 
 
 def build_checksum_index(ops, pile_root, entries):
     index = manifest_model.as_manifest_index(entries)
-    pairs = [(op.src.path.relative_to(pile_root), op.src.path)
-             for op in ops]
+    pairs = []
+    for op in ops:
+        pairs.append((op.src.path.relative_to(pile_root), op.src.path))
     return continuity.acquire_verified_checksums(pairs, index)

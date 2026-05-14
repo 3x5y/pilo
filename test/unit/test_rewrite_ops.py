@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from pilo.front import rewrite
@@ -181,3 +182,74 @@ class TestRewriteOperationModel(pilotest.TestCase):
             resolved = rewrite.resolve_rewrite_op(cx, op)
 
             rewrite.validate_rewrite_op(cx, resolved)
+
+    def test_parse_remove_op(self):
+
+        ops = rewrite.parse_rewrite_ops(["rm\tin/a.txt"])
+
+        self.assertEqual(len(ops), 1)
+
+        op = ops[0]
+
+        self.assertEqual(op.kind, "rm")
+        self.assertEqual(op.src, Path("in/a.txt"))
+        self.assertIsNone(op.dst)
+
+    def test_parse_remove_op_rejects_extra_fields(self):
+
+        with pilotest.assert_fatal(self):
+            rewrite.parse_rewrite_ops(["rm\tin/a.txt\tjunk"])
+
+    def test_validate_remove_op_requires_source(self):
+
+        with pilotest.make_tmp_context() as cx:
+
+            op = rewrite.RewriteOp(
+                kind="rm",
+                src=Path("in/missing.txt"),
+            )
+
+            resolved = rewrite.resolve_rewrite_op(cx, op)
+
+            with pilotest.assert_fatal(self):
+                rewrite.validate_rewrite_op(cx, resolved)
+
+    @patch("pilo.checks.require_file")
+    def test_build_fs_mutations_remove(self, *_):
+        cx = pilotest.make_context()
+        op = rewrite.RewriteOp(
+            kind="rm",
+            src=Path("in/a.txt"),
+        )
+        plan = rewrite.build_rewrite_plan(cx, [op])
+        muts = rewrite.build_fs_mutations(plan)
+
+        self.assertEqual(len(muts), 1)
+        mut = muts[0]
+        self.assertEqual(mut.path, cx.pile_path / "in/a.txt")
+
+    def test_build_manifest_mutations_remove(self):
+
+        cx = pilotest.make_context()
+
+        op = rewrite.RewriteOp(
+            kind="rm",
+            src=Path("in/a.txt"),
+        )
+
+        resolved = rewrite.resolve_rewrite_op(cx, op)
+
+        verified = {}
+
+        muts = rewrite.build_manifest_mutations(
+            [resolved],
+            cx.pile_path,
+            verified,
+        )
+
+        self.assertEqual(len(muts), 1)
+
+        mut = muts[0]
+
+        self.assertEqual(mut.subset, "pile")
+        self.assertEqual(mut.path, Path("in/a.txt"))
