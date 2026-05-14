@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,21 +20,18 @@ class EditEntry:
     path: str
 
 
-def has_output_script(cx):
-    return (
-        len(cx.args) >= 1
-        and cx.args[0] == "--output-script"
-    )
+def has_output_script(args):
+    return args and args[0] == "--output-script" or False
 
 
-def output_script_path(cx):
-    if len(cx.args) < 2:
+def output_script_path(args):
+    if len(args) < 2:
         error.fatal("--output-script requires path")
-    return cx.args[1]
+    return args[1]
 
 
-def has_apply(cx):
-    return "--apply" in cx.args
+def has_apply(args):
+    return "--apply" in args
 
 
 def generate_script(before, after):
@@ -61,10 +59,41 @@ def generate_script(before, after):
             yield f"mv\t{original.path}\t{edited.path}"
 
 
+def generate_script(before, after):
+
+    before_entries = [EditEntry(idx, path)
+                      for idx, path in enumerate(before, start=1)]
+    after_entries = parse_edit_lines(after)
+    seen_paths = set()
+
+    for entry in after_entries:
+        if entry.path in seen_paths:
+            error.fatal("duplicate entries in edited list")
+        seen_paths.add(entry.path)
+
+    before_by_id = {entry.ident: entry for entry in before_entries}
+    after_by_id = {entry.ident: entry for entry in after_entries}
+
+    # removals
+
+    for ident, original in before_by_id.items():
+        if ident not in after_by_id:
+            yield f"rm\t{original.path}"
+
+    # renames
+
+    for ident, edited in after_by_id.items():
+        original = before_by_id.get(ident)
+        if original is None:
+            error.fatal(f"unknown edit identifier: {ident}")
+        if original.path != edited.path:
+            yield f"mv\t{original.path}\t{edited.path}"
+
+
 def list_files(cx):
     return sorted(
         str(p.relative_to(cx.pile_path))
-        for p in fs.iter_files(cx.pile_path / "in")
+        for p in fs.iter_files(cx.pile_path)
     )
 
 
@@ -112,15 +141,15 @@ def print_script(cx, edited_lines):
         print(line)
 
 
-def write_edit_buffer(lines):
+def write_edit_buffer(before):
     with tempfile.NamedTemporaryFile( "w+", delete=False) as f:
         tmp = Path(f.name)
-        for line in lines:
+        for line in render_edit_lines(before):
             f.write(line + "\n")
     return tmp
 
 
-def edit_file(path):
+def run_editor(path):
     editor = os.environ.get("EDITOR", "vi")
     cmd = editor.split()
     args = [str(path)]
@@ -148,31 +177,35 @@ def execute_script(script):
     return subprocess.run(cmd + args)
 
 
+def edit_file(tmp, before, args):
+    edited = run_editor(tmp)
+    script = build_script(before, edited)
+    if has_output_script(args):
+        path = output_script_path(args)
+        write_script_file(path, script)
+        if not has_apply(args):
+            return
+
+    result = execute_script(script)
+    sys.exit(result.returncode)
+
+
 def interactive(cx):
     before = list_files(cx)
-    tmp = write_edit_buffer(render_edit_lines(before))
+    tmp = write_edit_buffer(before)
     try:
-        edited = edit_file(tmp)
-        script = build_script(before, edited)
-        if has_output_script(cx):
-            path = output_script_path(cx)
-            write_script_file(path, script)
-            if not has_apply(cx):
-                return
-
-        result = execute_script(script)
-        sys.exit(result.returncode)
-
+        edit_file(tmp, before, cx.args)
     finally:
         tmp.unlink(missing_ok=True)
 
 
 def main():
     cx = context.Context()
+    arg = cx.args and cx.args[0] or None
 
-    if cx.args and cx.args[0] == "--dump":
+    if arg == "--dump":
         print_files(cx)
-    elif cx.args and cx.args[0] == "--script":
+    elif arg == "--script":
         inlines = sys.stdin.read().splitlines()
         print_script(cx, inlines)
     else:
