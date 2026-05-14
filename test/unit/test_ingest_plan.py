@@ -77,7 +77,7 @@ class TestIngestOps(pilotest.TestCase):
             ]
         )
 
-        muts = ingest.ingest_plan_mutations(plan)
+        muts = ingest.build_fs_mutations(plan)
 
         self.assertEqual(len(muts), 2)
 
@@ -276,7 +276,7 @@ class TestIngestOps(pilotest.TestCase):
             ]
         )
 
-        muts = ingest.ingest_plan_mutations(plan)
+        muts = ingest.build_fs_mutations(plan)
 
         self.assertEqual(len(muts), 2)
 
@@ -422,7 +422,7 @@ class TestIngestOps(pilotest.TestCase):
             ]
         )
 
-        exec_plan = ingest.ingest_execution_plan(cx, plan)
+        exec_plan = ingest.build_exec_plan(cx, plan)
 
         self.assertIsInstance(exec_plan, ExecutionPlan)
         self.assertEqual(len(exec_plan.filesystem_steps), 1)
@@ -445,7 +445,7 @@ class TestIngestOps(pilotest.TestCase):
             ]
         )
 
-        exec_plan = ingest.ingest_execution_plan(cx, plan)
+        exec_plan = ingest.build_exec_plan(cx, plan)
 
         op = exec_plan.manifest_steps[0]
 

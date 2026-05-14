@@ -103,16 +103,16 @@ def build_rewrite_plan(cx, ops):
 
 
 def preview_rewrite_plan(cx, plan):
-    muts = rewrite_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_rewrite_plan(cx, plan):
-    muts = rewrite_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     mutation.execute_fs_mutations(cx, muts)
 
 
-def rewrite_plan_mutations(plan):
+def build_fs_mutations(plan):
     mutations = []
     for op in plan.ops:
         mutations.append(
@@ -241,9 +241,9 @@ class RewriteScript:
         return "\n".join(self.render_lines())
 
 
-def rewrite_execution_plan(cx, plan, entries):
+def build_exec_plan(cx, plan, entries):
     index = manifest_model.as_manifest_index(entries)
-    verified = rewrite_verified_checksums(plan, cx.pile_path, index)
+    verified = build_checksum_index(plan, cx.pile_path, index)
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     manifest_step = ManifestStep(
         subset="pile",
@@ -255,15 +255,15 @@ def rewrite_execution_plan(cx, plan, entries):
                 verified,
             ),
     )
-    preflight_steps= rewrite_preflight_steps(plan, cx.pile_path, entries)
+    preflight_steps = build_preflight_steps(plan, cx.pile_path, entries)
     return ExecutionPlan(
         preflight_steps=preflight_steps,
-        filesystem_steps=rewrite_plan_mutations(plan),
+        filesystem_steps=build_fs_mutations(plan),
         manifest_steps=[manifest_step],
     )
 
 
-def rewrite_preflight_steps(plan, pile_root, entries):
+def build_preflight_steps(plan, pile_root, entries):
 
     index = manifest_model.as_manifest_index(entries)
     steps = []
@@ -281,11 +281,7 @@ def rewrite_preflight_steps(plan, pile_root, entries):
     return steps
 
 
-def rewrite_verified_checksums(plan, pile_root, entries):
-    return rewrite_acquire_checksums(plan, pile_root, entries)
-
-
-def rewrite_acquire_checksums(plan, pile_root, entries):
+def build_checksum_index(plan, pile_root, entries):
     verified = []
     for op in plan.ops:
         src_rel = op.src.path.relative_to(pile_root)
@@ -294,7 +290,6 @@ def rewrite_acquire_checksums(plan, pile_root, entries):
             op.src.path,
             existing.checksum,
         )
-
         verified.append(
             manifest_model.ProvenancedChecksum(
                 path=src_rel,

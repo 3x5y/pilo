@@ -100,16 +100,16 @@ def build_promote_plan(cx):
 
 
 def preview_promote_plan(cx, plan):
-    muts = promote_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_promote_plan(cx, plan):
-    muts = promote_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     mutation.execute_fs_mutations(cx, muts)
 
 
-def promote_plan_mutations(plan):
+def build_fs_mutations(plan):
     def build(op):
         if op.action == "copy":
             return mutation.CopyMutation(
@@ -125,7 +125,7 @@ def promote_plan_mutations(plan):
     return [build(op) for op in plan.ops]
 
 
-def promote_manifest_mutations(
+def build_manifest_mutations(
     ops,
     pile_root,
     collection_root,
@@ -142,7 +142,7 @@ def promote_manifest_mutations(
     return continuity.continuity_manifest_mutations(transfers)
 
 
-def promote_preflight_steps(ops, pile_root, entries):
+def build_preflight_steps(ops, pile_root, entries):
 
     index = manifest_model.as_manifest_index(entries)
     steps = []
@@ -160,11 +160,11 @@ def promote_preflight_steps(ops, pile_root, entries):
     return steps
 
 
-def promote_manifest_steps(cx, plan, pile_entries, verified):
+def build_manifest_steps(cx, plan, pile_entries, verified):
 
     def build(subset):
         manifest_path =  cx.admin_path / "manifest" / f"{subset}.manifest"
-        build_mutations = lambda: promote_manifest_mutations(
+        build_mutations = lambda: build_manifest_mutations(
             plan.ops,
             cx.pile_path,
             cx.static_path / "collection",
@@ -177,32 +177,28 @@ def promote_manifest_steps(cx, plan, pile_entries, verified):
     return [build(x) for x in subsets]
 
 
-def promote_execution_plan(cx, plan, pile_entries):
-    verified = promote_verified_checksums(
+def build_exec_plan(cx, plan, pile_entries):
+    verified = build_checksum_index(
         plan.ops,
         cx.pile_path,
         pile_entries,
     )
-    preflight_steps = promote_preflight_steps(
+    preflight_steps = build_preflight_steps(
         plan.ops,
         cx.pile_path,
         pile_entries,
     )
-    semantic_mutations = promote_plan_mutations(plan)
-    manifest_steps = promote_manifest_steps(
+    fs_steps = build_fs_mutations(plan)
+    manifest_steps = build_manifest_steps(
         cx,
         plan,
         pile_entries,
         verified,
     )
-    return ExecutionPlan(preflight_steps, semantic_mutations, manifest_steps)
+    return ExecutionPlan(preflight_steps, fs_steps, manifest_steps)
 
 
-def promote_verified_checksums(ops, pile_root, entries):
-    return promote_acquire_checksums(ops, pile_root, entries)
-
-
-def promote_acquire_checksums(ops, pile_root, entries):
+def build_checksum_index(ops, pile_root, entries):
 
     index = manifest_model.as_manifest_index(entries)
     verified = []

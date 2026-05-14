@@ -85,7 +85,7 @@ class TestRewritePlan(pilotest.TestCase):
             ]
         )
 
-        muts = rewrite.rewrite_plan_mutations(plan)
+        muts = rewrite.build_fs_mutations(plan)
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]
@@ -118,26 +118,6 @@ class TestRewritePlan(pilotest.TestCase):
         rewrite.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.manifest_mutation.execute_manifest_mutations")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
-    def _test_rewrite_command_uses_plan(
-        self,
-        mock_build,
-        mock_execute,
-        mock_manifest,
-    ):
-        cx = pilotest.make_context()
-        cx.args = ["mv\tin/a\tin/b"]
-
-        with patch("pilo.context.Context", return_value=cx):
-            mod = pilotest.import_command("rewrite")
-            mod.main()
-
-        mock_build.assert_called_once()
-        mock_execute.assert_called_once()
-        mock_manifest.assert_called_once()
-
     @patch("pilo.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
     def test_rewrite_execution_plan_builds_execution_plan(self, *_):
@@ -159,7 +139,7 @@ class TestRewritePlan(pilotest.TestCase):
             )
         ]
 
-        exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+        exec_plan = rewrite.build_exec_plan(cx, plan, entries)
 
         self.assertIsInstance(exec_plan, execution.ExecutionPlan)
         self.assertEqual(len(exec_plan.filesystem_steps), 1)
@@ -186,7 +166,7 @@ class TestRewritePlan(pilotest.TestCase):
             )
         ]
 
-        exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+        exec_plan = rewrite.build_exec_plan(cx, plan, entries)
 
         mop = exec_plan.manifest_steps[0]
         mpath = cx.admin_path / "manifest/pile.manifest"
@@ -212,7 +192,7 @@ class TestRewritePlan(pilotest.TestCase):
                 path=Path("in/a.txt"),
             )
         ]
-        exec_plan = rewrite.rewrite_execution_plan(
+        exec_plan = rewrite.build_exec_plan(
             cx,
             plan,
             entries,
@@ -294,7 +274,7 @@ class TestRewritePlan(pilotest.TestCase):
             )
         ])
 
-        verified = rewrite.rewrite_verified_checksums(
+        verified = rewrite.build_checksum_index(
             plan,
             cx.pile_path,
             entries,
@@ -325,7 +305,7 @@ class TestRewritePlan(pilotest.TestCase):
         entries = manifest_model.ManifestIndex([])
 
         with pilotest.assert_fatal(self):
-            rewrite.rewrite_verified_checksums(plan, cx.pile_path, entries)
+            rewrite.build_checksum_index(plan, cx.pile_path, entries)
 
     @patch("pilo.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
@@ -353,7 +333,7 @@ class TestRewritePlan(pilotest.TestCase):
             )
         ]
 
-        exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+        exec_plan = rewrite.build_exec_plan(cx, plan, entries)
         exec_plan.manifest_steps[0].build_mutations()
         verified = mock_manifest.call_args[0][2]
 
@@ -438,7 +418,7 @@ class TestRewritePlan(pilotest.TestCase):
             )
         ])
 
-        verified = rewrite.rewrite_verified_checksums(
+        verified = rewrite.build_checksum_index(
             plan,
             cx.pile_path,
             entries,
@@ -488,7 +468,7 @@ class TestRewritePlan(pilotest.TestCase):
             )
         ])
 
-        rewrite.rewrite_verified_checksums(
+        rewrite.build_checksum_index(
             plan,
             cx.pile_path,
             entries,

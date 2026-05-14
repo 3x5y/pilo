@@ -33,16 +33,16 @@ def build_replace_plan(cx, src, dst_rel):
 
 
 def preview_replace_plan(cx, plan):
-    muts = replace_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_replace_plan(cx, plan):
-    muts = replace_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     mutation.execute_fs_mutations(cx, muts)
 
 
-def replace_plan_mutations(plan):
+def build_fs_mutations(plan):
     def build(op):
         return mutation.CopyMutation(src=op.src,
                                      dst=op.dst.path,
@@ -67,7 +67,7 @@ def replace_manifest_mutations(plan, pile_root):
     return muts
 
 
-def replace_execution_plan(cx, plan):
+def build_exec_plan(cx, plan):
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     manifest_step = ManifestStep(
         subset="pile",
@@ -79,6 +79,6 @@ def replace_execution_plan(cx, plan):
             ),
     )
     return ExecutionPlan(
-        filesystem_steps=replace_plan_mutations(plan),
+        filesystem_steps=build_fs_mutations(plan),
         manifest_steps=[manifest_step],
     )

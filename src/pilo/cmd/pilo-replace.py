@@ -18,7 +18,7 @@ def main():
     dst_rel = Path(cx.args[1])
 
     plan = replace.build_replace_plan(cx, src, dst_rel)
-    exec_plan = replace.replace_execution_plan(cx, plan)
+    exec_plan = replace.build_exec_plan(cx, plan)
     execution.execute_plan(cx, exec_plan)
 
 if __name__ == "__main__":

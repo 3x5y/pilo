@@ -29,7 +29,7 @@ def main():
     )
 
     plan = ingest.build_ingest_plan(cx, files)
-    exec_plan = ingest.ingest_execution_plan(cx, plan)
+    exec_plan = ingest.build_exec_plan(cx, plan)
     execution.execute_plan(cx, exec_plan)
 
 

@@ -29,7 +29,7 @@ def main():
 
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     entries = manifest_codec.load_manifest_entries(manifest_path)
-    exec_plan = rewrite.rewrite_execution_plan(cx, plan, entries)
+    exec_plan = rewrite.build_exec_plan(cx, plan, entries)
     execution.execute_plan(cx, exec_plan)
 
 

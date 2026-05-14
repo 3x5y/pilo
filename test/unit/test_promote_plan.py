@@ -68,7 +68,7 @@ class TestPromotePlan(pilotest.TestCase):
             ]
         )
 
-        muts = promote.promote_plan_mutations(plan)
+        muts = promote.build_fs_mutations(plan)
         self.assertEqual(len(muts), 2)
         self.assertIsInstance(muts[0], mutation.CopyMutation)
         self.assertIsInstance(muts[1], mutation.UnlinkMutation)
@@ -144,7 +144,7 @@ class TestPromotePlan(pilotest.TestCase):
                 ]
             )
         )
-        muts = promote.promote_manifest_mutations(
+        muts = promote.build_manifest_mutations(
             [op],
             Path("/pile"),
             Path("/static/collection"),
@@ -199,7 +199,7 @@ class TestPromotePlan(pilotest.TestCase):
                 ]
             )
         )
-        muts = promote.promote_manifest_mutations(
+        muts = promote.build_manifest_mutations(
             [op],
             Path("/pile"),
             Path("/static/collection"),
@@ -240,7 +240,7 @@ class TestPromotePlan(pilotest.TestCase):
             dataset="tank/pile",
         )
         verified = manifest_model.VerifiedChecksumIndex([])
-        muts = promote.promote_manifest_mutations(
+        muts = promote.build_manifest_mutations(
             [op],
             Path("/pile"),
             Path("/static/collection"),
@@ -282,7 +282,7 @@ class TestPromotePlan(pilotest.TestCase):
                 ]
             )
         )
-        muts = promote.promote_manifest_mutations(
+        muts = promote.build_manifest_mutations(
             ops,
             Path("/pile"),
             Path("/static/collection"),
@@ -326,11 +326,7 @@ class TestPromotePlan(pilotest.TestCase):
             )
         ]
 
-        exec_plan = promote.promote_execution_plan(
-            cx,
-            plan,
-            entries,
-        )
+        exec_plan = promote.build_exec_plan(cx, plan, entries)
 
         self.assertIsInstance(exec_plan, execution.ExecutionPlan)
         self.assertEqual(len(exec_plan.filesystem_steps), 2)
@@ -361,7 +357,7 @@ class TestPromotePlan(pilotest.TestCase):
                 path=Path("out/collection/a.txt"),
             )
         ]
-        steps = promote.promote_preflight_steps(
+        steps = promote.build_preflight_steps(
             ops,
             cx.pile_path,
             entries,
@@ -378,7 +374,7 @@ class TestPromotePlan(pilotest.TestCase):
         plan = promote.PromotePlan(ops=[])
         entries = []
         verified = manifest_model.VerifiedChecksumIndex([])
-        steps = promote.promote_manifest_steps(
+        steps = promote.build_manifest_steps(
             cx,
             plan,
             entries,
@@ -424,13 +420,7 @@ class TestPromotePlan(pilotest.TestCase):
                 ),
             )
         )
-        verified = (
-            promote.promote_verified_checksums(
-                ops,
-                cx.pile_path,
-                entries,
-            )
-        )
+        verified = promote.build_checksum_index(ops, cx.pile_path, entries)
         item = verified.require(Path("out/collection/a.txt"))
         self.assertEqual(item.checksum, "abc123")
         self.assertEqual(
@@ -470,7 +460,7 @@ class TestPromotePlan(pilotest.TestCase):
             )
         ]
         muts = (
-            promote.promote_manifest_mutations(
+            promote.build_manifest_mutations(
                 ops,
                 Path("/pile"),
                 Path("/static/collection"),
@@ -531,7 +521,7 @@ class TestPromotePlan(pilotest.TestCase):
                 dataset="tank/static/collection",
             )
         ]
-        promote.promote_manifest_mutations(
+        promote.build_manifest_mutations(
             ops,
             Path("/pile"),
             Path("/static/collection"),
@@ -609,7 +599,7 @@ class TestPromotePlan(pilotest.TestCase):
         ]
 
         muts = (
-            promote.promote_manifest_mutations(
+            promote.build_manifest_mutations(
                 ops,
                 Path("/pile"),
                 Path("/static/collection"),

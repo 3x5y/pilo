@@ -85,7 +85,7 @@ class TestReplacePlan(pilotest.TestCase):
             ]
         )
 
-        muts = replace.replace_plan_mutations(plan)
+        muts = replace.build_fs_mutations(plan)
 
         self.assertEqual(len(muts), 1)
         mut = muts[0]
@@ -200,7 +200,7 @@ class TestReplacePlan(pilotest.TestCase):
             ]
         )
 
-        exec_plan = replace.replace_execution_plan(cx, plan)
+        exec_plan = replace.build_exec_plan(cx, plan)
 
         self.assertIsInstance(exec_plan, ExecutionPlan)
         self.assertEqual(len(exec_plan.filesystem_steps), 1)
@@ -222,7 +222,7 @@ class TestReplacePlan(pilotest.TestCase):
             ]
         )
 
-        exec_plan = replace.replace_execution_plan(cx, plan)
+        exec_plan = replace.build_exec_plan(cx, plan)
 
         op = exec_plan.manifest_steps[0]
 

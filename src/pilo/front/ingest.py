@@ -45,16 +45,16 @@ def build_ingest_plan(cx, files):
 
 
 def preview_ingest_plan(cx, plan):
-    muts = ingest_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_ingest_plan(cx, plan):
-    muts = ingest_plan_mutations(plan)
+    muts = build_fs_mutations(plan)
     mutation.execute_fs_mutations(cx, muts)
 
 
-def ingest_plan_mutations(plan):
+def build_fs_mutations(plan):
     muts = []
     for op in plan.ops:
         if op.action == "move":
@@ -103,7 +103,7 @@ def ingest_manifest_mutations(ops, pile_root):
     return muts
 
 
-def ingest_execution_plan(cx, plan):
+def build_exec_plan(cx, plan):
     manifest_path = cx.admin_path / "manifest/pile.manifest"
     manifest_step = ManifestStep(
         subset="pile",
@@ -115,6 +115,6 @@ def ingest_execution_plan(cx, plan):
             ),
     )
     return ExecutionPlan(
-        filesystem_steps=ingest_plan_mutations(plan),
+        filesystem_steps=build_fs_mutations(plan),
         manifest_steps=[manifest_step],
     )
