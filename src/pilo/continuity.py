@@ -5,6 +5,12 @@ from . import manifest_model
 
 
 @dataclass(frozen=True)
+class ContinuityMapping:
+    src: Path
+    dst: Path
+
+
+@dataclass(frozen=True)
 class ContinuityTransfer:
 
     src: Path
@@ -18,12 +24,12 @@ def build_continuity_transfers(mappings, verified):
     verified = manifest_model.as_verified_checksum_index(verified)
     transfers = []
 
-    for src, dst in mappings:
-        item = verified.require(src)
+    for m in mappings:
+        item = verified.require(m.src)
         transfers.append(
             ContinuityTransfer(
-                src=src,
-                dst=dst,
+                src=m.src,
+                dst=m.dst,
                 checksum=item.checksum,
                 provenance=item.provenance,
             )

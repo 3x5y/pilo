@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .. import checks
 from .. import checksum
+from .. import continuity
 from .. import error
 from .. import fs
 from .. import mutation
@@ -132,28 +133,37 @@ def promote_manifest_mutations(
     verified,
 ):
     muts = []
-    for op in ops:
-        if op.action == "copy":
-            subset = manifest_policy.dataset_manifest_subset(op.dataset)
-            if subset == "collection":
-                rel = op.dst.relative_to(collection_root)
-            elif subset == "filing":
-                rel = op.dst.relative_to(filing_root)
-            else:
+    mappings = promote_continuity_mappings(
+        ops,
+        pile_root,
+        collection_root,
+        filing_root,
+    )
+    transfers = continuity.build_continuity_transfers(mappings, verified)
+
+    for transfer in transfers:
+        subset = None
+        for op in ops:
+            if op.action != "copy":
                 continue
-            src_rel = op.src.relative_to(pile_root)
-            continuity = verified.require(src_rel)
-            checksum = continuity.checksum
-            muts.append(
-                manifest_model.ManifestAddEntry(
-                    subset=subset,
-                    entry=manifest_model.ManifestEntry(
-                        path=rel,
-                        checksum=checksum,
-                    )
-                )
+            src_rel = op.src.relative_to( pile_root)
+            if src_rel != transfer.src:
+                continue
+            subset = manifest_policy.dataset_manifest_subset(op.dataset)
+            break
+        if subset is None:
+            continue
+        m = manifest_model.ManifestAddEntry(
+            subset=subset,
+            entry=manifest_model.ManifestEntry(
+                checksum=transfer.checksum,
+                path=transfer.dst,
             )
-        elif op.action == "unlink":
+        )
+        muts.append(m)
+
+    for op in ops:
+        if op.action == "unlink":
             rel = op.src.relative_to(pile_root)
             muts.append(
                 manifest_model.ManifestRemoveEntry(
@@ -249,3 +259,31 @@ def promote_acquire_checksums(ops, pile_root, entries):
             )
         )
     return manifest_model.VerifiedChecksumIndex(verified)
+
+
+def promote_continuity_mappings(
+    ops,
+    pile_root,
+    collection_root,
+    filing_root,
+):
+
+    mappings = []
+
+    for op in ops:
+        if op.action != "copy":
+            continue
+        src_rel = op.src.relative_to(pile_root)
+        subset = manifest_policy.dataset_manifest_subset(op.dataset)
+        if subset == "collection":
+            dst_rel = op.dst.relative_to(collection_root)
+        elif subset == "filing":
+            dst_rel = op.dst.relative_to(filing_root)
+        else:
+            continue
+        m = continuity.ContinuityMapping(
+            src=src_rel,
+            dst=dst_rel,
+        )
+        mappings.append(m)
+    return mappings

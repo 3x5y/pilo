@@ -27,9 +27,9 @@ class TestContinuity(unittest.TestCase):
             continuity
             .build_continuity_transfers(
                 [
-                    (
-                        Path("in/a.txt"),
-                        Path("in/b.txt"),
+                    continuity.ContinuityMapping(
+                        src=Path("in/a.txt"),
+                        dst=Path("in/b.txt"),
                     )
                 ],
                 verified,
@@ -73,3 +73,26 @@ class TestContinuity(unittest.TestCase):
         self.assertEqual(remove.path, Path("in/a.txt"))
         self.assertEqual(add.entry.path, Path("in/b.txt"))
         self.assertEqual(add.entry.checksum, "abc123")
+
+    def test_build_continuity_transfers_uses_mapping_objects(self):
+
+        mapping = continuity.ContinuityMapping(
+            src=Path("a.txt"),
+            dst=Path("b.txt"),
+        )
+        mappings = [mapping]
+        provenance = manifest_model.ChecksumProvenance.VERIFIED
+        checksum = manifest_model.ProvenancedChecksum(
+            path=Path("a.txt"),
+            checksum="abc123",
+            provenance=provenance,
+        )
+        verified = manifest_model.VerifiedChecksumIndex([checksum])
+
+        transfers = continuity.build_continuity_transfers(mappings, verified)
+
+        self.assertEqual(len(transfers), 1)
+        transfer = transfers[0]
+        self.assertEqual(transfer.src, Path("a.txt"))
+        self.assertEqual(transfer.dst, Path("b.txt"))
+        self.assertEqual(transfer.checksum, "abc123")

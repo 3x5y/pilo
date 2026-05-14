@@ -533,3 +533,26 @@ class TestPromotePlan(pilotest.TestCase):
             verified,
         )
         mock_sha.assert_not_called()
+
+    def test_promote_continuity_mappings(self):
+
+        cx = pilotest.make_context()
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=cx.pile_path / "out/collection/a.txt",
+                dst=Path("/static/collection/a.txt"),
+                dataset="tank/static/collection",
+            )
+        ]
+        mappings = promote.promote_continuity_mappings(
+            ops,
+            cx.pile_path,
+            Path("/static/collection"),
+            Path("/static/filing"),
+        )
+
+        self.assertEqual(len(mappings), 1)
+        mapping = mappings[0]
+        self.assertEqual(mapping.src, Path("out/collection/a.txt"))
+        self.assertEqual(mapping.dst, Path("a.txt"))

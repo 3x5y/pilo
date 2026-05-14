@@ -178,7 +178,11 @@ def rewrite_manifest_mutations(plan, pile_root, verified):
     for op in plan.ops:
         src_rel = op.src.path.relative_to(pile_root)
         dst_rel = op.dst.path.relative_to(pile_root)
-        mappings.append((src_rel, dst_rel))
+        m = continuity.ContinuityMapping(
+            src=src_rel,
+            dst=dst_rel,
+        )
+        mappings.append(m)
 
     transfers = continuity.build_continuity_transfers(
         mappings,
