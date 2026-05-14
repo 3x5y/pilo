@@ -104,12 +104,12 @@ def build_rewrite_plan(cx, ops):
 
 def preview_rewrite_plan(cx, plan):
     muts = rewrite_plan_mutations(plan)
-    return mutation.preview_execution_rendered(cx, muts)
+    return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_rewrite_plan(cx, plan):
     muts = rewrite_plan_mutations(plan)
-    mutation.execute_semantic_mutations(cx, muts)
+    mutation.execute_fs_mutations(cx, muts)
 
 
 def rewrite_plan_mutations(plan):

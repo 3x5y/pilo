@@ -28,7 +28,7 @@ class LiveExecutor(MutationExecutor):
     requires_write_access = True
 
     def apply(self, mut):
-        execute_mutation(self.cx, mut)
+        apply_mutation(self.cx, mut)
 
 
 def execute_move(cx, mut):
@@ -55,7 +55,7 @@ EXEC_HANDLERS = {
 }
 
 
-def execute_mutation(cx, mut):
+def apply_mutation(cx, mut):
 
     try:
         handler = EXEC_HANDLERS[type(mut)]
@@ -68,7 +68,7 @@ def execute_mutation(cx, mut):
     handler(cx, mut)
 
 
-def execute_mutations(executor, mutations):
+def apply_mutations(executor, mutations):
 
     if executor.requires_write_access:
         datasets = {m.dataset for m in mutations}
@@ -81,6 +81,6 @@ def execute_mutations(executor, mutations):
             executor.apply(mut)
 
 
-def execute_semantic_mutations(cx, mutations):
+def execute_fs_mutations(cx, mutations):
     executor = LiveExecutor(cx)
-    execute_mutations(executor, mutations)
+    apply_mutations(executor, mutations)

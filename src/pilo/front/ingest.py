@@ -46,12 +46,12 @@ def build_ingest_plan(cx, files):
 
 def preview_ingest_plan(cx, plan):
     muts = ingest_plan_mutations(plan)
-    return mutation.preview_execution_rendered(cx, muts)
+    return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_ingest_plan(cx, plan):
     muts = ingest_plan_mutations(plan)
-    mutation.execute_semantic_mutations(cx, muts)
+    mutation.execute_fs_mutations(cx, muts)
 
 
 def ingest_plan_mutations(plan):

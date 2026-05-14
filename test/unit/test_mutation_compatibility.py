@@ -34,8 +34,8 @@ class TestManifestCompat(pilotest.TestCase):
     def test_execute_semantic_mutations_compatibility(self):
 
         self.assertIs(
-            mutation.execute_semantic_mutations,
-            mutation_exec.execute_semantic_mutations,
+            mutation.execute_fs_mutations,
+            mutation_exec.execute_fs_mutations,
         )
 
 
@@ -64,14 +64,14 @@ class TestManifestCompat(pilotest.TestCase):
 
             ex = DummyExecutor()
 
-            mutation_exec.execute_mutations(ex, [mut])
+            mutation_exec.apply_mutations(ex, [mut])
             self.assertEqual(ex.seen, [mut])
 
     def test_preview_execution_compatibility(self):
 
         self.assertIs(
-            mutation.preview_execution,
-            mutation_preview.preview_execution,
+            mutation.get_preview_events,
+            mutation_preview.get_preview_events,
         )
 
 

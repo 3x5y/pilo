@@ -80,11 +80,11 @@ class TestPrunePlan(pilotest.TestCase):
             dataset="tank/a/pile",
         )
 
-        mutation_exec.execute_mutation(cx, mut)
+        mutation_exec.apply_mutation(cx, mut)
 
         mock_rmdir.assert_called_once()
 
-    @patch("pilo.mutation.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
         plan = prune.PrunePlan(

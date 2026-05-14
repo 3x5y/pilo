@@ -101,12 +101,12 @@ def build_promote_plan(cx):
 
 def preview_promote_plan(cx, plan):
     muts = promote_plan_mutations(plan)
-    return mutation.preview_execution_rendered(cx, muts)
+    return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_promote_plan(cx, plan):
     muts = promote_plan_mutations(plan)
-    mutation.execute_semantic_mutations(cx, muts)
+    mutation.execute_fs_mutations(cx, muts)
 
 
 def promote_plan_mutations(plan):

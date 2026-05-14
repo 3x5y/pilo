@@ -283,7 +283,7 @@ class TestIngestOps(pilotest.TestCase):
         self.assertIsInstance(muts[0], mutation_types.MoveMutation)
         self.assertIsInstance(muts[1], mutation_types.UnlinkMutation)
 
-    @patch("pilo.mutation.execute_semantic_mutations")
+    @patch("pilo.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 

@@ -72,7 +72,7 @@ class TestSemanticMutation(pilotest.TestCase):
             dataset="tank/a/pile",
         )
 
-        mutation_exec.execute_mutation(cx, mut)
+        mutation_exec.apply_mutation(cx, mut)
 
         mock_move.assert_called_once_with(
             cx,
@@ -91,7 +91,7 @@ class TestSemanticMutation(pilotest.TestCase):
             dataset="tank/a/pile",
         )
 
-        mutation_exec.execute_mutation(cx, mut)
+        mutation_exec.apply_mutation(cx, mut)
 
         mock_unlink.assert_called_once()
 
@@ -105,7 +105,7 @@ class TestSemanticMutation(pilotest.TestCase):
             dataset="tank/a/static",
         )
 
-        mutation_exec.execute_mutation(cx, mut)
+        mutation_exec.apply_mutation(cx, mut)
 
         mock_copy.assert_called_once_with(
             cx,
@@ -114,7 +114,7 @@ class TestSemanticMutation(pilotest.TestCase):
         )
 
     @patch("pilo.zfs.writable_datasets")
-    @patch("pilo.mutation_exec.execute_mutation")
+    @patch("pilo.mutation_exec.apply_mutation")
     def test_execute_semantic_mutations(
         self,
         mock_apply,
@@ -139,7 +139,7 @@ class TestSemanticMutation(pilotest.TestCase):
             ),
         ]
 
-        mutation_exec.execute_semantic_mutations(cx, muts)
+        mutation_exec.execute_fs_mutations(cx, muts)
 
         mock_writable.assert_called_once_with(
             {"tank/a/pile", "tank/a/static"}
@@ -172,13 +172,13 @@ class TestSemanticMutation(pilotest.TestCase):
             ),
         ]
 
-        with patch("pilo.mutation_exec.execute_mutation", side_effect=fake_apply):
+        with patch("pilo.mutation_exec.apply_mutation", side_effect=fake_apply):
             with patch("pilo.zfs.writable_datasets") as mock_writable:
                 cm = MagicMock()
                 cm.__enter__.return_value = None
                 cm.__exit__.return_value = None
                 mock_writable.return_value = cm
-                mutation_exec.execute_semantic_mutations(cx, muts)
+                mutation_exec.execute_fs_mutations(cx, muts)
 
         self.assertEqual(applied, muts)
 
@@ -210,10 +210,10 @@ class TestSemanticMutation(pilotest.TestCase):
             return_value=FakeContext(),
         ):
             with patch(
-                "pilo.mutation_exec.execute_mutation",
+                "pilo.mutation_exec.apply_mutation",
                 side_effect=fake_apply,
             ):
-                mutation_exec.execute_semantic_mutations(cx, muts)
+                mutation_exec.execute_fs_mutations(cx, muts)
 
         self.assertEqual(
             events,

@@ -2,7 +2,7 @@ from .mutation_events import OperationEvent
 
 from .mutation_exec import (
     MutationExecutor,
-    execute_mutations,
+    apply_mutations,
 )
 
 from .mutation_render import render_events
@@ -87,12 +87,12 @@ def event_for_mutation(mut):
     return handler(mut)
 
 
-def preview_execution(cx, mutations):
+def get_preview_events(cx, mutations):
     executor = PreviewExecutor(cx)
-    execute_mutations(executor, mutations)
+    apply_mutations(executor, mutations)
     return executor.events
 
 
-def preview_execution_rendered(cx, mutations):
-    events = preview_execution(cx, mutations)
+def render_mutation_preview(cx, mutations):
+    events = get_preview_events(cx, mutations)
     return render_events(events)

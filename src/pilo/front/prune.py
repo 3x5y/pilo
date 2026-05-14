@@ -52,9 +52,9 @@ def prune_mutations(plan):
 
 def preview_prune_plan(cx, plan):
     muts = prune_mutations(plan)
-    return mutation.preview_execution_rendered(cx, muts)
+    return mutation.render_mutation_preview(cx, muts)
 
 
 def execute_prune_plan(cx, ops):
     mut = prune_mutations(ops)
-    mutation.execute_semantic_mutations(cx, mut)
+    mutation.execute_fs_mutations(cx, mut)

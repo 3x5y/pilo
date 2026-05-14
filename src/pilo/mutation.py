@@ -20,15 +20,15 @@ from .mutation_types import (
 from .mutation_exec import (
     MutationExecutor,
     LiveExecutor,
-    execute_mutation,
-    execute_mutations,
-    execute_semantic_mutations,
+    apply_mutation,
+    apply_mutations,
+    execute_fs_mutations,
 )
 
 from .mutation_preview import (
     PreviewExecutor,
-    preview_execution,
-    preview_execution_rendered,
+    get_preview_events,
+    render_mutation_preview,
     event_for_mutation,
 )
 

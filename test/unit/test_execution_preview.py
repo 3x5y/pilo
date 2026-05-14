@@ -164,7 +164,7 @@ class TestMutationExecutors(pilotest.TestCase):
             dataset="tank/a",
         )
 
-        mutation.preview_execution(cx, [mut])
+        mutation.get_preview_events(cx, [mut])
 
         mock_writable.assert_not_called()
 
@@ -186,7 +186,7 @@ class TestMutationExecutors(pilotest.TestCase):
             dataset="tank/a",
         )
 
-        mutation.execute_semantic_mutations(cx, [mut])
+        mutation.execute_fs_mutations(cx, [mut])
 
         mock_writable.assert_called_once_with({"tank/a"})
         mock_move.assert_called_once_with(cx, mut.src, mut.dst)
@@ -200,7 +200,7 @@ class TestMutationExecutors(pilotest.TestCase):
             dataset="tank/a",
         )
 
-        events = mutation.preview_execution(cx, [mut])
+        events = mutation.get_preview_events(cx, [mut])
 
         self.assertEqual(len(events), 1)
 
