@@ -6,7 +6,7 @@ capture_file a.txt
 pilo ingest-pile
 
 SCRIPT=$(pilo rewrite-edit --script <<EOF
-in/a.txt
+1	in/a.txt
 EOF
 )
 

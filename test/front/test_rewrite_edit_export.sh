@@ -9,5 +9,5 @@ pilo ingest-pile
 
 OUT=$(pilo rewrite-edit --dump)
 
-echo "$OUT" | assert_grep "in/a.txt"
-echo "$OUT" | assert_grep "in/b.txt"
+echo "$OUT" | assert_grep "^1	in/a.txt"
+echo "$OUT" | assert_grep "^2	in/b.txt"

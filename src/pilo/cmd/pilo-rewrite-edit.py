@@ -4,12 +4,19 @@ import os
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from pilo import context
 from pilo import error
 from pilo import fs
 from pilo.front import rewrite
+
+
+@dataclass(frozen=True)
+class EditEntry:
+    ident: int
+    path: str
 
 
 def has_output_script(cx):
@@ -30,29 +37,28 @@ def has_apply(cx):
 
 
 def generate_script(before, after):
-    if len(after) != len(set(after)):
-        error.fatal("duplicate entries in edited list")
-    for old, new in zip(before, after):
-        if old != new:
-            yield f"mv\t{old}\t{new}"
 
+    before_entries = [EditEntry(idx, path)
+                      for idx, path in enumerate(before, start=1)]
+    after_entries = parse_edit_lines(after)
+    seen_paths = set()
 
-def parse_edited_lines(lines):
-    return [
-        line.strip()
-        for line in lines
-        if line.strip()
-    ]
+    for entry in after_entries:
+        if entry.path in seen_paths:
+            error.fatal("duplicate entries in edited list")
+        seen_paths.add(entry.path)
 
+    before_by_id = {entry.ident: entry for entry in before_entries}
 
-def build_script_lines(before, after):
-
-    if len(after) != len(set(after)):
-        error.fatal("duplicate entries in edited list")
-
-    for old, new in zip(before, after):
-        if old != new:
-            yield f"mv\t{old}\t{new}"
+    for edited in after_entries:
+        original = before_by_id.get(edited.ident)
+        if original is None:
+            error.fatal(
+                f"unknown edit identifier: "
+                f"{edited.ident}"
+            )
+        if original.path != edited.path:
+            yield f"mv\t{original.path}\t{edited.path}"
 
 
 def list_files(cx):
@@ -62,15 +68,47 @@ def list_files(cx):
     )
 
 
+def render_edit_lines(paths):
+    for idx, path in enumerate(paths, start=1):
+        yield f"{idx}\t{path}"
+
+
+def parse_edit_lines(lines):
+
+    entries = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("\t", 1)
+
+        if len(parts) != 2:
+            error.fatal(f"invalid edit line: {line}")
+
+        ident_str, path = parts
+
+        try:
+            ident = int(ident_str)
+        except ValueError:
+            error.fatal(
+                f"invalid edit identifier: "
+                f"{ident_str}"
+            )
+        entry = EditEntry(ident=ident, path=path.strip())
+        entries.append(entry)
+
+    return entries
+
+
 def print_files(cx):
-    for line in list_files(cx):
+    for line in render_edit_lines(list_files(cx)):
         print(line)
 
 
 def print_script(cx, edited_lines):
     before = list_files(cx)
-    after = parse_edited_lines(edited_lines)
-    for line in generate_script(before, after):
+    for line in generate_script(before, edited_lines):
         print(line)
 
 
@@ -90,13 +128,11 @@ def edit_file(path):
     return path.read_text().splitlines()
 
 
-def build_script(before, after):
-
-    lines = list(build_script_lines(before, after))
+def build_script(before, after_lines):
+    lines = list(generate_script(before, after_lines))
     ops = []
     for op in lines:
         ops += rewrite.parse_rewrite_ops([op])
-
     script = rewrite.RewriteScript.from_ops(ops)
     return script.render_text()
 
@@ -114,11 +150,10 @@ def execute_script(script):
 
 def interactive(cx):
     before = list_files(cx)
-    tmp = write_edit_buffer(before)
+    tmp = write_edit_buffer(render_edit_lines(before))
     try:
         edited = edit_file(tmp)
-        after = parse_edited_lines(edited)
-        script = build_script(before, after)
+        script = build_script(before, edited)
         if has_output_script(cx):
             path = output_script_path(cx)
             write_script_file(path, script)
@@ -135,16 +170,13 @@ def interactive(cx):
 def main():
     cx = context.Context()
 
-    if len(cx.args) >= 1 and cx.args[0] == "--dump":
+    if cx.args and cx.args[0] == "--dump":
         print_files(cx)
-        return
-
-    if len(cx.args) >= 1 and cx.args[0] == "--script":
+    elif cx.args and cx.args[0] == "--script":
         inlines = sys.stdin.read().splitlines()
         print_script(cx, inlines)
-        return
-
-    interactive(cx)
+    else:
+        interactive(cx)
 
 
 if __name__ == "__main__":

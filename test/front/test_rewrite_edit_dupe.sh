@@ -8,8 +8,8 @@ capture_file b.txt
 pilo ingest-pile
 
 capture_status pilo rewrite-edit --script <<EOF
-in/x.txt
-in/x.txt
+1	in/x.txt
+2	in/x.txt
 EOF
 
 assert_command_fail
