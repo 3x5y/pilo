@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from . import error
 from . import fs
 from . import zfs

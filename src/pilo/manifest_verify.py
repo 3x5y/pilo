@@ -2,11 +2,7 @@ from pathlib import Path
 
 from . import fs
 
-from .manifest_codec import (
-    parse_manifest_line,
-    render_manifest_entry,
-)
-
+from .manifest_codec import render_manifest_entry
 from .manifest_model import ManifestEntry
 
 

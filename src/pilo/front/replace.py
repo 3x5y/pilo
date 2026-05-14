@@ -3,7 +3,6 @@ from pathlib import Path
 
 from .. import checks
 from .. import checksum
-from .. import fs
 from .. import manifest_model
 from .. import mutation
 from .. import paths

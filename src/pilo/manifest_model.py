@@ -23,7 +23,6 @@ class ManifestRemoveEntry:
     path: Path
 
 
-
 @dataclass(frozen=True)
 class VerifiedChecksum:
     path: Path
@@ -34,7 +33,6 @@ class ChecksumProvenance(Enum):
     MANIFEST = "manifest"
     VERIFIED = "verified"
     GENERATED = "generated"
-    def foo(): pass
 
 
 @dataclass(frozen=True)

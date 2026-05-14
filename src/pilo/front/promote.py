@@ -132,7 +132,6 @@ def promote_manifest_mutations(
     filing_root,
     verified,
 ):
-    muts = []
     mappings = promote_continuity_mappings(
         ops,
         pile_root,
@@ -140,71 +139,7 @@ def promote_manifest_mutations(
         filing_root,
     )
     transfers = continuity.build_continuity_transfers(mappings, verified)
-
-    for transfer in transfers:
-        subset = None
-        for op in ops:
-            if op.action != "copy":
-                continue
-            src_rel = op.src.relative_to( pile_root)
-            if src_rel != transfer.src:
-                continue
-            subset = manifest_policy.dataset_manifest_subset(op.dataset)
-            break
-        if subset is None:
-            continue
-        m = manifest_model.ManifestAddEntry(
-            subset=subset,
-            entry=manifest_model.ManifestEntry(
-                checksum=transfer.checksum,
-                path=transfer.dst,
-            )
-        )
-        muts.append(m)
-
-    for op in ops:
-        if op.action == "unlink":
-            rel = op.src.relative_to(pile_root)
-            muts.append(
-                manifest_model.ManifestRemoveEntry(
-                    subset="pile",
-                    path=rel,
-                )
-            )
-    return muts
-
-
-def promote_manifest_mutations(
-    ops,
-    pile_root,
-    collection_root,
-    filing_root,
-    verified,
-):
-
-    mappings = (
-        promote_continuity_mappings(
-            ops,
-            pile_root,
-            collection_root,
-            filing_root,
-        )
-    )
-
-    transfers = (
-        continuity
-        .build_continuity_transfers(
-            mappings,
-            verified,
-        )
-    )
-
-    return (
-        continuity
-        .continuity_manifest_mutations(
-            transfers
-        )
-    )
+    return continuity.continuity_manifest_mutations(transfers)
 
 
 def promote_preflight_steps(ops, pile_root, entries):

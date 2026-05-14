@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import fs
-from . import git
 from . import manifest_policy
 from . import manifest_store
 

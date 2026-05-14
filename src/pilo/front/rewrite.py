@@ -6,8 +6,6 @@ from .. import checks
 from .. import checksum
 from .. import continuity
 from .. import error
-from .. import fs
-from .. import manifest_codec
 from .. import manifest_model
 from .. import mutation
 from .. import paths
@@ -116,59 +114,15 @@ def execute_rewrite_plan(cx, plan):
 
 def rewrite_plan_mutations(plan):
     mutations = []
-
     for op in plan.ops:
-        dst_exists = op.dst.path.exists()
-
-        if dst_exists:
-            # currently unimplemented; throw error
-            1/0
-            mutations.append(
-                mutation.UnlinkMutation(
-                    src=op.src.path,
-                    dst=None,
-                    dataset=op.src.dataset,
-                )
+        mutations.append(
+            mutation.MoveMutation(
+                src=op.src.path,
+                dst=op.dst.path,
+                dataset=op.src.dataset,
             )
-        else:
-            mutations.append(
-                mutation.MoveMutation(
-                    src=op.src.path,
-                    dst=op.dst.path,
-                    dataset=op.src.dataset,
-                )
-            )
+        )
     return mutations
-
-
-def rewrite_manifest_mutations(plan, pile_root, verified):
-
-    # compat
-    verified = manifest_model.as_verified_checksum_index(verified)
-    muts = []
-
-    for op in plan.ops:
-
-        src_rel = op.src.path.relative_to(pile_root)
-        dst_rel = op.dst.path.relative_to(pile_root)
-        continuity = verified.require(src_rel)
-        muts.append(
-            manifest_model.ManifestRemoveEntry(
-                subset="pile",
-                path=src_rel,
-            )
-        )
-        muts.append(
-            manifest_model.ManifestAddEntry(
-                subset="pile",
-                entry=manifest_model.ManifestEntry(
-                    checksum=continuity.checksum,
-                    path=dst_rel,
-                )
-            )
-        )
-
-    return muts
 
 
 def rewrite_manifest_mutations(plan, pile_root, verified):
@@ -232,9 +186,6 @@ class RewriteScript:
         return Class(lines=list(lines))
 
     def parse_ops(self):
-        return parse_rewrite_ops(self.lines)
-
-    def parse_ops(self):
         return parse_rewrite_ops(self.body_lines())
 
     @classmethod
@@ -268,30 +219,19 @@ class RewriteScript:
         parts = line.split()
 
         if len(parts) != 2:
-            error.fatal(
-                f"invalid version header: {line}"
-            )
+            error.fatal(f"invalid version header: {line}")
 
         try:
             return int(parts[1])
-
         except ValueError:
-            error.fatal(
-                f"invalid version header: {line}"
-            )
+            error.fatal(f"invalid version header: {line}")
 
     def body_lines(self):
-
         version = self.version()
-
         if version is None:
             return self.lines
-
         if version != SCRIPT_VERSION:
-            error.fatal(
-                f"unsupported script version: {version}"
-            )
-
+            error.fatal(f"unsupported script version: {version}")
         return self.lines[1:]
 
     def render_lines(self):

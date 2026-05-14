@@ -43,29 +43,6 @@ def build_continuity_transfers(mappings, verified):
     return transfers
 
 
-def continuity_manifest_mutations(subset, transfers):
-
-    muts = []
-
-    for transfer in transfers:
-        muts.append(
-            manifest_model.ManifestRemoveEntry(
-                subset=subset,
-                path=transfer.src,
-            )
-        )
-        muts.append(
-            manifest_model.ManifestAddEntry(
-                subset=subset,
-                entry=manifest_model.ManifestEntry(
-                    checksum=transfer.checksum,
-                    path=transfer.dst,
-                )
-            )
-        )
-    return muts
-
-
 def continuity_manifest_mutations(transfers):
 
     muts = []

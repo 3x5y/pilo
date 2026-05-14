@@ -5,7 +5,6 @@ from pathlib import Path
 from pilo import context
 from pilo import error
 from pilo import execution
-from pilo import manifest_mutation
 from pilo.front import replace
 
 

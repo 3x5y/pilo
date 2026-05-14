@@ -4,7 +4,6 @@ from pathlib import Path
 from . import capture
 from .. import checks
 from .. import checksum
-from .. import fs
 from .. import manifest_model
 from .. import mutation
 from ..execution import (

@@ -1,6 +1,5 @@
 from . import error
 
-from .mutation_events import OperationEvent
 from .mutation_types import (
     MoveMutation,
     CopyMutation,
