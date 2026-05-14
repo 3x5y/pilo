@@ -3,6 +3,7 @@ from pathlib import Path
 
 from . import checksum
 from . import manifest_model
+from . import manifest_policy
 
 
 @dataclass(frozen=True)
@@ -48,21 +49,16 @@ def build_mutations(transfers):
     muts = []
     for transfer in transfers:
         muts.append(
-            manifest_model
-            .ManifestRemoveEntry(
-                subset=transfer.src_subset,
-                path=transfer.src,
+            manifest_policy.build_removal(
+                transfer.src_subset,
+                transfer.src,
             )
         )
         muts.append(
-            manifest_model
-            .ManifestAddEntry(
-                subset=transfer.dst_subset,
-                entry=manifest_model
-                    .ManifestEntry(
-                        checksum=transfer.checksum,
-                        path=transfer.dst,
-                    )
+            manifest_policy.build_addition(
+                transfer.dst_subset,
+                transfer.dst,
+                transfer.checksum,
             )
         )
     return muts

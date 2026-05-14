@@ -1,5 +1,6 @@
 from . import error
 from . import paths
+from . import manifest_model
 
 
 MANIFEST_SUBSET_DOMAINS = {
@@ -39,3 +40,18 @@ def dataset_manifest_subset(dataset):
     return None
 
 
+def build_addition(subset, path, checksum):
+    return manifest_model.ManifestAddEntry(
+        subset=subset,
+        entry=manifest_model.ManifestEntry(
+            checksum=checksum,
+            path=path,
+        )
+    )
+
+
+def build_removal(subset, path):
+    return manifest_model.ManifestRemoveEntry(
+        subset=subset,
+        path=path,
+    )

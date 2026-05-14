@@ -6,6 +6,7 @@ from .. import checks
 from .. import checksum
 from .. import continuity
 from .. import manifest_model
+from .. import manifest_policy
 from .. import mutation
 from ..execution import (
     ExecutionPlan,
@@ -97,12 +98,10 @@ def build_manifest_mutations(ops, pile_root):
         rel = op.dst.relative_to(pile_root)
         item = index.require(rel)
         muts.append(
-            manifest_model.ManifestAddEntry(
-                subset="pile",
-                entry=manifest_model.ManifestEntry(
-                    checksum=item.checksum,
-                    path=rel,
-                )
+            manifest_policy.build_addition(
+                "pile",
+                rel,
+                item.checksum,
             )
         )
     return muts
