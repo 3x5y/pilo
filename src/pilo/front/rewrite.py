@@ -140,8 +140,7 @@ def build_manifest_mutations(ops, pile_root, verified):
         )
         mappings.append(m)
 
-    transfers = continuity.build_transfers(mappings, verified)
-    return continuity.build_mutations(transfers)
+    return continuity.build_transfer_mutations(mappings, verified)
 
 
 def load_rewrite_lines(cx):

@@ -138,8 +138,7 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
-    transfers = continuity.build_transfers(mappings, verified)
-    return continuity.build_mutations(transfers)
+    return continuity.build_transfer_mutations(mappings, verified)
 
 
 def build_preflight_steps(ops, pile_root, entries):
