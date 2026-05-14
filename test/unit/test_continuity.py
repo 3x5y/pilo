@@ -10,7 +10,7 @@ class TestContinuity(unittest.TestCase):
     def test_build_continuity_transfers(self):
 
         verified = (
-            manifest_model.VerifiedChecksumIndex([
+            manifest_model.ChecksumIndex([
                 manifest_model.ProvenancedChecksum(
                     path=Path("in/a.txt"),
                     checksum="abc123",
@@ -25,7 +25,7 @@ class TestContinuity(unittest.TestCase):
 
         transfers = (
             continuity
-            .build_continuity_transfers(
+            .build_transfers(
                 [
                     continuity.ContinuityMapping(
                         src_subset="pile",
@@ -63,7 +63,7 @@ class TestContinuity(unittest.TestCase):
             )
         ]
 
-        muts = continuity.continuity_manifest_mutations(transfers)
+        muts = continuity.build_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         remove = muts[0]
@@ -87,9 +87,9 @@ class TestContinuity(unittest.TestCase):
             checksum="abc123",
             provenance=provenance,
         )
-        verified = manifest_model.VerifiedChecksumIndex([checksum])
+        verified = manifest_model.ChecksumIndex([checksum])
 
-        transfers = continuity.build_continuity_transfers(mappings, verified)
+        transfers = continuity.build_transfers(mappings, verified)
 
         self.assertEqual(len(transfers), 1)
         transfer = transfers[0]
@@ -114,7 +114,7 @@ class TestContinuity(unittest.TestCase):
             )
         ]
 
-        muts = continuity.continuity_manifest_mutations(transfers)
+        muts = continuity.build_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         self.assertEqual(muts[0].subset, "pile")
@@ -139,7 +139,7 @@ class TestContinuity(unittest.TestCase):
             )
         ]
 
-        muts = continuity.continuity_manifest_mutations(transfers)
+        muts = continuity.build_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         remove = muts[0]

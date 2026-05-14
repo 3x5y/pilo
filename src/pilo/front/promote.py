@@ -138,8 +138,8 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
-    transfers = continuity.build_continuity_transfers(mappings, verified)
-    return continuity.continuity_manifest_mutations(transfers)
+    transfers = continuity.build_transfers(mappings, verified)
+    return continuity.build_mutations(transfers)
 
 
 def build_preflight_steps(ops, pile_root, entries):
@@ -222,7 +222,7 @@ def build_checksum_index(ops, pile_root, entries):
                 provenance=verified_item.provenance,
             )
         )
-    return manifest_model.VerifiedChecksumIndex(verified)
+    return manifest_model.ChecksumIndex(verified)
 
 
 def promote_continuity_mappings(

@@ -23,12 +23,6 @@ class ManifestRemoveEntry:
     path: Path
 
 
-@dataclass(frozen=True)
-class VerifiedChecksum:
-    path: Path
-    checksum: str
-
-
 class ChecksumProvenance(Enum):
     MANIFEST = "manifest"
     VERIFIED = "verified"
@@ -59,7 +53,7 @@ class ManifestIndex:
         return entry
 
 
-class VerifiedChecksumIndex:
+class ChecksumIndex:
 
     def __init__(self, checksums):
         self._checksums = {}
@@ -89,15 +83,15 @@ def as_manifest_index(entries):
     return ManifestIndex(entries)
 
 
-def as_verified_checksum_index(items):
-    if isinstance(items, VerifiedChecksumIndex):
+def as_checksum_index(items):
+    if isinstance(items, ChecksumIndex):
         return items
     if isinstance(items, dict):
         items = items.values()
-    return VerifiedChecksumIndex(items)
+    return ChecksumIndex(items)
 
 
-def generated_checksum(path, checksum):
+def build_generated_checksum(path, checksum):
     return ProvenancedChecksum(
         path=path,
         checksum=checksum,
@@ -111,15 +105,6 @@ def as_provenanced_checksum(item):
 
     if isinstance(item, ProvenancedChecksum):
         return item
-
-    if isinstance(item, VerifiedChecksum):
-        return ProvenancedChecksum(
-            path=item.path,
-            checksum=item.checksum,
-            provenance=(
-                ChecksumProvenance.VERIFIED
-            ),
-        )
 
     if isinstance(item, ManifestEntry):
         return ProvenancedChecksum(

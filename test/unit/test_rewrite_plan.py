@@ -220,10 +220,14 @@ class TestRewritePlan(pilotest.TestCase):
         plan = rewrite.RewritePlan(ops=[op])
 
         verified = {
-            Path("in/a.txt"): manifest_model.VerifiedChecksum(
-                path=Path("in/a.txt"),
-                checksum="abc123",
-            )
+            Path("in/a.txt"):
+                manifest_model.ProvenancedChecksum(
+                    path=Path("in/a.txt"),
+                    checksum="abc123",
+                    provenance=(
+                        manifest_model.ChecksumProvenance.VERIFIED
+                    ),
+                )
         }
 
         muts = rewrite.rewrite_manifest_mutations(
@@ -337,7 +341,7 @@ class TestRewritePlan(pilotest.TestCase):
         exec_plan.manifest_steps[0].build_mutations()
         verified = mock_manifest.call_args[0][2]
 
-        self.assertIsInstance(verified, manifest_model.VerifiedChecksumIndex)
+        self.assertIsInstance(verified, manifest_model.ChecksumIndex)
 
     @patch("pilo.fs.sha256_file")
     def test_rewrite_manifest_mutations_do_not_rehash(
@@ -346,10 +350,13 @@ class TestRewritePlan(pilotest.TestCase):
     ):
 
         verified = (
-            manifest_model.VerifiedChecksumIndex([
-                manifest_model.VerifiedChecksum(
+            manifest_model.ChecksumIndex([
+                manifest_model.ProvenancedChecksum(
                     path=Path("in/old.txt"),
                     checksum="existing",
+                    provenance=(
+                        manifest_model.ChecksumProvenance.VERIFIED
+                    ),
                 )
             ])
         )
@@ -476,8 +483,8 @@ class TestRewritePlan(pilotest.TestCase):
 
         mock_verify.assert_called_once()
 
-    @patch("pilo.continuity.continuity_manifest_mutations")
-    @patch("pilo.continuity.build_continuity_transfers")
+    @patch("pilo.continuity.build_mutations")
+    @patch("pilo.continuity.build_transfers")
     def test_rewrite_manifest_mutations_use_continuity_layer(
         self,
         mock_build,

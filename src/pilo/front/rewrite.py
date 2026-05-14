@@ -140,12 +140,8 @@ def rewrite_manifest_mutations(plan, pile_root, verified):
         )
         mappings.append(m)
 
-    transfers = continuity.build_continuity_transfers(
-        mappings,
-        verified,
-    )
-
-    return continuity.continuity_manifest_mutations(transfers)
+    transfers = continuity.build_transfers(mappings, verified)
+    return continuity.build_mutations(transfers)
 
 
 def load_rewrite_lines(cx):
@@ -297,4 +293,4 @@ def build_checksum_index(plan, pile_root, entries):
                 provenance=verified_item.provenance,
             )
         )
-    return manifest_model.VerifiedChecksumIndex(verified)
+    return manifest_model.ChecksumIndex(verified)

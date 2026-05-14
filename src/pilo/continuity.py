@@ -23,9 +23,9 @@ class ContinuityTransfer:
     provenance: manifest_model.ChecksumProvenance
 
 
-def build_continuity_transfers(mappings, verified):
+def build_transfers(mappings, verified):
 
-    verified = manifest_model.as_verified_checksum_index(verified)
+    verified = manifest_model.as_checksum_index(verified)
     transfers = []
 
     for m in mappings:
@@ -43,7 +43,7 @@ def build_continuity_transfers(mappings, verified):
     return transfers
 
 
-def continuity_manifest_mutations(transfers):
+def build_mutations(transfers):
 
     muts = []
     for transfer in transfers:

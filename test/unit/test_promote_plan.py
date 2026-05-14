@@ -130,7 +130,7 @@ class TestPromotePlan(pilotest.TestCase):
             dataset="tank/static/collection",
         )
         verified = (
-            manifest_model.VerifiedChecksumIndex(
+            manifest_model.ChecksumIndex(
                 [
                     manifest_model.ProvenancedChecksum(
                         path=Path("out/collection/a.txt"),
@@ -185,7 +185,7 @@ class TestPromotePlan(pilotest.TestCase):
             dataset="tank/static/filing/docs",
         )
         verified = (
-            manifest_model.VerifiedChecksumIndex(
+            manifest_model.ChecksumIndex(
                 [
                     manifest_model.ProvenancedChecksum(
                         path=Path("out/filing/docs/x.pdf"),
@@ -239,7 +239,7 @@ class TestPromotePlan(pilotest.TestCase):
             dst=None,
             dataset="tank/pile",
         )
-        verified = manifest_model.VerifiedChecksumIndex([])
+        verified = manifest_model.ChecksumIndex([])
         muts = promote.build_manifest_mutations(
             [op],
             Path("/pile"),
@@ -268,7 +268,7 @@ class TestPromotePlan(pilotest.TestCase):
             ),
         ]
         verified = (
-            manifest_model.VerifiedChecksumIndex(
+            manifest_model.ChecksumIndex(
                 [
                     manifest_model.ProvenancedChecksum(
                         path=Path("out/collection/a.txt"),
@@ -373,7 +373,7 @@ class TestPromotePlan(pilotest.TestCase):
         cx = pilotest.make_context()
         plan = promote.PromotePlan(ops=[])
         entries = []
-        verified = manifest_model.VerifiedChecksumIndex([])
+        verified = manifest_model.ChecksumIndex([])
         steps = promote.build_manifest_steps(
             cx,
             plan,
@@ -434,7 +434,7 @@ class TestPromotePlan(pilotest.TestCase):
     def test_promote_manifest_mutations_reuse_verified_checksum(self):
 
         verified = (
-            manifest_model.VerifiedChecksumIndex(
+            manifest_model.ChecksumIndex(
                 [
                     manifest_model
                     .ProvenancedChecksum(
@@ -496,7 +496,7 @@ class TestPromotePlan(pilotest.TestCase):
     ):
 
         verified = (
-            manifest_model.VerifiedChecksumIndex(
+            manifest_model.ChecksumIndex(
                 [
                     manifest_model
                     .ProvenancedChecksum(
@@ -558,7 +558,7 @@ class TestPromotePlan(pilotest.TestCase):
     ):
 
         verified = (
-            manifest_model.VerifiedChecksumIndex(
+            manifest_model.ChecksumIndex(
                 [
                     manifest_model
                     .ProvenancedChecksum(

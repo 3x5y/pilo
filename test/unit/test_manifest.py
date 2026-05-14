@@ -274,7 +274,7 @@ class TestManifest(pilotest.TestCase):
 
     def test_generated_checksum_helper(self):
 
-        item = manifest_model.generated_checksum(
+        item = manifest_model.build_generated_checksum(
             Path("a.txt"),
             "abc123",
         )
