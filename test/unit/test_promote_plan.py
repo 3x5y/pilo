@@ -121,8 +121,7 @@ class TestPromotePlan(pilotest.TestCase):
 
 
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
-    def test_promote_manifest_mutations_collection_copy(self, _):
+    def test_promote_manifest_mutations_collection_copy(self):
 
         op = promote.PromoteOp(
             action="copy",
@@ -130,12 +129,27 @@ class TestPromotePlan(pilotest.TestCase):
             dst=Path("/static/collection/a.txt"),
             dataset="tank/static/collection",
         )
-
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model.ProvenancedChecksum(
+                        path=Path("out/collection/a.txt"),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
         muts = promote.promote_manifest_mutations(
             [op],
             Path("/pile"),
             Path("/static/collection"),
             Path("/static/filing"),
+            verified,
         )
 
         self.assertEqual(len(muts), 1)
@@ -154,8 +168,7 @@ class TestPromotePlan(pilotest.TestCase):
             "abc123",
         )
 
-    @patch("pilo.fs.sha256_file", return_value="fff999")
-    def test_promote_manifest_mutations_filing_copy(self, _):
+    def test_promote_manifest_mutations_filing_copy(self):
 
         op = promote.PromoteOp(
             action="copy",
@@ -163,12 +176,27 @@ class TestPromotePlan(pilotest.TestCase):
             dst=Path("/static/filing/docs/x.pdf"),
             dataset="tank/static/filing/docs",
         )
-
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model.ProvenancedChecksum(
+                        path=Path("out/filing/docs/x.pdf"),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
         muts = promote.promote_manifest_mutations(
             [op],
             Path("/pile"),
             Path("/static/collection"),
             Path("/static/filing"),
+            verified,
         )
 
         self.assertEqual(len(muts), 1)
@@ -190,12 +218,29 @@ class TestPromotePlan(pilotest.TestCase):
             dst=None,
             dataset="tank/pile",
         )
-
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model.ProvenancedChecksum(
+                        path=Path(
+                            "out/collection/a.txt"
+                        ),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
         muts = promote.promote_manifest_mutations(
             [op],
             Path("/pile"),
             Path("/static/collection"),
             Path("/static/filing"),
+            verified,
         )
 
         self.assertEqual(len(muts), 1)
@@ -209,8 +254,7 @@ class TestPromotePlan(pilotest.TestCase):
             Path("out/collection/a.txt"),
         )
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
-    def test_promote_manifest_mutations_mixed_operations(self, _):
+    def test_promote_manifest_mutations_mixed_operations(self):
 
         ops = [
             promote.PromoteOp(
@@ -227,12 +271,27 @@ class TestPromotePlan(pilotest.TestCase):
                 dataset="tank/pile",
             ),
         ]
-
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model.ProvenancedChecksum(
+                        path=Path("out/collection/a.txt"),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
         muts = promote.promote_manifest_mutations(
             ops,
             Path("/pile"),
             Path("/static/collection"),
             Path("/static/filing"),
+            verified,
         )
 
         self.assertEqual(len(muts), 2)
@@ -247,7 +306,8 @@ class TestPromotePlan(pilotest.TestCase):
             "ManifestRemoveEntry",
         )
 
-    def test_promote_builds_execution_plan(self):
+    @patch("pilo.fs.sha256_file", return_value="abc123")
+    def test_promote_builds_execution_plan(self, *_):
 
         cx = pilotest.make_context()
 
@@ -325,14 +385,151 @@ class TestPromotePlan(pilotest.TestCase):
         self.assertEqual(step.expected_checksum, "abc123")
 
     def test_promote_manifest_steps_build_all_subsets(self):
-
         cx = pilotest.make_context()
         plan = promote.PromotePlan(ops=[])
+        entries = []
+        verified = manifest_model.VerifiedChecksumIndex([])
         steps = promote.promote_manifest_steps(
             cx,
             plan,
+            entries,
+            verified
         )
 
         self.assertEqual(len(steps), 3)
         subsets = [step.subset for step in steps]
         self.assertEqual(subsets, ["pile", "collection", "filing"])
+
+    @patch("pilo.checksum.verify_checksum")
+    def test_promote_verified_checksums_verify_existing_entries(self,
+                                                                mock_verify):
+
+        cx = pilotest.make_context()
+        src = cx.pile_path / "out/collection/a.txt"
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=src,
+                dst=Path(
+                    "/tmp/static/collection/a.txt"
+                ),
+                dataset="tank/static/collection",
+            )
+        ]
+        entries = [
+            manifest_model.ManifestEntry(
+                checksum="abc123",
+                path=Path(
+                    "out/collection/a.txt"
+                ),
+            )
+        ]
+        mock_verify.return_value = (
+            manifest_model.ProvenancedChecksum(
+                path=src,
+                checksum="abc123",
+                provenance=(
+                    manifest_model
+                    .ChecksumProvenance
+                    .VERIFIED
+                ),
+            )
+        )
+        verified = (
+            promote.promote_verified_checksums(
+                ops,
+                cx.pile_path,
+                entries,
+            )
+        )
+        item = verified.require(Path("out/collection/a.txt"))
+        self.assertEqual(item.checksum, "abc123")
+        self.assertEqual(
+            item.provenance,
+            manifest_model
+            .ChecksumProvenance
+            .VERIFIED,
+        )
+        mock_verify.assert_called_once_with(src, "abc123")
+
+    def test_promote_manifest_mutations_reuse_verified_checksum(self):
+
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model
+                    .ProvenancedChecksum(
+                        path=Path(
+                            "out/collection/a.txt"
+                        ),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=Path("/pile/out/collection/a.txt"),
+                dst=Path("/static/collection/a.txt"),
+                dataset="tank/static/collection",
+            )
+        ]
+        muts = (
+            promote.promote_manifest_mutations(
+                ops,
+                Path("/pile"),
+                Path("/static/collection"),
+                Path("/static/filing"),
+                verified,
+            )
+        )
+        self.assertEqual(len(muts), 1)
+        mut = muts[0]
+        self.assertEqual(mut.entry.checksum, "abc123")
+
+    @patch("pilo.fs.sha256_file")
+    def test_promote_manifest_mutations_do_not_hash_destination(
+        self,
+        mock_sha,
+    ):
+
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model
+                    .ProvenancedChecksum(
+                        path=Path(
+                            "out/collection/a.txt"
+                        ),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=Path("/pile/out/collection/a.txt"),
+                dst=Path("/static/collection/a.txt"),
+                dataset="tank/static/collection",
+            )
+        ]
+        promote.promote_manifest_mutations(
+            ops,
+            Path("/pile"),
+            Path("/static/collection"),
+            Path("/static/filing"),
+            verified,
+        )
+        mock_sha.assert_not_called()

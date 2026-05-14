@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 from .. import checks
+from .. import checksum
 from .. import error
 from .. import fs
 from .. import mutation
@@ -115,7 +116,6 @@ def promote_plan_mutations(plan):
                 dst=op.dst,
                 dataset=op.dataset,
             )
-
         if op.action == "unlink":
             return mutation.UnlinkMutation(
                 path=op.src,
@@ -124,10 +124,14 @@ def promote_plan_mutations(plan):
     return [build(op) for op in plan.ops]
 
 
-def promote_manifest_mutations(ops, pile_root, collection_root, filing_root):
-
+def promote_manifest_mutations(
+    ops,
+    pile_root,
+    collection_root,
+    filing_root,
+    verified,
+):
     muts = []
-
     for op in ops:
         if op.action == "copy":
             subset = manifest_policy.dataset_manifest_subset(op.dataset)
@@ -137,16 +141,18 @@ def promote_manifest_mutations(ops, pile_root, collection_root, filing_root):
                 rel = op.dst.relative_to(filing_root)
             else:
                 continue
+            src_rel = op.src.relative_to(pile_root)
+            continuity = verified.require(src_rel)
+            checksum = continuity.checksum
             muts.append(
                 manifest_model.ManifestAddEntry(
                     subset=subset,
                     entry=manifest_model.ManifestEntry(
-                        checksum=fs.sha256_file(op.dst),
                         path=rel,
+                        checksum=checksum,
                     )
                 )
             )
-
         elif op.action == "unlink":
             rel = op.src.relative_to(pile_root)
             muts.append(
@@ -155,7 +161,6 @@ def promote_manifest_mutations(ops, pile_root, collection_root, filing_root):
                     path=rel,
                 )
             )
-
     return muts
 
 
@@ -169,57 +174,78 @@ def promote_preflight_steps(ops, pile_root, entries):
             continue
         rel = op.src.relative_to(pile_root)
         existing = index.require(rel)
-        steps.append(
-            VerifyChecksumStep(
-                path=op.src,
-                expected_checksum=(
-                    existing.checksum
-                ),
-            )
+        step = VerifyChecksumStep(
+            path=op.src,
+            expected_checksum=existing.checksum,
         )
+        steps.append(step)
     return steps
 
 
-def promote_manifest_steps(cx, plan):
+def promote_manifest_steps(cx, plan, pile_entries, verified):
+
+    def build(subset):
+        manifest_path =  cx.admin_path / "manifest" / f"{subset}.manifest"
+        build_mutations = lambda: promote_manifest_mutations(
+            plan.ops,
+            cx.pile_path,
+            cx.static_path / "collection",
+            cx.static_path / "filing",
+            verified
+        )
+        return ManifestStep(subset, manifest_path, build_mutations)
 
     subsets = ("pile", "collection", "filing")
-    steps = []
-
-    for subset in subsets:
-        manifest_path =  cx.admin_path / "manifest" / f"{subset}.manifest"
-        steps.append(
-            ManifestStep(
-                subset=subset,
-                manifest_path=manifest_path,
-                build_mutations=lambda:
-                    promote_manifest_mutations(
-                        plan.ops,
-                        cx.pile_path,
-                        cx.static_path / "collection",
-                        cx.static_path / "filing",
-                    ),
-            )
-        )
-    return steps
+    return [build(x) for x in subsets]
 
 
 def promote_execution_plan(cx, plan, pile_entries):
-
-    return ExecutionPlan(
-        preflight_steps=(
-            promote_preflight_steps(
-                plan.ops,
-                cx.pile_path,
-                pile_entries,
-            )
-        ),
-        semantic_mutations=(
-            promote_plan_mutations(plan)
-        ),
-        manifest_steps=(
-            promote_manifest_steps(
-                cx,
-                plan,
-            )
-        ),
+    verified = promote_verified_checksums(
+        plan.ops,
+        cx.pile_path,
+        pile_entries,
     )
+    preflight_steps = promote_preflight_steps(
+        plan.ops,
+        cx.pile_path,
+        pile_entries,
+    )
+    semantic_mutations = promote_plan_mutations(plan)
+    manifest_steps = promote_manifest_steps(
+        cx,
+        plan,
+        pile_entries,
+        verified,
+    )
+    return ExecutionPlan(preflight_steps, semantic_mutations, manifest_steps)
+
+
+def promote_verified_checksums(ops, pile_root, entries):
+    return promote_acquire_checksums(ops, pile_root, entries)
+
+
+def promote_acquire_checksums(ops, pile_root, entries):
+
+    index = manifest_model.as_manifest_index(entries)
+    verified = []
+
+    for op in ops:
+        if op.action != "copy":
+            continue
+        rel = op.src.relative_to(pile_root)
+        existing = index.require(rel)
+        verified_item = (
+            checksum.verify_checksum(
+                op.src,
+                existing.checksum,
+            )
+        )
+        verified.append(
+            manifest_model
+            .ProvenancedChecksum(
+                path=rel,
+                checksum=verified_item.checksum,
+                provenance=verified_item.provenance,
+            )
+        )
+    return manifest_model.VerifiedChecksumIndex(verified)
