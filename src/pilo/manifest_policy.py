@@ -41,17 +41,19 @@ def dataset_manifest_subset(dataset):
 
 
 def build_addition(subset, path, checksum):
-    return manifest_model.ManifestAddEntry(
-        subset=subset,
-        entry=manifest_model.ManifestEntry(
-            checksum=checksum,
-            path=path,
-        )
-    )
+    entry = manifest_model.ManifestEntry(checksum=checksum, path=path)
+    return manifest_model.ManifestAddEntry(subset=subset, entry=entry)
 
 
 def build_removal(subset, path):
-    return manifest_model.ManifestRemoveEntry(
-        subset=subset,
-        path=path,
-    )
+    return manifest_model.ManifestRemoveEntry(subset=subset, path=path)
+
+
+def build_pile_additions(paths, checksums):
+    index = manifest_model.as_checksum_index(checksums)
+    muts = []
+    for rel in paths:
+        item = index.require(rel)
+        add = build_addition("pile", rel, item.checksum)
+        muts.append(add)
+    return muts

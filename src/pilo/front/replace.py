@@ -54,18 +54,8 @@ def build_fs_mutations(plan):
 
 def build_manifest_mutations(plan, pile_root):
     index = build_checksum_index(plan.ops, pile_root)
-    muts = []
-    for op in plan.ops:
-        rel = op.dst.path.relative_to(pile_root)
-        item = index.require(rel)
-        muts.append(
-            manifest_policy.build_addition(
-                "pile",
-                rel,
-                item.checksum,
-            )
-        )
-    return muts
+    paths = [op.dst.path.relative_to(pile_root) for op in plan.ops]
+    return manifest_policy.build_pile_additions(paths, index)
 
 
 def build_checksum_index(ops, pile_root):

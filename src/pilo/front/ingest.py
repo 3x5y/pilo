@@ -85,26 +85,11 @@ def ingestible_capture_files(files):
 
 
 def build_manifest_mutations(ops, pile_root):
-
     pairs = [(op.dst.relative_to(pile_root), op.dst)
-            for op in ops if op.action == "move"]
+             for op in ops if op.action == "move"]
     checksums = continuity.acquire_generated_checksums(pairs)
-    index = manifest_model.as_checksum_index(checksums)
-    muts = []
-    for op in ops:
-        if op.action != "move":
-            continue
-
-        rel = op.dst.relative_to(pile_root)
-        item = index.require(rel)
-        muts.append(
-            manifest_policy.build_addition(
-                "pile",
-                rel,
-                item.checksum,
-            )
-        )
-    return muts
+    paths = [rel for rel, _ in pairs]
+    return manifest_policy.build_pile_additions(paths, checksums)
 
 
 def build_exec_plan(cx, plan):
