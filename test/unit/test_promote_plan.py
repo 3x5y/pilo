@@ -152,21 +152,29 @@ class TestPromotePlan(pilotest.TestCase):
             verified,
         )
 
-        self.assertEqual(len(muts), 1)
+        self.assertEqual(len(muts), 2)
 
-        mut = muts[0]
+        remove = muts[0]
+        add = muts[1]
 
-        self.assertEqual(mut.subset, "collection")
+        self.assertEqual(remove.subset, "pile")
 
         self.assertEqual(
-            mut.entry.path,
+            remove.path,
+            Path("out/collection/a.txt"),
+        )
+
+        self.assertEqual(add.subset, "collection")
+
+        self.assertEqual(
+            add.entry.path,
             Path("a.txt"),
         )
 
         self.assertEqual(
-            mut.entry.checksum,
+            add.entry.checksum,
             "abc123",
-        )
+    )
 
     def test_promote_manifest_mutations_filing_copy(self):
 
@@ -199,18 +207,31 @@ class TestPromotePlan(pilotest.TestCase):
             verified,
         )
 
-        self.assertEqual(len(muts), 1)
+        self.assertEqual(len(muts), 2)
 
-        mut = muts[0]
+        remove = muts[0]
+        add = muts[1]
 
-        self.assertEqual(mut.subset, "filing")
+        self.assertEqual(remove.subset, "pile")
 
         self.assertEqual(
-            mut.entry.path,
+            remove.path,
+            Path("out/filing/docs/x.pdf"),
+        )
+
+        self.assertEqual(add.subset, "filing")
+
+        self.assertEqual(
+            add.entry.path,
             Path("docs/x.pdf"),
         )
 
-    def test_promote_manifest_mutations_unlink_removes_pile_entry(self):
+        self.assertEqual(
+            add.entry.checksum,
+            "abc123",
+        )
+
+    def test_promote_manifest_mutations_ignore_unlink(self):
 
         op = promote.PromoteOp(
             action="unlink",
@@ -218,23 +239,7 @@ class TestPromotePlan(pilotest.TestCase):
             dst=None,
             dataset="tank/pile",
         )
-        verified = (
-            manifest_model.VerifiedChecksumIndex(
-                [
-                    manifest_model.ProvenancedChecksum(
-                        path=Path(
-                            "out/collection/a.txt"
-                        ),
-                        checksum="abc123",
-                        provenance=(
-                            manifest_model
-                            .ChecksumProvenance
-                            .VERIFIED
-                        ),
-                    )
-                ]
-            )
-        )
+        verified = manifest_model.VerifiedChecksumIndex([])
         muts = promote.promote_manifest_mutations(
             [op],
             Path("/pile"),
@@ -243,16 +248,7 @@ class TestPromotePlan(pilotest.TestCase):
             verified,
         )
 
-        self.assertEqual(len(muts), 1)
-
-        mut = muts[0]
-
-        self.assertEqual(mut.subset, "pile")
-
-        self.assertEqual(
-            mut.path,
-            Path("out/collection/a.txt"),
-        )
+        self.assertEqual(muts, [])
 
     def test_promote_manifest_mutations_mixed_operations(self):
 
@@ -295,16 +291,9 @@ class TestPromotePlan(pilotest.TestCase):
         )
 
         self.assertEqual(len(muts), 2)
+        self.assertIsInstance(muts[0], manifest_model.ManifestRemoveEntry)
+        self.assertIsInstance(muts[1], manifest_model.ManifestAddEntry)
 
-        self.assertEqual(
-            type(muts[0]).__name__,
-            "ManifestAddEntry",
-        )
-
-        self.assertEqual(
-            type(muts[1]).__name__,
-            "ManifestRemoveEntry",
-        )
 
     @patch("pilo.fs.sha256_file", return_value="abc123")
     def test_promote_builds_execution_plan(self, *_):
@@ -489,9 +478,26 @@ class TestPromotePlan(pilotest.TestCase):
                 verified,
             )
         )
-        self.assertEqual(len(muts), 1)
-        mut = muts[0]
-        self.assertEqual(mut.entry.checksum, "abc123")
+
+        self.assertEqual(len(muts), 2)
+
+        remove = muts[0]
+        add = muts[1]
+
+        self.assertEqual(
+            remove.subset,
+            "pile",
+        )
+
+        self.assertEqual(
+            add.subset,
+            "collection",
+        )
+
+        self.assertEqual(
+            add.entry.checksum,
+            "abc123",
+        )
 
     @patch("pilo.fs.sha256_file")
     def test_promote_manifest_mutations_do_not_hash_destination(
@@ -556,3 +562,70 @@ class TestPromotePlan(pilotest.TestCase):
         mapping = mappings[0]
         self.assertEqual(mapping.src, Path("out/collection/a.txt"))
         self.assertEqual(mapping.dst, Path("a.txt"))
+
+    def test_promote_manifest_mutations_use_cross_subset_continuity(
+        self,
+    ):
+
+        verified = (
+            manifest_model.VerifiedChecksumIndex(
+                [
+                    manifest_model
+                    .ProvenancedChecksum(
+                        path=Path(
+                            "out/collection/a.txt"
+                        ),
+                        checksum="abc123",
+                        provenance=(
+                            manifest_model
+                            .ChecksumProvenance
+                            .VERIFIED
+                        ),
+                    )
+                ]
+            )
+        )
+
+        ops = [
+            promote.PromoteOp(
+                action="copy",
+                src=Path(
+                    "/pile/out/collection/a.txt"
+                ),
+                dst=Path(
+                    "/static/collection/a.txt"
+                ),
+                dataset="tank/static/collection",
+            ),
+
+            promote.PromoteOp(
+                action="unlink",
+                src=Path(
+                    "/pile/out/collection/a.txt"
+                ),
+                dst=None,
+                dataset="tank/pile",
+            ),
+        ]
+
+        muts = (
+            promote.promote_manifest_mutations(
+                ops,
+                Path("/pile"),
+                Path("/static/collection"),
+                Path("/static/filing"),
+                verified,
+            )
+        )
+
+        self.assertEqual(len(muts), 2)
+
+        self.assertEqual(
+            muts[0].subset,
+            "pile",
+        )
+
+        self.assertEqual(
+            muts[1].subset,
+            "collection",
+        )

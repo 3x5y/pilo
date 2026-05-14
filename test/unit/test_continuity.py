@@ -28,6 +28,8 @@ class TestContinuity(unittest.TestCase):
             .build_continuity_transfers(
                 [
                     continuity.ContinuityMapping(
+                        src_subset="pile",
+                        dst_subset="pile",
                         src=Path("in/a.txt"),
                         dst=Path("in/b.txt"),
                     )
@@ -48,6 +50,8 @@ class TestContinuity(unittest.TestCase):
 
         transfers = [
             continuity.ContinuityTransfer(
+                src_subset="pile",
+                dst_subset="pile",
                 src=Path("in/a.txt"),
                 dst=Path("in/b.txt"),
                 checksum="abc123",
@@ -59,13 +63,7 @@ class TestContinuity(unittest.TestCase):
             )
         ]
 
-        muts = (
-            continuity
-            .continuity_manifest_mutations(
-                "pile",
-                transfers,
-            )
-        )
+        muts = continuity.continuity_manifest_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         remove = muts[0]
@@ -79,6 +77,8 @@ class TestContinuity(unittest.TestCase):
         mapping = continuity.ContinuityMapping(
             src=Path("a.txt"),
             dst=Path("b.txt"),
+            src_subset="pile",
+            dst_subset="pile",
         )
         mappings = [mapping]
         provenance = manifest_model.ChecksumProvenance.VERIFIED
@@ -96,3 +96,56 @@ class TestContinuity(unittest.TestCase):
         self.assertEqual(transfer.src, Path("a.txt"))
         self.assertEqual(transfer.dst, Path("b.txt"))
         self.assertEqual(transfer.checksum, "abc123")
+
+    def test_continuity_manifest_mutations_same_subset(self):
+
+        transfers = [
+            continuity.ContinuityTransfer(
+                src_subset="pile",
+                dst_subset="pile",
+                src=Path("a.txt"),
+                dst=Path("b.txt"),
+                checksum="abc123",
+                provenance=(
+                    manifest_model
+                    .ChecksumProvenance
+                    .VERIFIED
+                ),
+            )
+        ]
+
+        muts = continuity.continuity_manifest_mutations(transfers)
+
+        self.assertEqual(len(muts), 2)
+        self.assertEqual(muts[0].subset, "pile")
+        self.assertEqual(muts[1].subset, "pile")
+
+    def test_continuity_manifest_mutations_cross_subset(self):
+
+        transfers = [
+            continuity.ContinuityTransfer(
+                src_subset="pile",
+                dst_subset="collection",
+                src=Path(
+                    "out/collection/a.txt"
+                ),
+                dst=Path("a.txt"),
+                checksum="abc123",
+                provenance=(
+                    manifest_model
+                    .ChecksumProvenance
+                    .VERIFIED
+                ),
+            )
+        ]
+
+        muts = continuity.continuity_manifest_mutations(transfers)
+
+        self.assertEqual(len(muts), 2)
+        remove = muts[0]
+        add = muts[1]
+        self.assertEqual(remove.subset, "pile")
+        self.assertEqual(remove.path, Path("out/collection/a.txt"))
+        self.assertEqual(add.subset, "collection")
+        self.assertEqual(add.entry.path, Path("a.txt"))
+        self.assertEqual(add.entry.checksum, "abc123")

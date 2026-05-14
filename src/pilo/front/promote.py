@@ -174,6 +174,39 @@ def promote_manifest_mutations(
     return muts
 
 
+def promote_manifest_mutations(
+    ops,
+    pile_root,
+    collection_root,
+    filing_root,
+    verified,
+):
+
+    mappings = (
+        promote_continuity_mappings(
+            ops,
+            pile_root,
+            collection_root,
+            filing_root,
+        )
+    )
+
+    transfers = (
+        continuity
+        .build_continuity_transfers(
+            mappings,
+            verified,
+        )
+    )
+
+    return (
+        continuity
+        .continuity_manifest_mutations(
+            transfers
+        )
+    )
+
+
 def promote_preflight_steps(ops, pile_root, entries):
 
     index = manifest_model.as_manifest_index(entries)
@@ -282,6 +315,8 @@ def promote_continuity_mappings(
         else:
             continue
         m = continuity.ContinuityMapping(
+            src_subset="pile",
+            dst_subset=subset,
             src=src_rel,
             dst=dst_rel,
         )

@@ -179,6 +179,8 @@ def rewrite_manifest_mutations(plan, pile_root, verified):
         src_rel = op.src.path.relative_to(pile_root)
         dst_rel = op.dst.path.relative_to(pile_root)
         m = continuity.ContinuityMapping(
+            src_subset="pile",
+            dst_subset="pile",
             src=src_rel,
             dst=dst_rel,
         )
@@ -189,10 +191,7 @@ def rewrite_manifest_mutations(plan, pile_root, verified):
         verified,
     )
 
-    return continuity.continuity_manifest_mutations(
-        "pile",
-        transfers,
-    )
+    return continuity.continuity_manifest_mutations(transfers)
 
 
 def load_rewrite_lines(cx):
