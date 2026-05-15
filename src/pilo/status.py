@@ -5,6 +5,7 @@ import subprocess
 from . import fs
 from . import git
 from . import normalize
+from . import state
 from . import util
 from . import zfs
 
@@ -159,6 +160,10 @@ def check_manifest_status(cx, st):
 
 def collect_system_status(cx, check=None):
     st = SystemStatus()
+    if check is None:
+        sys_state = state.derive_operational_state(cx)
+        st.ok("state", sys_state.state.value)
+
     for entry in status_checks.ALL:
         if check is None or check == entry.name:
             entry.func(cx, st)
