@@ -27,6 +27,41 @@ class SystemState:
     issues: list[StateIssue] = field(default_factory=list)
 
 
+class ValidationSeverity(Enum):
+    INFO = "INFO"
+    WARN = "WARN"
+    ERROR = "ERROR"
+
+
+@dataclass(frozen=True)
+class ValidationIssue:
+    code: str
+    message: str
+    severity: ValidationSeverity = ValidationSeverity.ERROR
+    component: str | None = None
+
+
+@dataclass
+class ValidationReport:
+    issues: list[ValidationIssue] = field(default_factory=list)
+
+    def extend(self, issues):
+        self.issues.extend(issues)
+
+    @property
+    def has_errors(self):
+        return any(
+            i.severity == ValidationSeverity.ERROR
+            for i in self.issues
+        )
+
+    def issues_by_code(self, code):
+        return [
+            i for i in self.issues
+            if i.code == code
+        ]
+
+
 def derive_operational_state(cx):
     issues = []
     contract_issues = normalize.validate_dataset_contracts(cx)
@@ -82,3 +117,21 @@ def derive_operational_state(cx):
     return SystemState(
         state=OperationalState.HEALTHY,
     )
+
+
+def collect_validation_report(cx):
+    report = ValidationReport()
+
+    contract_issues = normalize.validate_dataset_contracts(cx)
+
+    report.extend([
+        ValidationIssue(
+            code=i.code,
+            message=i.message,
+            severity=ValidationSeverity.ERROR,
+            component="datasets",
+        )
+        for i in contract_issues
+    ])
+
+    return report

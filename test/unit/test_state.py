@@ -9,14 +9,15 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.normalize.validate_dataset_contracts")
     def test_incomplete_state(self, validate):
+        from pilo.normalize import DatasetValidationIssue
 
         validate.return_value = [
-            state.StateIssue(
-                "missing.required.dataset",
-                "missing dataset",
+            DatasetValidationIssue(
+                dataset="tank/test",
+                code="missing.required.dataset",
+                message="missing dataset",
             )
         ]
-
         cx = pilotest.make_context()
         st = state.derive_operational_state(cx)
         self.assertEqual(
@@ -66,3 +67,37 @@ class TestOperationalState(pilotest.TestCase):
             st.state,
             state.OperationalState.HEALTHY,
         )
+
+    @patch("pilo.normalize.validate_dataset_contracts")
+    def test_collect_validation_report(self, validate):
+        from pilo.normalize import DatasetValidationIssue
+
+        validate.return_value = [
+            DatasetValidationIssue(
+                dataset="tank/x",
+                code="missing.required.dataset",
+                message="missing dataset",
+            )
+        ]
+        cx = pilotest.make_context()
+
+        report = state.collect_validation_report(cx)
+
+        self.assertEqual(len(report.issues), 1)
+        issue = report.issues[0]
+        self.assertEqual(issue.code, "missing.required.dataset")
+        self.assertEqual(issue.component, "datasets")
+
+    @patch("pilo.normalize.validate_dataset_contracts")
+    def test_collect_validation_report_empty(
+        self,
+        validate,
+    ):
+        validate.return_value = []
+
+        cx = pilotest.make_context()
+
+        report = state.collect_validation_report(cx)
+
+        self.assertEqual(report.issues, [])
+        self.assertFalse(report.has_errors)
