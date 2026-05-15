@@ -125,7 +125,7 @@ class Context:
 
     @property
     def current_secondary_dataset(self):
-        current = self.topology.current_secondary_root
+        current = self.topology.current_secondary_root()
         if current:
             return current
         return self.replica_dataset

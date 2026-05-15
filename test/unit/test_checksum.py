@@ -7,7 +7,7 @@ from pilo import manifest_model
 import pilotest
 
 
-class TestChecksum(unittest.TestCase):
+class TestChecksum(pilotest.TestCase):
 
     @patch("pilo.fs.sha256_file", return_value="abc123")
     def test_generate_checksum_marks_generated(self, mock_sha):

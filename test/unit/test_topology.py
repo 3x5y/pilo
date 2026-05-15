@@ -2,9 +2,10 @@ import unittest
 from unittest import mock
 
 from pilo import topology
+import pilotest
 
 
-class TestStorageTopology(unittest.TestCase):
+class TestStorageTopology(pilotest.TestCase):
 
     @mock.patch("pilo.zfs.dataset_exists")
     def test_detect_attached_secondary(self, exists):

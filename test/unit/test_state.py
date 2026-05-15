@@ -2,10 +2,10 @@ import unittest
 from unittest.mock import patch
 
 from pilo import state
-from pilotest import make_context
+import pilotest
 
 
-class TestOperationalState(unittest.TestCase):
+class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.normalize.validate_dataset_contracts")
     def test_incomplete_state(self, validate):
@@ -17,7 +17,7 @@ class TestOperationalState(unittest.TestCase):
             )
         ]
 
-        cx = make_context()
+        cx = pilotest.make_context()
         st = state.derive_operational_state(cx)
         self.assertEqual(
             st.state,
@@ -37,7 +37,7 @@ class TestOperationalState(unittest.TestCase):
             ReplicationStatus.DIVERGED,
             "diverged",
         )
-        cx = make_context()
+        cx = pilotest.make_context()
         st = state.derive_operational_state(cx)
         self.assertEqual(
             st.state,
@@ -60,7 +60,7 @@ class TestOperationalState(unittest.TestCase):
             ReplicationStatus.OK,
             None,
         )
-        cx = make_context()
+        cx = pilotest.make_context()
         st = state.derive_operational_state(cx)
         self.assertEqual(
             st.state,

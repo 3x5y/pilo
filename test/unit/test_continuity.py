@@ -3,9 +3,10 @@ from pathlib import Path
 
 from pilo import continuity
 from pilo import manifest_model
+import pilotest
 
 
-class TestContinuity(unittest.TestCase):
+class TestContinuity(pilotest.TestCase):
 
     def test_build_continuity_transfers(self):
 
