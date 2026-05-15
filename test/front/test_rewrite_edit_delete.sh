@@ -16,7 +16,7 @@ EOF
 
 echo "$SCRIPT" | assert_grep "rm	in/a.txt"
 
-pilo rewrite "$SCRIPT"
+pilo rewrite --delete "$SCRIPT"
 
 assert_not_exists "$PILO_PILE_PATH/in/a.txt"
 assert_file_exists "$PILO_PILE_PATH/in/b.txt"

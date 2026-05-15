@@ -20,7 +20,7 @@ echo "$SCRIPT" | assert_grep "rm	in/a.txt"
 echo "$SCRIPT" | assert_grep "rm	in/c.txt"
 echo "$SCRIPT" | assert_grep "mv	in/b.txt	in/x.txt"
 
-pilo rewrite "$SCRIPT"
+pilo rewrite --delete "$SCRIPT"
 
 assert_not_exists "$PILO_PILE_PATH/in/a.txt"
 assert_not_exists "$PILO_PILE_PATH/in/b.txt"
