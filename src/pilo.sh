@@ -27,6 +27,7 @@ fi
 : "${PILO_ROOT:?PILO_ROOT not set}"
 : "${PILO_PATH:?PILO_PATH not set}"
 #: "${PILO_REPLICA_ROOT:?PILO_REPLICA_ROOT not set}"
+: "${PILO_SECONDARY_ROOTS:="${PILO_REPLICA_ROOT:-}"}"
 : "${PILO_ADMIN_PATH:="$PILO_PATH/active/admin"}"
 : "${PILO_INTAKE_PATH:="$PILO_PATH/active/pile-intake"}"
 : "${PILO_PILE_PATH:="$PILO_PATH/active/pile-readonly"}"
@@ -35,6 +36,7 @@ fi
 export PILO_ROOT
 export PILO_PATH
 export PILO_USER
+export PILO_SECONDARY_ROOTS
 export PILO_REPLICA_ROOT
 export PILO_ADMIN_PATH
 export PILO_INTAKE_PATH

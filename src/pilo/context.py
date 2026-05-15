@@ -6,6 +6,7 @@ import sys
 
 from . import paths
 from . import policy
+from . import topology
 
 
 @dataclass(frozen=True)
@@ -76,36 +77,26 @@ class StoragePolicy:
         return self.root_dataset
 
 
-def detect_secondary_dataset(environ):
-    from . import zfs
-    root = environ["PILO_SECONDARY_ROOT"]
-    for pool in environ["PILO_SECONDARY_POOLS"].split():
-        candidate = f"{pool}/{root}"
-        if zfs.dataset_exists(candidate):
-            return candidate
-    return None
-
-
 class Context:
     def __init__(self, environ=os.environ, args=sys.argv):
 
-        #self.root_dataset = environ["PILO_ROOT"]
-        if "PILO_ROOT" in environ:
-            self.root_dataset = environ["PILO_ROOT"]
-        else:
-            pri_pool = environ['PILO_PRIMARY_POOL']
-            pri_root = environ['PILO_PRIMARY_ROOT']
-            self.primary_dataset = f"{pri_pool}/{pri_root}"
-            self.root_dataset = self.primary_dataset
+        self.primary_root = environ.get(
+            "PILO_PRIMARY_ROOT",
+            environ["PILO_ROOT"],
+        )
+        self.root_dataset = self.primary_root
 
-        #self.replica_dataset = environ["PILO_REPLICA_ROOT"]
-        if "PILO_REPLICA_ROOT" in environ:
-            self.replica_dataset = environ["PILO_REPLICA_ROOT"]
-        else:
-            sec_pool = environ['PILO_PRIMARY_POOL']
-            sec_root = environ['PILO_PRIMARY_ROOT']
-            self.secondary_dataset = detect_secondary_dataset(environ)
-            self.replica_dataset = self.secondary_dataset
+        secondary = environ.get(
+            "PILO_SECONDARY_ROOTS",
+            environ.get("PILO_REPLICA_ROOT", ""),
+        )
+        self.secondary_roots = [s for s in secondary.split() if s]
+        self.topology = topology.StorageTopology(
+            primary_root=self.primary_root,
+            secondary_roots=self.secondary_roots,
+        )
+        # compat
+        self.replica_dataset = environ["PILO_REPLICA_ROOT"]
 
         self.admin_dataset = environ.get("PILO_ADMIN_DATASET") \
                                 or self.root_dataset + "/active/admin"
@@ -131,6 +122,13 @@ class Context:
         self.user = environ["PILO_USER"]
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
+
+    @property
+    def current_secondary_dataset(self):
+        current = self.topology.current_secondary_root
+        if current:
+            return current
+        return self.replica_dataset
 
     def storage_policy(self, domain):
         return StoragePolicy.for_domain(self, domain)
