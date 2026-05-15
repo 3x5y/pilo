@@ -76,16 +76,47 @@ class StoragePolicy:
         return self.root_dataset
 
 
+def detect_secondary_dataset(environ):
+    from . import zfs
+    root = environ["PILO_SECONDARY_ROOT"]
+    for pool in environ["PILO_SECONDARY_POOLS"].split():
+        candidate = f"{pool}/{root}"
+        if zfs.dataset_exists(candidate):
+            return candidate
+    return None
+
+
 class Context:
     def __init__(self, environ=os.environ, args=sys.argv):
-        self.root_dataset = environ["PILO_ROOT"]
-        self.replica_dataset = environ["PILO_REPLICA_ROOT"]
-        self.admin_dataset = environ["PILO_ADMIN_DATASET"]
-        self.intake_dataset = environ["PILO_INTAKE_DATASET"]
-        self.pile_dataset = environ["PILO_PILE_DATASET"]
-        self.static_dataset = environ["PILO_STATIC_DATASET"]
-        self.collection_dataset = f"{self.static_dataset}/collection"
-        self.filing_dataset = f"{self.static_dataset}/filing"
+
+        #self.root_dataset = environ["PILO_ROOT"]
+        if "PILO_ROOT" in environ:
+            self.root_dataset = environ["PILO_ROOT"]
+        else:
+            pri_pool = environ['PILO_PRIMARY_POOL']
+            pri_root = environ['PILO_PRIMARY_ROOT']
+            self.primary_dataset = f"{pri_pool}/{pri_root}"
+            self.root_dataset = self.primary_dataset
+
+        #self.replica_dataset = environ["PILO_REPLICA_ROOT"]
+        if "PILO_REPLICA_ROOT" in environ:
+            self.replica_dataset = environ["PILO_REPLICA_ROOT"]
+        else:
+            sec_pool = environ['PILO_PRIMARY_POOL']
+            sec_root = environ['PILO_PRIMARY_ROOT']
+            self.secondary_dataset = detect_secondary_dataset(environ)
+            self.replica_dataset = self.secondary_dataset
+
+        self.admin_dataset = environ.get("PILO_ADMIN_DATASET") \
+                                or self.root_dataset + "/active/admin"
+        self.intake_dataset = environ.get("PILO_INTAKE_DATASET") \
+                                or self.root_dataset + "/active/pile-intake"
+        self.pile_dataset = environ.get("PILO_PILE_DATASET") \
+                                or self.root_dataset + "/active/pile-readonly"
+        self.static_dataset = environ.get("PILO_STATIC_DATASET") \
+                                or self.root_dataset + "/static"
+        self.collection_dataset = self.static_dataset + "/collection"
+        self.filing_dataset = self.static_dataset + "/filing"
 
         self.path = Path(environ["PILO_PATH"])
         self.admin_path = Path(environ["PILO_ADMIN_PATH"])
@@ -109,10 +140,6 @@ class Context:
         policy = self.storage_policy(logical.domain)
         return paths.ResolvedPath(
             logical=logical,
-            physical=policy.physical_path(
-                logical.relpath,
-            ),
-            dataset=policy.dataset_for(
-                logical.relpath,
-            ),
+            physical=policy.physical_path(logical.relpath),
+            dataset=policy.dataset_for(logical.relpath),
         )
