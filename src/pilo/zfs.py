@@ -5,6 +5,12 @@ import subprocess
 from . import error
 
 
+PILO_ROLE_PROPERTY = "pilo:role"
+
+ROLE_PRIMARY = "primary"
+ROLE_REPLICA = "replica"
+
+
 @dataclass(frozen=True)
 class PoolEntry:
     name: str
@@ -162,6 +168,13 @@ def snapshot_exists(snap):
     return status == 0
 
 
+def has_prop(dataset, propname):
+    cmd = "zfs get -H -o value".split()
+    args = [propname, dataset]
+    result = run(cmd + args, check=False, capture_output=True)
+    return result.returncode == 0
+
+
 def get_prop(dataset, propname):
     cmd = 'zfs get -Ho value'.split()
     args = [propname, dataset]
@@ -207,6 +220,39 @@ def set_canmount(dataset, value):
     if get_canmount(dataset) != value:
         setting = value and 'on' or 'off'
         set_prop(dataset, f'canmount={setting}')
+
+
+def get_role(dataset):
+    value = get_prop(dataset, PILO_ROLE_PROPERTY)
+    if value == "-":
+        return None
+    return value
+
+
+def set_role(dataset, role):
+    if role not in (ROLE_PRIMARY, ROLE_REPLICA):
+        error.fatal(f"invalid role: {role}")
+    set_prop(dataset, f"{PILO_ROLE_PROPERTY}={role}")
+
+
+def is_primary_root(dataset):
+    return get_role(dataset) == ROLE_PRIMARY
+
+
+def is_replica_root(dataset):
+    return get_role(dataset) == ROLE_REPLICA
+
+
+def list_role_roots():
+    roots = []
+    for pool in list_pools():
+        datasets = list_datasets(pool.name)
+        for ds in datasets:
+            role = get_role(ds.name)
+            if role is None:
+                continue
+            roots.append((ds.name, role))
+    return roots
 
 
 def list_filesystems(root):
