@@ -4,7 +4,7 @@ from pathlib import Path
 from .. import manifest_verify
 
 
-CAPTURE_MANIFEST = "capture.manifest"
+CAPTURE_MANIFEST = ".manifest"
 
 
 @dataclass(frozen=True)
