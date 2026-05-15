@@ -14,6 +14,13 @@ class DatasetContract:
     mount_attr: str | None = None
 
 
+@dataclass(frozen=True)
+class DatasetValidationIssue:
+    dataset: str
+    code: str
+    message: str
+
+
 class dataset_contracts:
 
     ALL = [
@@ -88,7 +95,7 @@ def contract_mountpoint(cx, contract):
     return getattr(cx, contract.mount_attr)
 
 
-def apply_dataset_contract(cx):
+def apply_dataset_contracts(cx):
 
     for contract in dataset_contracts.ALL:
         dataset = contract_dataset(cx, contract)
@@ -141,7 +148,43 @@ def ensure_runtime_dirs(cx):
 
 
 def normalize_system(cx):
-    apply_dataset_contract(cx)
+    apply_dataset_contracts(cx)
     zfs.mount()
     ensure_runtime_dirs(cx)
     apply_ownership(cx)
+
+
+def validate_dataset_contract(cx, contract):
+    issues = []
+    dataset = contract_dataset(cx, contract)
+    if not zfs.dataset_exists(dataset):
+        issues.append(
+            DatasetValidationIssue(
+                dataset=dataset,
+                code="missing.required.dataset",
+                message=f"missing dataset {dataset}",
+            )
+        )
+        return issues
+    if contract.filesystem:
+        readonly = zfs.get_readonly(dataset)
+        if contract.readonly is not None:
+            if readonly != contract.readonly:
+                issues.append(
+                    DatasetValidationIssue(
+                        dataset=dataset,
+                        code="invalid.readonly",
+                        message=(
+                            f"{dataset} readonly="
+                            f"{readonly} expected={contract.readonly}"
+                        ),
+                    )
+                )
+    return issues
+
+
+def validate_dataset_contracts(cx):
+    issues = []
+    for contract in dataset_contracts.ALL:
+        issues.extend(validate_dataset_contract(cx, contract))
+    return issues

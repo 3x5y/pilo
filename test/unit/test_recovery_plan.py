@@ -83,7 +83,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("pilo.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan(self, mock_restore, mock_contract, mock_run,
                           mock_owner, mock_dirs):
@@ -106,7 +106,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("pilo.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
                                            mock_owner, mock_run, mock_dirs):
@@ -127,7 +127,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.zfs.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
                                           mock_run, mock_owner, mock_dirs):
@@ -147,7 +147,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_ensures_runtime_dirs(
         self, mock_restore, mock_contract, mock_run, mock_dirs,
@@ -169,7 +169,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     @patch("pilo.back.restore.restore_dataset")
     def test_execute_plan_applies_ownership(
         self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner

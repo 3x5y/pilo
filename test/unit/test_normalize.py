@@ -12,7 +12,7 @@ class TestNormalize(pilotest.TestCase):
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     def test_normalize_applies_contract(self, mock_contract, mock_run,
                                         mock_dirs, mock_owner):
 
@@ -23,7 +23,7 @@ class TestNormalize(pilotest.TestCase):
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("pilo.zfs.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     def test_normalize_mounts(self, mock_contract, mock_run, mock_dirs,
                               mock_owner):
 
@@ -34,7 +34,7 @@ class TestNormalize(pilotest.TestCase):
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     def test_normalize_ensures_runtime_dirs(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
@@ -46,7 +46,7 @@ class TestNormalize(pilotest.TestCase):
     @patch("pilo.normalize.apply_ownership")
     @patch("pilo.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.normalize.apply_dataset_contract")
+    @patch("pilo.normalize.apply_dataset_contracts")
     def test_normalize_applies_ownership(
         self, mock_contract, mock_run, mock_dirs, mock_owner
     ):
@@ -125,7 +125,7 @@ class TestDatasetContracts(pilotest.TestCase):
     ):
         cx = pilotest.make_context()
 
-        normalize.apply_dataset_contract(cx)
+        normalize.apply_dataset_contracts(cx)
 
         apply_ns.assert_has_calls([
             call("tank/a/active", mountpoint=None),
@@ -154,3 +154,71 @@ class TestDatasetContracts(pilotest.TestCase):
                 mountpoint=cx.collection_path,
             ),
         ])
+
+
+    @patch("pilo.zfs.dataset_exists")
+    def test_missing_dataset(self, exists):
+
+        exists.return_value = False
+
+        cx = pilotest.make_context()
+
+        issues = normalize.validate_dataset_contracts(cx)
+
+        self.assertTrue(issues)
+
+        self.assertEqual(
+            issues[0].code,
+            "missing.required.dataset",
+        )
+
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.get_readonly")
+    def test_invalid_readonly(
+        self,
+        get_readonly,
+        exists,
+    ):
+
+        exists.return_value = True
+        get_readonly.return_value = False
+
+        cx = pilotest.make_context()
+
+        contract = normalize.dataset_contracts.lookup(
+            "pile-readonly"
+        )
+
+        issues = normalize.validate_dataset_contract(
+            cx,
+            contract,
+        )
+
+        self.assertEqual(
+            issues[0].code,
+            "invalid.readonly",
+        )
+
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.get_readonly")
+    def test_contract_ok(
+        self,
+        get_readonly,
+        exists,
+    ):
+
+        exists.return_value = True
+        get_readonly.return_value = True
+
+        cx = pilotest.make_context()
+
+        contract = normalize.dataset_contracts.lookup(
+            "pile-readonly"
+        )
+
+        issues = normalize.validate_dataset_contract(
+            cx,
+            contract,
+        )
+
+        self.assertEqual(issues, [])

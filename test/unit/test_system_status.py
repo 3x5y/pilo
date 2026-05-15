@@ -69,7 +69,7 @@ class TestSystemStatusModel(pilotest.TestCase):
 
         status.check_dataset_status(cx, st)
 
-        self.assertTrue(any(m.category == "incomplete" for m in st.messages))
+        self.assertTrue(any(m.category == "missing.required.dataset" for m in st.messages))
 
     @patch("pilo.git.is_dirty", return_value=True)
     def test_dirty_repo(self, _):

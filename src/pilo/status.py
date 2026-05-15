@@ -4,6 +4,7 @@ import subprocess
 
 from . import fs
 from . import git
+from . import normalize
 from . import util
 from . import zfs
 
@@ -120,6 +121,14 @@ def check_dataset_status(cx, st: SystemStatus):
     for ds in required:
         if not zfs.dataset_exists(ds):
             st.warn("incomplete", f"missing dataset {ds}")
+
+
+def check_dataset_status(cx, st: SystemStatus):
+    issues = normalize.validate_dataset_contracts(cx)
+    for issue in issues:
+        st.warn(issue.code, issue.message)
+    if not issues:
+        st.ok("datasets", "all dataset contracts satisfied")
 
 
 def check_transient_status(cx, st: SystemStatus):
