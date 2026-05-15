@@ -1,7 +1,28 @@
 from contextlib import contextmanager, ExitStack
+from dataclasses import dataclass
 import subprocess
 
 from . import error
+
+
+@dataclass(frozen=True)
+class PoolEntry:
+    name: str
+    health: str
+
+
+@dataclass(frozen=True)
+class DatasetEntry:
+    name: str
+    readonly: str
+    mountpoint: str
+    canmount: str
+
+
+@dataclass(frozen=True)
+class SnapshotEntry:
+    name: str
+    creation: int
 
 
 def run(cmd, *, check=True, capture_output=False, text=True, **kw):
@@ -37,6 +58,94 @@ def simple_pipe(src_cmd, sink_cmd):
     sink.communicate()
     if source.wait() != 0 or sink.returncode != 0:
         error.fatal("replication failed")
+
+
+def zfs_list(fields, *args, types=None, sort=None, parsable=True, check=True):
+    cmd = "zfs list -H".split()
+    if parsable:
+        cmd.append("-p")
+    if types is not None:
+        cmd += ["-t", types]
+    if sort is not None:
+        cmd += ["-s", sort]
+    cmd += ["-o", ",".join(fields)]
+    cmd += list(args)
+    return run_get_lines(cmd, check=check)
+
+
+def list_pools():
+    cmd = ["zpool", "list", "-H", "-o", "name,health"]
+    lines = run_get_lines(cmd, check=False)
+    entries = []
+    for line in lines:
+        if not line:
+            continue
+        name, health = line.split("\t")
+        entry = PoolEntry(name=name, health=health)
+        entries.append(entry)
+    return entries
+
+
+def list_datasets(root=None):
+
+    args = ["-r"]
+
+    if root is not None:
+        args.append(root)
+
+    fields = [
+        "name",
+        "readonly",
+        "mountpoint",
+        "canmount",
+    ]
+    lines = zfs_list(fields, *args, types="filesystem", check=False)
+    entries = []
+    for line in lines:
+        if not line:
+            continue
+        name, readonly, mountpoint, canmount = line.split("\t")
+        entry = DatasetEntry(
+            name=name,
+            readonly=readonly,
+            mountpoint=mountpoint,
+            canmount=canmount,
+        )
+        entries.append(entry)
+    return entries
+
+
+def list_snapshot_entries(dataset):
+
+    lines = zfs_list(
+        [
+            "name",
+            "creation",
+        ],
+        dataset,
+        types="snapshot",
+        sort="creation",
+        check=False,
+    )
+
+    entries = []
+
+    for line in lines:
+        if not line:
+            continue
+        name, creation = line.split("\t")
+        try:
+            ts = int(creation)
+        except ValueError:
+            ts = 0
+        entries.append(
+            SnapshotEntry(
+                name=name,
+                creation=ts,
+            )
+        )
+
+    return entries
 
 
 def dataset_exists(dataset):

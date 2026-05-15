@@ -6,6 +6,8 @@ TESTLIB="$HERE/test/pilotest.sh"
 
 export PATH=$HERE/src:$PATH
 export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH=$HERE/src
+
 ROOT_DATASET=tank/test
 TEST_ROOT=$ROOT_DATASET/data
 REPLICA_ROOT=$ROOT_DATASET/replica
