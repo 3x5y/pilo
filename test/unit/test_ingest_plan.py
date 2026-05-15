@@ -330,7 +330,7 @@ class TestIngestOps(pilotest.TestCase):
 
     def test_ingestible_capture_files_excludes_manifest(self):
         data = Path("/tmp/a.txt")
-        meta = Path("/tmp/capture.manifest")
+        meta = Path("/tmp/.manifest")
         files = list(ingest.ingestible_capture_files([data, meta]))
         self.assertEqual(files, [data])
 

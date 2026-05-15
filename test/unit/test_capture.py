@@ -32,7 +32,7 @@ class TestCaptureManifest(pilotest.TestCase):
             root = td / "capture"
             root.mkdir()
             (root / "a.txt").write_text("aaa")
-            out = root / "capture.manifest"
+            out = root / ".manifest"
             cx = pilotest.make_context()
             manifest_store.write_manifest(
                 cx,
@@ -87,7 +87,7 @@ class TestCaptureManifest(pilotest.TestCase):
             root.mkdir()
 
             data = root / "a.txt"
-            meta = root / "capture.manifest"
+            meta = root / ".manifest"
 
             data.write_text("hello")
             meta.write_text("metadata")
@@ -95,7 +95,7 @@ class TestCaptureManifest(pilotest.TestCase):
             lines = list(
                 manifest_verify.generate_manifest_lines(
                     root,
-                    exclude=[Path("capture.manifest")],
+                    exclude=[Path(".manifest")],
                 )
             )
 
@@ -166,7 +166,7 @@ class TestCaptureSession(pilotest.TestCase):
 
         session = capture.CaptureSession(
             root=Path("/tmp/capture"),
-            manifest=Path("/tmp/capture/capture.manifest"),
+            manifest=Path("/tmp/capture/.manifest"),
         )
 
         self.assertEqual(
@@ -176,7 +176,7 @@ class TestCaptureSession(pilotest.TestCase):
 
         self.assertEqual(
             session.manifest,
-            Path("/tmp/capture/capture.manifest"),
+            Path("/tmp/capture/.manifest"),
         )
 
     def test_capture_session_manifest_lines(self):
@@ -186,7 +186,7 @@ class TestCaptureSession(pilotest.TestCase):
             root.mkdir()
             path = root / "a.txt"
             path.write_text("hello")
-            manifest = root / "capture.manifest"
+            manifest = root / ".manifest"
             session = capture.CaptureSession(root=root, manifest=manifest)
             lines = session.generate_manifest_lines()
             self.assertEqual(len(lines), 1)
@@ -231,7 +231,7 @@ class TestCaptureSession(pilotest.TestCase):
             cx.intake_path.mkdir()
             session = capture.capture_session(cx.intake_path)
             self.assertEqual(session.root, cx.intake_path)
-            self.assertEqual(session.manifest.name, "capture.manifest")
+            self.assertEqual(session.manifest.name, ".manifest")
 
     def test_capture_session_verify_missing_manifest_is_allowed(self):
 
