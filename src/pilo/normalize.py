@@ -90,28 +90,6 @@ def contract_mountpoint(cx, contract):
 
 def apply_dataset_contract(cx):
 
-    apply_namespace(cx.root_dataset + '/active')
-    apply_filesystem(cx.root_dataset + '/active/admin',
-                     readonly=False,
-                     mountpoint=cx.admin_path)
-    apply_filesystem(cx.root_dataset + '/active/pile-intake',
-                     readonly=False,
-                     mountpoint=cx.intake_path)
-    apply_filesystem(cx.root_dataset + '/active/pile-readonly',
-                     readonly=True,
-                     mountpoint=cx.pile_path)
-
-    apply_namespace(cx.root_dataset + '/static')
-    apply_filesystem(cx.root_dataset + '/static/collection',
-                     readonly=True,
-                     mountpoint=cx.collection_path)
-
-    apply_namespace(cx.root_dataset + '/static/filing',
-                    mountpoint=cx.filing_path)
-
-
-def apply_dataset_contract(cx):
-
     for contract in dataset_contracts.ALL:
         dataset = contract_dataset(cx, contract)
         mountpoint = contract_mountpoint(cx, contract)
