@@ -21,4 +21,4 @@ pilo restore $repl_pile $PILE $snap
 # --- system should now be inconsistent ---
 capture_status pilo status
 assert_command_fail "partial recovery not detected"
-echo "$OUTPUT" | assert_grep "incomplete"
+echo "$OUTPUT" | assert_grep "missing.required.dataset"
