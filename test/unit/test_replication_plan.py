@@ -97,3 +97,38 @@ class TestReplicationPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             repl.build_replication_plan("tank/a", "backup/a")
 
+
+class TestReplicateCommands(pilotest.TestCase):
+
+    def test_replicate_requires_secondary(self):
+        mod = pilotest.import_command("replicate")
+
+        cx = pilotest.make_context(
+            PILO_REPLICA_ROOT="",
+        )
+
+        with patch("pilo.context.Context", return_value=cx):
+            with pilotest.assert_fatal(self):
+                mod.main()
+
+    def test_replicate_safe_requires_secondary(self):
+        mod = pilotest.import_command("replicate-safe")
+
+        cx = pilotest.make_context(
+            PILO_REPLICA_ROOT="",
+        )
+
+        with patch("pilo.context.Context", return_value=cx):
+            with pilotest.assert_fatal(self):
+                mod.main()
+
+    def test_replicate_safe_requires_secondary(self):
+        mod = pilotest.import_command("replication-verify")
+
+        cx = pilotest.make_context(
+            PILO_REPLICA_ROOT="",
+        )
+
+        with patch("pilo.context.Context", return_value=cx):
+            with pilotest.assert_fatal(self):
+                mod.main()

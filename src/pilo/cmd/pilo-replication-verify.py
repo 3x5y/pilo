@@ -8,7 +8,9 @@ from pilo.back import replication as repl
 def main():
     cx = context.Context()
     src = cx.root_dataset
-    dst = cx.replica_dataset
+    dst = cx.current_secondary_dataset
+    if not dst:
+        error.fatal("no secondary dataset available")
 
     status, msg = repl.replication_status(src, dst)
 

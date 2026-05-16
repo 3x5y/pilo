@@ -215,4 +215,3 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "invalid/root")
-

@@ -30,8 +30,11 @@ def recover_dataset_tree(cx, target, replica, require_new=True):
 
 
 def build_recovery_plan(cx, target):
-    mapping = context.DatasetMapping(cx.root_dataset, cx.replica_dataset)
+    secondary = cx.current_secondary_dataset
+    if not secondary:
+        error.fatal("no secondary dataset available")
 
+    mapping = context.DatasetMapping(cx.root_dataset, secondary)
     mapping.validate_within_src(target)
     checks.require_within_dataset(target, cx.root_dataset)
 

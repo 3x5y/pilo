@@ -96,7 +96,7 @@ class Context:
             secondary_roots=self.secondary_roots,
         )
         # compat
-        self.replica_dataset = environ["PILO_REPLICA_ROOT"]
+        self.replica_dataset = environ.get("PILO_REPLICA_ROOT")
 
         self.admin_dataset = environ.get("PILO_ADMIN_DATASET") \
                                 or self.root_dataset + "/active/admin"
@@ -128,7 +128,7 @@ class Context:
         current = self.topology.current_secondary_root()
         if current:
             return current
-        return self.replica_dataset
+        return self.replica_dataset or None
 
     def storage_policy(self, domain):
         return StoragePolicy.for_domain(self, domain)

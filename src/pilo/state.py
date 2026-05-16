@@ -202,9 +202,21 @@ def collect_replication_validation(cx):
 
     issues = []
 
+    secondary = cx.current_secondary_dataset
+    if not secondary:
+        issues.append(
+            ValidationIssue(
+                code="replication.missing_secondary",
+                message="no secondary dataset configured",
+                severity=ValidationSeverity.WARN,
+                component="replication",
+            )
+        )
+        return issues
+
     repl_state, repl_msg = replication.replication_status(
         cx.root_dataset,
-        cx.replica_dataset,
+        secondary,
     )
 
     if repl_state == replication.ReplicationStatus.OK:

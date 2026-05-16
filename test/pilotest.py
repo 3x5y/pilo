@@ -47,40 +47,34 @@ def import_command(name):
     return module
 
 
-def make_context():
-    return context.Context(environ={
+def make_environ(root, **kw):
+    env = {
         "PILO_ROOT": "tank/a",
         "PILO_REPLICA_ROOT": "backup/a",
         "PILO_ADMIN_DATASET": "tank/a/admin",
         "PILO_INTAKE_DATASET": "tank/a/intake",
         "PILO_PILE_DATASET": "tank/a/pile",
         "PILO_STATIC_DATASET": "tank/a/static",
-        "PILO_PATH": "/tmp",
-        "PILO_ADMIN_PATH": "/tmp/admin",
-        "PILO_INTAKE_PATH": "/tmp/intake",
-        "PILO_PILE_PATH": "/tmp/pile",
-        "PILO_STATIC_PATH": "/tmp/static",
+        "PILO_PATH": root,
+        "PILO_ADMIN_PATH": f"{root}/admin",
+        "PILO_INTAKE_PATH": f"{root}/intake",
+        "PILO_PILE_PATH": f"{root}/pile",
+        "PILO_STATIC_PATH": f"{root}/static",
         "PILO_USER": "root",
-    })
+    }
+    env.update(kw)
+    return env
+
+
+def make_context(root='/tmp', **kw):
+    env = make_environ(root, **kw)
+    return context.Context(environ=env)
 
 
 @contextmanager
-def make_tmp_context():
+def make_tmp_context(**kw):
     with tempfile.TemporaryDirectory() as td:
-        yield context.Context(environ={
-            "PILO_ROOT": "tank/a",
-            "PILO_REPLICA_ROOT": "backup/a",
-            "PILO_ADMIN_DATASET": "tank/a/admin",
-            "PILO_INTAKE_DATASET": "tank/a/intake",
-            "PILO_PILE_DATASET": "tank/a/pile",
-            "PILO_STATIC_DATASET": "tank/a/static",
-            "PILO_PATH": td,
-            "PILO_ADMIN_PATH": f"{td}/admin",
-            "PILO_INTAKE_PATH": f"{td}/intake",
-            "PILO_PILE_PATH": f"{td}/pile",
-            "PILO_STATIC_PATH": f"{td}/static",
-            "PILO_USER": "root",
-        })
+        yield make_context(td, **kw)
 
 
 @contextmanager

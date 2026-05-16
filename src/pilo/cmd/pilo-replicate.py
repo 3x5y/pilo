@@ -12,7 +12,9 @@ def main():
         src, dst = cx.args
     else:
         src = cx.root_dataset
-        dst = cx.replica_dataset
+        dst = cx.current_secondary_dataset
+        if not dst:
+            error.fatal("no secondary dataset available")
 
     return repl.replicate(src, dst)
 
