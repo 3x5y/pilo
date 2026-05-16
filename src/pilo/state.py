@@ -1,8 +1,10 @@
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 
 from . import normalize
-from . import status as status_mod
+from . import util
+from . import zfs
 from .back import replication
 
 
@@ -63,20 +65,26 @@ class ValidationReport:
 
 
 def derive_operational_state(cx):
+
     issues = []
-    contract_issues = normalize.validate_dataset_contracts(cx)
-    if contract_issues:
+    report = collect_validation_report(cx)
+
+    dataset_issues = [i for i in report.issues
+                      if i.component == "datasets"]
+    if dataset_issues:
         return SystemState(
             state=OperationalState.INCOMPLETE,
             issues=[
                 StateIssue(i.code, i.message)
-                for i in contract_issues
+                for i in dataset_issues
             ],
         )
+
     repl_state, repl_msg = replication.replication_status(
         cx.root_dataset,
         cx.replica_dataset,
     )
+
     if repl_state == replication.ReplicationStatus.DIVERGED:
         return SystemState(
             state=OperationalState.REPLICATION_DIVERGED,
@@ -87,10 +95,10 @@ def derive_operational_state(cx):
                 )
             ],
         )
-    if repl_state in (
-        replication.ReplicationStatus.BEHIND,
-        replication.ReplicationStatus.EMPTY,
-    ):
+
+    behind = (replication.ReplicationStatus.BEHIND,
+              replication.ReplicationStatus.EMPTY)
+    if repl_state in behind:
         issues.append(
             StateIssue(
                 "replication.behind",
@@ -98,22 +106,17 @@ def derive_operational_state(cx):
             )
         )
 
-    st = status_mod.SystemStatus()
-    status_mod.check_snapshot_status(cx, st)
-
-    if st.code != 0:
-        issues.append(
-            StateIssue(
-                "snapshot.stale",
-                "snapshot freshness violation",
-            )
-        )
+    snapshot_issues = [i for i in report.issues
+                       if i.component == "snapshot"]
+    issues.extend([StateIssue(i.code, i.message)
+                   for i in snapshot_issues])
 
     if issues:
         return SystemState(
             state=OperationalState.DEGRADED,
             issues=issues,
         )
+
     return SystemState(
         state=OperationalState.HEALTHY,
     )
@@ -133,5 +136,51 @@ def collect_validation_report(cx):
         )
         for i in contract_issues
     ])
+    report.extend(collect_snapshot_validation(cx))
 
     return report
+
+
+def collect_snapshot_validation(cx):
+
+    issues = []
+    dataset = cx.pile_dataset
+    name, ts = zfs.latest_snapshot_with_time(dataset)
+    max_age = int(
+        os.environ.get(
+            "CONFIG_SNAPSHOT_MAX_AGE",
+            "3600",
+        )
+    )
+    if not name:
+        issues.append(
+            ValidationIssue(
+                code="snapshot.missing",
+                message=f"none for {dataset}",
+                severity=ValidationSeverity.WARN,
+                component="snapshot",
+            )
+        )
+        return issues
+    if ts is None:
+        issues.append(
+            ValidationIssue(
+                code="snapshot.invalid_timestamp",
+                message="could not parse timestamp",
+                severity=ValidationSeverity.WARN,
+                component="snapshot",
+            )
+        )
+        return issues
+
+    age = util.now_epoch() - ts
+    if age > max_age:
+        issues.append(
+            ValidationIssue(
+                code="snapshot.stale",
+                message=f"stale ({age} s)",
+                severity=ValidationSeverity.WARN,
+                component="snapshot",
+            )
+        )
+    return issues

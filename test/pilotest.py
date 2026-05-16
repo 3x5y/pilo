@@ -4,6 +4,7 @@ from io import StringIO
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from pilo import context
 from pilo import error
@@ -81,6 +82,15 @@ def make_tmp_context():
 def tmpdir():
     with tempfile.TemporaryDirectory() as td:
         yield Path(td)
+
+
+@contextmanager
+def healthy_snapshot_state(snapshot="tank/a/pile@r1", ts=1000, now=1001):
+    snap_time = (snapshot, ts)
+    p1 = patch("pilo.zfs.latest_snapshot_with_time", return_value=snap_time)
+    p2 = patch("pilo.util.now_epoch", return_value=now)
+    with (p1, p2):
+        yield
 
 
 class TestCase(unittest.TestCase):
