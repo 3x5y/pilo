@@ -193,7 +193,7 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(
             issues[0].code,
-            "replication.secondary_unattached",
+            "replication.secondary_missing",
         )
         repl.assert_not_called()
 
@@ -209,5 +209,104 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(
             issues[0].code,
-            "replication.missing_secondary",
+            "replication.secondary_missing",
+        )
+
+    @patch("pilo.state.detect_system_state")
+    def test_collect_replication_validation_uses_classifier(self, detect):
+        detect.return_value = state.DetectedSystemState(
+            state=state.SystemTopologyState.REPLICATION_BEHIND,
+            message="behind",
+        )
+        cx = pilotest.make_context()
+        issues = state.collect_replication_validation(cx)
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(
+            issues[0].code,
+            "replication.behind",
+        )
+
+        detect.assert_called_once_with(cx)
+
+class TestSystemClassifier(pilotest.TestCase):
+
+    @patch("pilo.zfs.dataset_exists", return_value=False)
+    def test_detect_system_state_missing_secondary(self, _exists):
+        cx = pilotest.make_context(
+            PILO_SECONDARY_ROOTS="backup/a",
+        )
+
+        st = state.detect_system_state(cx)
+
+        self.assertEqual(
+            st.state,
+            state.SystemTopologyState.REPLICA_MISSING,
+        )
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.back.replication.replication_status")
+    def test_detect_system_state_normal(self, repl, _exists):
+        from pilo.back.replication import ReplicationStatus
+
+        repl.return_value = (ReplicationStatus.OK, None)
+
+        cx = pilotest.make_context()
+
+        st = state.detect_system_state(cx)
+
+        self.assertEqual(
+            st.state,
+            state.SystemTopologyState.NORMAL,
+        )
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.back.replication.replication_status")
+    def test_detect_system_state_behind(self, repl, _exists):
+        from pilo.back.replication import ReplicationStatus
+
+        repl.return_value = (
+            ReplicationStatus.BEHIND,
+            "behind",
+        )
+
+        cx = pilotest.make_context()
+
+        st = state.detect_system_state(cx)
+
+        self.assertEqual(
+            st.state,
+            state.SystemTopologyState.REPLICATION_BEHIND,
+        )
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.back.replication.replication_status")
+    def test_detect_system_state_diverged(self, repl, _exists):
+        from pilo.back.replication import ReplicationStatus
+
+        repl.return_value = (
+            ReplicationStatus.DIVERGED,
+            "diverged",
+        )
+
+        cx = pilotest.make_context()
+
+        st = state.detect_system_state(cx)
+
+        self.assertEqual(
+            st.state,
+            state.SystemTopologyState.REPLICATION_DIVERGED,
+        )
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    def test_detect_system_state_invalid_topology(self, _exists):
+        cx = pilotest.make_context(
+            PILO_SECONDARY_ROOTS="backup/a backup/b",
+        )
+
+        st = state.detect_system_state(cx)
+
+        self.assertEqual(
+            st.state,
+            state.SystemTopologyState.INVALID_TOPOLOGY,
         )

@@ -17,6 +17,16 @@ class OperationalState(Enum):
     DEGRADED = "DEGRADED"
 
 
+class SystemTopologyState(Enum):
+    NORMAL = "NORMAL"
+    REPLICA_UNINITIALIZED = "REPLICA_UNINITIALIZED"
+    REPLICA_MISSING = "REPLICA_MISSING"
+    REPLICATION_BEHIND = "REPLICATION_BEHIND"
+    REPLICATION_DIVERGED = "REPLICATION_DIVERGED"
+    INVALID_TOPOLOGY = "INVALID_TOPOLOGY"
+    UNKNOWN = "UNKNOWN"
+
+
 class ValidationSeverity(Enum):
     INFO = "INFO"
     WARN = "WARN"
@@ -33,6 +43,13 @@ class StateIssue:
 class SystemState:
     state: OperationalState
     issues: list[StateIssue] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class DetectedSystemState:
+    state: SystemTopologyState
+    message: str | None = None
+    secondary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +138,71 @@ def derive_operational_state(cx, report=None):
     )
 
 
+def detect_system_state(cx):
+
+    try:
+        secondary = cx.current_secondary_state
+    except RuntimeError as e:
+        return DetectedSystemState(
+            state=SystemTopologyState.INVALID_TOPOLOGY,
+            message=str(e),
+        )
+
+    if not secondary:
+        return DetectedSystemState(
+            state=SystemTopologyState.REPLICA_MISSING,
+            message="no secondary configured",
+        )
+
+    if not secondary.attached:
+        return DetectedSystemState(
+            state=SystemTopologyState.REPLICA_MISSING,
+            message=f"secondary unattached: {secondary.root}",
+            secondary=secondary.root,
+        )
+
+    if not secondary.initialized:
+        return DetectedSystemState(
+            state=SystemTopologyState.REPLICA_UNINITIALIZED,
+            message=f"secondary uninitialized: {secondary.root}",
+            secondary=secondary.root,
+        )
+
+    repl_state, repl_msg = replication.replication_status(
+        cx.root_dataset,
+        secondary.root,
+    )
+
+    if repl_state == replication.ReplicationStatus.OK:
+        return DetectedSystemState(
+            state=SystemTopologyState.NORMAL,
+            secondary=secondary.root,
+        )
+
+    if repl_state in (
+        replication.ReplicationStatus.EMPTY,
+        replication.ReplicationStatus.BEHIND,
+    ):
+        return DetectedSystemState(
+            state=SystemTopologyState.REPLICATION_BEHIND,
+            message=repl_msg,
+            secondary=secondary.root,
+        )
+
+    if repl_state == replication.ReplicationStatus.DIVERGED:
+        return DetectedSystemState(
+            state=SystemTopologyState.REPLICATION_DIVERGED,
+            message=repl_msg,
+            secondary=secondary.root,
+        )
+
+    return DetectedSystemState(
+        state=SystemTopologyState.UNKNOWN,
+        message=repl_msg,
+        secondary=secondary.root,
+    )
+
+
 def collect_validation_report(cx, include=None):
     if include is None:
         include = {
@@ -202,82 +284,73 @@ def collect_replication_validation(cx):
 
     issues = []
 
-    secondary = cx.current_secondary_state
+    detected = detect_system_state(cx)
 
-    if not secondary:
+    if detected.state == SystemTopologyState.NORMAL:
+        return issues
+
+    if detected.state == SystemTopologyState.REPLICA_MISSING:
         issues.append(
             ValidationIssue(
-                code="replication.missing_secondary",
-                message="no secondary dataset configured",
+                code="replication.secondary_missing",
+                message=detected.message or "secondary missing",
                 severity=ValidationSeverity.WARN,
                 component="replication",
             )
         )
         return issues
 
-    if not secondary.attached:
-        issues.append(
-            ValidationIssue(
-                code="replication.secondary_unattached",
-                message=f"secondary unattached: {secondary.root}",
-                severity=ValidationSeverity.WARN,
-                component="replication",
-            )
-        )
-        return issues
-
-    if not secondary.initialized:
+    if detected.state == SystemTopologyState.REPLICA_UNINITIALIZED:
         issues.append(
             ValidationIssue(
                 code="replication.uninitialized",
-                message=f"secondary uninitialized: {secondary.root}",
+                message=detected.message or "secondary uninitialized",
                 severity=ValidationSeverity.WARN,
                 component="replication",
             )
         )
         return issues
 
-    repl_state, repl_msg = replication.replication_status(
-        cx.root_dataset,
-        secondary.root,
-    )
-
-    if repl_state == replication.ReplicationStatus.OK:
+    if detected.state == SystemTopologyState.REPLICATION_BEHIND:
+        issues.append(
+            ValidationIssue(
+                code="replication.behind",
+                message=detected.message or "replication behind",
+                severity=ValidationSeverity.WARN,
+                component="replication",
+            )
+        )
         return issues
 
-    if repl_state == replication.ReplicationStatus.DIVERGED:
+    if detected.state == SystemTopologyState.REPLICATION_DIVERGED:
         issues.append(
             ValidationIssue(
                 code="replication.diverged",
-                message=repl_msg or "replication diverged",
+                message=detected.message or "replication diverged",
                 severity=ValidationSeverity.ERROR,
                 component="replication",
             )
         )
         return issues
 
-    behind = (replication.ReplicationStatus.BEHIND,
-              replication.ReplicationStatus.EMPTY)
-
-    if repl_state in behind:
+    if detected.state == SystemTopologyState.INVALID_TOPOLOGY:
         issues.append(
             ValidationIssue(
-                code="replication.behind",
-                message=repl_msg or "replication behind",
-                severity=ValidationSeverity.WARN,
+                code="topology.invalid",
+                message=detected.message or "invalid topology",
+                severity=ValidationSeverity.ERROR,
                 component="replication",
             )
         )
         return issues
 
-    if repl_state == replication.ReplicationStatus.UNKNOWN:
-        issues.append(
-            ValidationIssue(
-                code="replication.unknown",
-                message=repl_msg or "replication status unknown",
-                severity=ValidationSeverity.WARN,
-                component="replication",
-            )
+    issues.append(
+        ValidationIssue(
+            code="replication.unknown",
+            message=detected.message or "replication unknown",
+            severity=ValidationSeverity.WARN,
+            component="replication",
         )
+    )
 
     return issues
