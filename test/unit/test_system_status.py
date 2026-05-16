@@ -2,6 +2,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
+from pilo import state
 from pilo import status
 import pilotest
 
@@ -25,9 +26,12 @@ class TestSystemStatusModel(pilotest.TestCase):
         self.assertEqual(msg.category, "snapshot")
         self.assertEqual(msg.message, "stale")
 
+    @patch("pilo.back.replication.replication_status")
     @patch("pilo.zfs.latest_snapshot")
-    def test_replication_ok(self, mock_snap):
+    def test_replication_ok(self, mock_snap, mock_repl):
         mock_snap.side_effect = ["tank/a@r1", "backup/a@r1"]
+        from pilo.back.replication import ReplicationStatus
+        mock_repl.return_value = (ReplicationStatus.OK, None)
 
         cx = pilotest.make_context()
         st = status.SystemStatus()
@@ -83,20 +87,23 @@ class TestSystemStatusModel(pilotest.TestCase):
 
             self.assertTrue(any(m.category == "transient" for m in st.messages))
 
-    @patch("pilo.status.check_replication_status")
-    @patch("pilo.status.check_snapshot_status")
-    @patch("pilo.status.check_dataset_status")
+    @patch("pilo.state.collect_validation_report")
     @patch("pilo.status.check_transient_status")
-    def test_collect_calls_all(self, t, d, s, r):
+    def test_collect_system_status_uses_validation_report(
+        self,
+        transient,
+        collect,
+    ):
+        collect.return_value = state.ValidationReport()
+
         cx = pilotest.make_context()
 
         st = status.collect_system_status(cx)
 
-        self.assertIsInstance(st, status.SystemStatus)
-        r.assert_called_once()
-        s.assert_called_once()
-        d.assert_called_once()
-        t.assert_called_once()
+        self.assertIsInstance(st,status.SystemStatus)
+        inc = {"datasets", "snapshot", "replication"}
+        collect.assert_called_once_with(cx, include=inc)
+        transient.assert_called_once()
 
     def test_render_status_message(self):
         msg = status.StatusMessage(
@@ -159,15 +166,9 @@ class TestSystemStatusModel(pilotest.TestCase):
                                     message="pile verification failed")
             self.assertIn(sm, st.messages)
 
-    @patch("pilo.status.check_replication_status")
-    @patch("pilo.status.check_snapshot_status")
-    @patch("pilo.status.check_dataset_status")
-    @patch("pilo.status.check_transient_status")
+    @patch("pilo.state.collect_validation_report")
     @patch("pilo.status.collect_manifest_status")
-    def test_collect_calls_manifest(
-        self,
-        mock_manifest, *_
-    ):
+    def test_collect_calls_manifest(self, mock_manifest, *_):
         cx = pilotest.make_context()
 
         status.collect_system_status(cx)
@@ -176,14 +177,38 @@ class TestSystemStatusModel(pilotest.TestCase):
         mock_manifest.assert_any_call(cx, unittest.mock.ANY, "collection")
         mock_manifest.assert_any_call(cx, unittest.mock.ANY, "filing")
 
+    @patch("pilo.state.collect_validation_report")
     @patch("pilo.status.collect_manifest_status")
-    def test_collect_manifest_only(self, mock_manifest):
+    def test_collect_manifest_only(self, mock_manifest, *_):
         cx = pilotest.make_context()
 
         status.collect_system_status(cx, check="manifest")
 
         self.assertEqual(mock_manifest.call_count, 3)
 
+    def test_validation_issues_rendered_into_messages(self):
+        report = state.ValidationReport(
+            issues=[
+                state.ValidationIssue(
+                    code="snapshot.stale",
+                    message="snapshot stale",
+                    severity=state.ValidationSeverity.WARN,
+                    component="snapshot",
+                )
+            ]
+        )
+
+        msgs = state.validation_report_to_status_messages(report)
+
+        self.assertEqual(len(msgs), 1)
+        self.assertEqual(
+            msgs[0],
+            status.StatusMessage(
+                level="WARN",
+                category="snapshot.stale",
+                message="snapshot stale",
+            )
+        )
 
 class TestStatusRegistry(pilotest.TestCase):
 

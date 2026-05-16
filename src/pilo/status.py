@@ -72,45 +72,6 @@ def render_system_status(st):
     return [render_status_message(m) for m in st.messages]
 
 
-def check_replication_status(cx, st: SystemStatus):
-    src = cx.root_dataset
-    dst = cx.replica_dataset
-
-    src_snap = zfs.latest_snapshot(src)
-    dst_snap = zfs.latest_snapshot(dst)
-
-    src_name = src_snap.split("@", 1)[1] if src_snap else "**MISSING**"
-    dst_name = dst_snap.split("@", 1)[1] if dst_snap else "**MISSING**"
-
-    if src_name != dst_name:
-        st.warn("replication", f"latest={src_name} replicated={dst_name}")
-    else:
-        st.ok("replication", src_name)
-
-
-def check_snapshot_status(cx, st: SystemStatus, max_age=None):
-    dataset = cx.pile_dataset
-
-    name, ts = zfs.latest_snapshot_with_time(dataset)
-    if max_age is None:
-        max_age = int(os.environ.get("CONFIG_SNAPSHOT_MAX_AGE", "3600"))
-
-    if not name:
-        st.warn("snapshot", f"none for {dataset}")
-        return
-
-    if ts is None:
-        st.warn("snapshot", "could not parse timestamp")
-        return
-
-    age = util.now_epoch() - ts
-
-    if age > max_age:
-        st.warn("snapshot", f"stale ({age} s)")
-    else:
-        st.ok("snapshot", f"fresh ({age} s)")
-
-
 def check_dataset_status(cx, st: SystemStatus):
     required = [
         cx.admin_dataset,
@@ -158,18 +119,6 @@ def check_manifest_status(cx, st):
         collect_manifest_status(cx, st, subset)
 
 
-def collect_system_status(cx, check=None):
-    st = SystemStatus()
-    if check is None:
-        sys_state = state.derive_operational_state(cx)
-        st.ok("state", sys_state.state.value)
-
-    for entry in status_checks.ALL:
-        if check is None or check == entry.name:
-            entry.func(cx, st)
-    return st
-
-
 def collect_manifest_status(cx, st, subset):
     if subset == 'pile':
         base_dir = cx.pile_path
@@ -189,3 +138,92 @@ def collect_manifest_status(cx, st, subset):
         st.ok("manifest", f"{subset} verified")
     except subprocess.CalledProcessError:
         st.warn("manifest", f"{subset} verification failed")
+
+
+
+def collect_system_status(cx, check=None):
+
+    validation_checks = {
+        "datasets",
+        "snapshot",
+        "replication",
+    }
+    if check is not None:
+        validation_checks = {check}
+
+    report = state.collect_validation_report(cx, include=validation_checks)
+    st = SystemStatus()
+    st.messages.extend(state.validation_report_to_status_messages(report))
+    system_state = state.derive_operational_state(cx, report=report)
+    st.messages.append(
+        StatusMessage(
+            level="INFO",
+            category="state",
+            message=system_state.state.name,
+        )
+    )
+
+    if report.issues:
+        st.code = 1
+
+    if check in (None, "transient"):
+        check_transient_status(cx, st)
+
+    if check in (None, "pile"):
+        check_pile_status(cx, st)
+
+    if check in (None, "manifest"):
+        for pile in ("pile", "collection", "filing"):
+            collect_manifest_status(cx, st, pile)
+
+    return st
+
+
+def check_snapshot_status(cx, st, max_age=None):
+
+    issues = state.collect_snapshot_validation(cx, max_age=max_age)
+    if issues:
+        st.messages.extend(
+            state.validation_report_to_status_messages(
+                state.ValidationReport(
+                    issues=issues,
+                )
+            )
+        )
+
+        warnings = [i.severity == state.ValidationSeverity.WARN
+                    for i in issues]
+        if any(warnings):
+            st.code = 1
+        return
+
+    dataset = cx.pile_dataset
+    name, ts = zfs.latest_snapshot_with_time(dataset)
+    age = util.now_epoch() - ts
+    st.ok("snapshot", f"fresh ({age} s)")
+
+
+def check_replication_status(cx, st):
+
+    issues = state.collect_replication_validation(cx)
+    if issues:
+        st.messages.extend(
+            state.validation_report_to_status_messages(
+                state.ValidationReport(
+                    issues=issues,
+                )
+            )
+        )
+        warnings = [i.severity == state.ValidationSeverity.WARN
+                    for i in issues]
+        if any(warnings):
+            st.code = 1
+        return
+
+    src_snap = zfs.latest_snapshot(cx.root_dataset)
+    if src_snap:
+        name = src_snap.split("@", 1)[1]
+    else:
+        name = "**MISSING**"
+
+    st.ok("replication", name)

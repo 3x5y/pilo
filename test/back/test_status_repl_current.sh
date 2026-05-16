@@ -9,4 +9,4 @@ pilo replicate
 capture_status pilo status replication
 
 assert_command_ok replication should be up to date
-echo "$OUTPUT" | assert_grep OK.*replication:.t0
+echo "$OUTPUT" | assert_grep HEALTHY

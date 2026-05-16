@@ -64,10 +64,11 @@ class ValidationReport:
         ]
 
 
-def derive_operational_state(cx):
+def derive_operational_state(cx, report=None):
 
     issues = []
-    report = collect_validation_report(cx)
+    if report is None:
+        report = collect_validation_report(cx)
 
     dataset_issues = [i for i in report.issues
                       if i.component == "datasets"]
@@ -120,36 +121,49 @@ def derive_operational_state(cx):
     )
 
 
-def collect_validation_report(cx):
+def collect_validation_report(cx, include=None):
+    if include is None:
+        include = {
+            "datasets",
+            "snapshot",
+            "replication",
+        }
+
     report = ValidationReport()
+    if "datasets" in include:
+        contract_issues = normalize.validate_dataset_contracts(cx)
 
-    contract_issues = normalize.validate_dataset_contracts(cx)
+        report.extend([
+            ValidationIssue(
+                code=i.code,
+                message=i.message,
+                severity=ValidationSeverity.ERROR,
+                component="datasets",
+            )
+            for i in contract_issues
+        ])
 
-    report.extend([
-        ValidationIssue(
-            code=i.code,
-            message=i.message,
-            severity=ValidationSeverity.ERROR,
-            component="datasets",
-        )
-        for i in contract_issues
-    ])
-    report.extend(collect_snapshot_validation(cx))
-    report.extend(collect_replication_validation(cx))
+    if "snapshot" in include:
+        report.extend(collect_snapshot_validation(cx))
+
+    if "replication" in include:
+        report.extend(collect_replication_validation(cx))
+
     return report
 
 
-def collect_snapshot_validation(cx):
+def collect_snapshot_validation(cx, max_age=None):
 
     issues = []
     dataset = cx.pile_dataset
     name, ts = zfs.latest_snapshot_with_time(dataset)
-    max_age = int(
-        os.environ.get(
-            "CONFIG_SNAPSHOT_MAX_AGE",
-            "3600",
+    if max_age is None:
+        max_age = int(
+            os.environ.get(
+                "CONFIG_SNAPSHOT_MAX_AGE",
+                "3600",
+            )
         )
-    )
     if not name:
         issues.append(
             ValidationIssue(
@@ -232,3 +246,19 @@ def collect_replication_validation(cx):
         )
 
     return issues
+
+
+def validation_issue_to_status_message(issue):
+    from .status import StatusMessage
+    return StatusMessage(
+        level=issue.severity.value,
+        category=issue.code,
+        message=issue.message,
+    )
+
+
+def validation_report_to_status_messages(report):
+    return [
+        validation_issue_to_status_message(i)
+        for i in report.issues
+    ]

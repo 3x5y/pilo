@@ -10,4 +10,4 @@ pilo snapshot t1
 capture_status pilo status replication
 
 assert_command_fail expected replication drift
-echo "$OUTPUT" | assert_grep "replication: latest=t1"
+echo "$OUTPUT" | assert_grep "replication.behind"
