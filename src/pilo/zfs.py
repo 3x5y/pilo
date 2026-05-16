@@ -275,7 +275,7 @@ def latest_snapshot(dataset):
 def list_guids(dataset):
     cmd = "zfs list -t snapshot -Ho guid".split()
     args = [dataset]
-    return sorted(run_get_lines(cmd + args))
+    return sorted(run_get_lines(cmd + args, check=False))
 
 
 def snapshot_guids(dataset):

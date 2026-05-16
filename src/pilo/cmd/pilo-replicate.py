@@ -2,6 +2,7 @@
 
 from pilo import context
 from pilo import error
+from pilo import state
 from pilo.back import replication as repl
 
 
@@ -11,10 +12,12 @@ def main():
     if cx.args:
         src, dst = cx.args
     else:
+        detected = state.detect_system_state(cx)
+        if detected.secondary is None:
+            error.fatal(detected.message or "no secondary available")
+
         src = cx.root_dataset
-        dst = cx.current_secondary_dataset
-        if not dst:
-            error.fatal("no secondary dataset available")
+        dst = detected.secondary
 
     return repl.replicate(src, dst)
 

@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from pilo import state
 from pilo.back import replication as repl
 import pilotest
 
@@ -97,7 +98,6 @@ class TestReplicationPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             repl.build_replication_plan("tank/a", "backup/a")
 
-
 class TestReplicateCommands(pilotest.TestCase):
 
     def test_replicate_requires_secondary(self):
@@ -111,6 +111,23 @@ class TestReplicateCommands(pilotest.TestCase):
             with pilotest.assert_fatal(self):
                 mod.main()
 
+    def test_replicate_requires_attached_secondary(self):
+        mod = pilotest.import_command("replicate")
+        cx = pilotest.make_context(
+            PILO_SECONDARY_ROOTS="backup/a",
+        )
+        p1 = patch(
+            "pilo.state.detect_system_state",
+            return_value=state.DetectedSystemState(
+                state=state.SystemTopologyState.REPLICA_MISSING,
+                message="secondary unattached: backup/a",
+                secondary=None,
+            ),
+        )
+        p2 = patch("pilo.context.Context", return_value=cx)
+        with (p1, p2, pilotest.assert_fatal(self)):
+            mod.main()
+
     def test_replicate_safe_requires_secondary(self):
         mod = pilotest.import_command("replicate-safe")
 
@@ -122,7 +139,41 @@ class TestReplicateCommands(pilotest.TestCase):
             with pilotest.assert_fatal(self):
                 mod.main()
 
-    def test_replicate_safe_requires_secondary(self):
+    @patch("pilo.back.replication.replicate")
+    def test_replicate_safe_uses_classifier_secondary(self, *_):
+        mod = pilotest.import_command("replicate-safe")
+        cx = pilotest.make_context()
+        detected = state.DetectedSystemState(
+            state=state.SystemTopologyState.REPLICATION_BEHIND,
+            message="behind",
+            secondary="backup/a",
+        )
+        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p2 = patch("pilo.context.Context", return_value=cx)
+        p3 = patch("pilo.back.replication.replication_status",
+                   side_effect=[
+                       (repl.ReplicationStatus.BEHIND, "behind"),
+                       (repl.ReplicationStatus.OK, None),
+                   ])
+
+        with (p1, p2, p3):
+            mod.main()
+
+    def test_replicate_safe_blocks_diverged_topology(self):
+        mod = pilotest.import_command("replicate-safe")
+        cx = pilotest.make_context()
+        detected = state.DetectedSystemState(
+            state=state.SystemTopologyState.REPLICATION_DIVERGED,
+            message="divergence in backup/a",
+            secondary="backup/a",
+        )
+        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p2 = patch("pilo.context.Context", return_value=cx)
+
+        with (p1, p2, pilotest.assert_fatal(self)):
+            mod.main()
+
+    def test_replicate_verify_requires_secondary(self):
         mod = pilotest.import_command("replication-verify")
 
         cx = pilotest.make_context(

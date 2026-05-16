@@ -4,6 +4,7 @@ from .. import checks
 from .. import context
 from .. import error
 from .. import normalize
+from .. import state
 from .. import zfs
 from . import restore
 
@@ -30,9 +31,12 @@ def recover_dataset_tree(cx, target, replica, require_new=True):
 
 
 def build_recovery_plan(cx, target):
-    secondary = cx.current_secondary_dataset
-    if not secondary:
-        error.fatal("no secondary dataset available")
+
+    detected = state.detect_system_state(cx)
+    if detected.secondary is None:
+        error.fatal(detected.message or "no secondary available")
+
+    secondary = detected.secondary
 
     mapping = context.DatasetMapping(cx.root_dataset, secondary)
     mapping.validate_within_src(target)

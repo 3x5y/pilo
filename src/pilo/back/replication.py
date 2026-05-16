@@ -79,7 +79,6 @@ def build_replication_plan(src, dst):
     if not last_src:
         error.fatal("no source snapshot")
 
-    # if strict (need to change test mocks)
     checks.require_dataset(src)
     if not last_dst:
         return ReplicationPlan( src, dst, last_src, None, "full")

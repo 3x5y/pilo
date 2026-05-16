@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from pilo import state
 from pilo.back import recover
 import pilotest
 
@@ -215,3 +216,32 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "invalid/root")
+
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.latest_snapshot")
+    @patch("pilo.state.detect_system_state")
+    def test_build_plan_uses_detected_secondary(
+        self,
+        mock_detect,
+        mock_latest,
+        mock_exists,
+        *_,
+    ):
+        mock_detect.return_value = state.DetectedSystemState(
+            state=state.SystemTopologyState.NORMAL,
+            secondary="backup/a",
+        )
+
+        mock_latest.return_value = "backup/a@r-1"
+
+        def side_effect(ds):
+            return ds == "backup/a"
+
+        mock_exists.side_effect = side_effect
+
+        cx = pilotest.make_context()
+
+        plan = recover.build_recovery_plan(cx, "tank/a")
+
+        self.assertEqual(plan.replica, "backup/a")

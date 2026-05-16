@@ -4,6 +4,7 @@ import sys
 
 from pilo import context
 from pilo import error
+from pilo import state
 from pilo.back import replication as repl
 
 
@@ -28,6 +29,44 @@ def main():
 
     # post-check
     status, msg = repl.replication_status(src, dst)
+    if status != repl.ReplicationStatus.OK:
+        print(f"STATUS={status.value}")
+        if msg:
+            print(msg)
+        error.fatal("replication did not converge")
+
+
+def main():
+    cx = context.Context()
+
+    detected = state.detect_system_state(cx)
+
+    if detected.secondary is None:
+        error.fatal(detected.message or "no secondary available")
+
+    if detected.state == state.SystemTopologyState.REPLICATION_DIVERGED:
+        error.fatal(detected.message or "replication diverged")
+
+    src = cx.root_dataset
+    dst = detected.secondary
+
+    status, msg = repl.replication_status(src, dst)
+
+    if status == repl.ReplicationStatus.OK:
+        return
+
+    if status in (
+        repl.ReplicationStatus.EMPTY,
+        repl.ReplicationStatus.BEHIND,
+    ):
+        repl.replicate(src, dst)
+    else:
+        if msg:
+            print(msg)
+        sys.exit(1)
+
+    status, msg = repl.replication_status(src, dst)
+
     if status != repl.ReplicationStatus.OK:
         print(f"STATUS={status.value}")
         if msg:
