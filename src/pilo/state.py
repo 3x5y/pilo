@@ -202,7 +202,8 @@ def collect_replication_validation(cx):
 
     issues = []
 
-    secondary = cx.current_secondary_dataset
+    secondary = cx.current_secondary_state
+
     if not secondary:
         issues.append(
             ValidationIssue(
@@ -214,9 +215,31 @@ def collect_replication_validation(cx):
         )
         return issues
 
+    if not secondary.attached:
+        issues.append(
+            ValidationIssue(
+                code="replication.secondary_unattached",
+                message=f"secondary unattached: {secondary.root}",
+                severity=ValidationSeverity.WARN,
+                component="replication",
+            )
+        )
+        return issues
+
+    if not secondary.initialized:
+        issues.append(
+            ValidationIssue(
+                code="replication.uninitialized",
+                message=f"secondary uninitialized: {secondary.root}",
+                severity=ValidationSeverity.WARN,
+                component="replication",
+            )
+        )
+        return issues
+
     repl_state, repl_msg = replication.replication_status(
         cx.root_dataset,
-        secondary,
+        secondary.root,
     )
 
     if repl_state == replication.ReplicationStatus.OK:

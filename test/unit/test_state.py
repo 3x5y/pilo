@@ -22,9 +22,10 @@ class TestOperationalState(pilotest.TestCase):
         st = state.derive_operational_state(cx)
         self.assertEqual(st.state, state.OperationalState.INCOMPLETE)
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
-    def test_diverged_state(self, repl, validate):
+    def test_diverged_state(self, repl, validate, *_):
         validate.return_value = []
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.DIVERGED, "diverged")
@@ -32,9 +33,10 @@ class TestOperationalState(pilotest.TestCase):
         st = state.derive_operational_state(cx)
         self.assertEqual(st.state, state.OperationalState.REPLICATION_DIVERGED)
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
-    def test_healthy_state(self, repl, validate):
+    def test_healthy_state(self, repl, validate, *_):
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.OK, None)
         validate.return_value = []
@@ -45,6 +47,7 @@ class TestOperationalState(pilotest.TestCase):
 
         self.assertEqual(st.state, state.OperationalState.HEALTHY)
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts")
     def test_collect_validation_report(self, validate, *_):
         from pilo.normalize import DatasetValidationIssue
@@ -65,8 +68,9 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(issue.code, "missing.required.dataset")
         self.assertEqual(issue.component, "datasets")
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts", return_value=[])
-    def test_collect_validation_report_empty(self, validate):
+    def test_collect_validation_report_empty(self, validate, *_):
         with pilotest.healthy_system_state():
             cx = pilotest.make_context()
             report = state.collect_validation_report(cx)
@@ -107,9 +111,10 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "snapshot.missing")
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
-    def test_stale_snapshot_degraded_state(self, repl, validate):
+    def test_stale_snapshot_degraded_state(self, repl, validate, *_):
         validate.return_value = []
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.OK, None)
@@ -123,8 +128,9 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(st.state, state.OperationalState.DEGRADED)
         self.assertTrue(any(i.code == "snapshot.stale" for i in st.issues))
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.back.replication.replication_status")
-    def test_collect_replication_validation_behind(self, repl):
+    def test_collect_replication_validation_behind(self, repl, *_):
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.BEHIND, "behind in tank/b")
         cx = pilotest.make_context()
@@ -136,8 +142,9 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(issue.code, "replication.behind")
         self.assertEqual(issue.component, "replication")
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.back.replication.replication_status")
-    def test_collect_replication_validation_diverged(self, repl):
+    def test_collect_replication_validation_diverged(self, repl, *_):
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.DIVERGED, "diverged")
         cx = pilotest.make_context()
@@ -148,8 +155,9 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(issues[0].code, "replication.diverged")
         self.assertEqual(issues[0].severity, state.ValidationSeverity.ERROR)
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.back.replication.replication_status")
-    def test_collect_replication_validation_ok(self, repl):
+    def test_collect_replication_validation_ok(self, repl, *_):
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.OK, None)
         cx = pilotest.make_context()
@@ -158,9 +166,10 @@ class TestOperationalState(pilotest.TestCase):
 
         self.assertEqual(issues, [])
 
+    @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
-    def test_replication_behind_degraded_state(self, repl, validate):
+    def test_replication_behind_degraded_state(self, repl, validate, *_):
         from pilo.back.replication import ReplicationStatus
         validate.return_value = []
         repl.return_value = (ReplicationStatus.BEHIND, "behind")
@@ -171,3 +180,34 @@ class TestOperationalState(pilotest.TestCase):
 
         self.assertEqual(st.state, state.OperationalState.DEGRADED)
         self.assertTrue(any(i.code=="replication.behind" for i in st.issues))
+
+    @patch("pilo.zfs.dataset_exists", return_value=False)
+    @patch("pilo.back.replication.replication_status")
+    def test_collect_replication_validation_unattached(self, repl, *_):
+        cx = pilotest.make_context(
+            PILO_SECONDARY_ROOTS="backup/a",
+        )
+
+        issues = state.collect_replication_validation(cx)
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(
+            issues[0].code,
+            "replication.secondary_unattached",
+        )
+        repl.assert_not_called()
+
+    @patch("pilo.zfs.dataset_exists", return_value=False)
+    def test_collect_replication_validation_missing_secondary(self, _):
+        cx = pilotest.make_context(
+            PILO_REPLICA_ROOT="",
+            PILO_SECONDARY_ROOTS="",
+        )
+
+        issues = state.collect_replication_validation(cx)
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(
+            issues[0].code,
+            "replication.missing_secondary",
+        )

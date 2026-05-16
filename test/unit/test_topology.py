@@ -75,3 +75,64 @@ class TestStorageTopology(pilotest.TestCase):
             PILO_REPLICA_ROOT="",
         )
         self.assertIsNone(cx.current_secondary_dataset)
+
+    @patch("pilo.zfs.dataset_exists")
+    def test_secondary_states(self, exists):
+        exists.side_effect = lambda ds: ds == "backup/current"
+
+        topo = topology.StorageTopology(
+            primary_root="tank/a",
+            secondary_roots=[
+                "backup/old",
+                "backup/current",
+            ],
+        )
+
+        states = topo.secondary_states()
+
+        self.assertEqual(len(states), 2)
+
+        old = states[0]
+        self.assertEqual(old.root, "backup/old")
+        self.assertTrue(old.configured)
+        self.assertFalse(old.attached)
+        self.assertFalse(old.initialized)
+        self.assertFalse(old.current)
+
+        cur = states[1]
+        self.assertEqual(cur.root, "backup/current")
+        self.assertTrue(cur.configured)
+        self.assertTrue(cur.attached)
+        self.assertTrue(cur.initialized)
+        self.assertTrue(cur.current)
+
+    @patch("pilo.zfs.dataset_exists")
+    def test_current_secondary_state(self, exists):
+        exists.side_effect = lambda ds: ds == "backup/current"
+
+        topo = topology.StorageTopology(
+            primary_root="tank/a",
+            secondary_roots=[
+                "backup/old",
+                "backup/current",
+            ],
+        )
+
+        state = topo.current_secondary_state()
+
+        self.assertIsNotNone(state)
+        self.assertEqual(state.root, "backup/current")
+        self.assertTrue(state.current)
+
+    @patch("pilo.zfs.dataset_exists", return_value=False)
+    def test_current_secondary_state_compat_fallback(self, _):
+        cx = pilotest.make_context(
+            PILO_REPLICA_ROOT="backup/legacy",
+        )
+
+        state = cx.current_secondary_state
+
+        self.assertEqual(state.root, "backup/legacy")
+        self.assertFalse(state.attached)
+        self.assertFalse(state.initialized)
+        self.assertFalse(state.current)

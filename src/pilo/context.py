@@ -125,10 +125,27 @@ class Context:
 
     @property
     def current_secondary_dataset(self):
-        current = self.topology.current_secondary_root()
+        current = self.current_secondary_state
+        if current:
+            return current.root
+        return None
+
+    @property
+    def current_secondary_state(self):
+        current = self.topology.current_secondary_state()
         if current:
             return current
-        return self.replica_dataset or None
+
+        if self.replica_dataset:
+            return topology.SecondaryState(
+                root=self.replica_dataset,
+                configured=True,
+                attached=False,
+                initialized=False,
+                current=False,
+            )
+
+        return None
 
     def storage_policy(self, domain):
         return StoragePolicy.for_domain(self, domain)
