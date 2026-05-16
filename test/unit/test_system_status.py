@@ -26,6 +26,7 @@ class TestSystemStatusModel(pilotest.TestCase):
         self.assertEqual(msg.category, "snapshot")
         self.assertEqual(msg.message, "stale")
 
+    @unittest.skip("dead code")
     @patch("pilo.back.replication.replication_status")
     @patch("pilo.zfs.latest_snapshot")
     def test_replication_ok(self, mock_snap, mock_repl):
@@ -47,6 +48,7 @@ class TestSystemStatusModel(pilotest.TestCase):
             st.messages,
         )
 
+    @unittest.skip("dead code")
     @patch("pilo.zfs.latest_snapshot_with_time")
     @patch("pilo.util.now_epoch", return_value=1000)
     def test_snapshot_fresh(self, mock_now, mock_snap):
@@ -66,6 +68,7 @@ class TestSystemStatusModel(pilotest.TestCase):
                 st.messages,
                 )
 
+    @unittest.skip('dead code')
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_missing_dataset(self, _):
         cx = pilotest.make_context()
@@ -198,7 +201,7 @@ class TestSystemStatusModel(pilotest.TestCase):
             ]
         )
 
-        msgs = state.validation_report_to_status_messages(report)
+        msgs = status.validation_report_to_status_messages(report)
 
         self.assertEqual(len(msgs), 1)
         self.assertEqual(
@@ -210,6 +213,7 @@ class TestSystemStatusModel(pilotest.TestCase):
             )
         )
 
+@unittest.skip('dead code')
 class TestStatusRegistry(pilotest.TestCase):
 
     def test_status_checks_order(self):

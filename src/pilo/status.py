@@ -4,7 +4,6 @@ import subprocess
 
 from . import fs
 from . import git
-from . import normalize
 from . import state
 from . import util
 from . import zfs
@@ -36,34 +35,6 @@ class SystemStatus:
         self.messages.append(sm)
 
 
-@dataclass(frozen=True)
-class StatusCheck:
-    name: str
-    func_name: str
-
-    @property
-    def func(self):
-        return globals()[self.func_name]
-
-
-class status_checks:
-    ALL = [
-        StatusCheck("transient", "check_transient_status"),
-        StatusCheck("pile", "check_pile_status"),
-        StatusCheck("snapshot", "check_snapshot_status"),
-        StatusCheck("replication", "check_replication_status"),
-        StatusCheck("datasets", "check_dataset_status"),
-        StatusCheck("manifest", "check_manifest_status"),
-    ]
-
-    @staticmethod
-    def lookup(name):
-        for check in status_checks.ALL:
-            if check.name == name:
-                return check
-        return None
-
-
 def render_status_message(msg):
     return f"{msg.level}: {msg.category}: {msg.message}"
 
@@ -72,25 +43,17 @@ def render_system_status(st):
     return [render_status_message(m) for m in st.messages]
 
 
-def check_dataset_status(cx, st: SystemStatus):
-    required = [
-        cx.admin_dataset,
-        cx.intake_dataset,
-        cx.pile_dataset,
-        f"{cx.static_dataset}/collection",
-    ]
-
-    for ds in required:
-        if not zfs.dataset_exists(ds):
-            st.warn("incomplete", f"missing dataset {ds}")
+def validation_issue_to_status_message(issue):
+    return StatusMessage(
+        level=issue.severity.value,
+        category=issue.code,
+        message=issue.message,
+    )
 
 
-def check_dataset_status(cx, st: SystemStatus):
-    issues = normalize.validate_dataset_contracts(cx)
-    for issue in issues:
-        st.warn(issue.code, issue.message)
-    if not issues:
-        st.ok("datasets", "all dataset contracts satisfied")
+def validation_report_to_status_messages(report):
+    return [validation_issue_to_status_message(i)
+            for i in report.issues]
 
 
 def check_transient_status(cx, st: SystemStatus):
@@ -153,7 +116,7 @@ def collect_system_status(cx, check=None):
 
     report = state.collect_validation_report(cx, include=validation_checks)
     st = SystemStatus()
-    st.messages.extend(state.validation_report_to_status_messages(report))
+    st.messages.extend(validation_report_to_status_messages(report))
     system_state = state.derive_operational_state(cx, report=report)
     st.messages.append(
         StatusMessage(
@@ -173,57 +136,6 @@ def collect_system_status(cx, check=None):
         check_pile_status(cx, st)
 
     if check in (None, "manifest"):
-        for pile in ("pile", "collection", "filing"):
-            collect_manifest_status(cx, st, pile)
+        check_manifest_status(cx, st)
 
     return st
-
-
-def check_snapshot_status(cx, st, max_age=None):
-
-    issues = state.collect_snapshot_validation(cx, max_age=max_age)
-    if issues:
-        st.messages.extend(
-            state.validation_report_to_status_messages(
-                state.ValidationReport(
-                    issues=issues,
-                )
-            )
-        )
-
-        warnings = [i.severity == state.ValidationSeverity.WARN
-                    for i in issues]
-        if any(warnings):
-            st.code = 1
-        return
-
-    dataset = cx.pile_dataset
-    name, ts = zfs.latest_snapshot_with_time(dataset)
-    age = util.now_epoch() - ts
-    st.ok("snapshot", f"fresh ({age} s)")
-
-
-def check_replication_status(cx, st):
-
-    issues = state.collect_replication_validation(cx)
-    if issues:
-        st.messages.extend(
-            state.validation_report_to_status_messages(
-                state.ValidationReport(
-                    issues=issues,
-                )
-            )
-        )
-        warnings = [i.severity == state.ValidationSeverity.WARN
-                    for i in issues]
-        if any(warnings):
-            st.code = 1
-        return
-
-    src_snap = zfs.latest_snapshot(cx.root_dataset)
-    if src_snap:
-        name = src_snap.split("@", 1)[1]
-    else:
-        name = "**MISSING**"
-
-    st.ok("replication", name)

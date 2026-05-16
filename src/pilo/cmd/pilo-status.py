@@ -10,8 +10,8 @@ def main():
     check = cx.args[0] if cx.args else None
     st = status.collect_system_status(cx, check=check)
 
-    for sm in st.messages:
-        print(status.render_status_message(sm))
+    for msg in status.render_system_status(st):
+        print(msg)
 
     exit(st.code)
 

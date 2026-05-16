@@ -17,6 +17,12 @@ class OperationalState(Enum):
     DEGRADED = "DEGRADED"
 
 
+class ValidationSeverity(Enum):
+    INFO = "INFO"
+    WARN = "WARN"
+    ERROR = "ERROR"
+
+
 @dataclass(frozen=True)
 class StateIssue:
     code: str
@@ -27,12 +33,6 @@ class StateIssue:
 class SystemState:
     state: OperationalState
     issues: list[StateIssue] = field(default_factory=list)
-
-
-class ValidationSeverity(Enum):
-    INFO = "INFO"
-    WARN = "WARN"
-    ERROR = "ERROR"
 
 
 @dataclass(frozen=True)
@@ -246,19 +246,3 @@ def collect_replication_validation(cx):
         )
 
     return issues
-
-
-def validation_issue_to_status_message(issue):
-    from .status import StatusMessage
-    return StatusMessage(
-        level=issue.severity.value,
-        category=issue.code,
-        message=issue.message,
-    )
-
-
-def validation_report_to_status_messages(report):
-    return [
-        validation_issue_to_status_message(i)
-        for i in report.issues
-    ]
