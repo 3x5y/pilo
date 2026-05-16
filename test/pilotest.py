@@ -1,4 +1,9 @@
-from contextlib import contextmanager, redirect_stderr, redirect_stdout
+from contextlib import (
+    ExitStack,
+    contextmanager,
+    redirect_stderr,
+    redirect_stdout,
+)
 import importlib
 from io import StringIO
 from pathlib import Path
@@ -90,6 +95,19 @@ def healthy_snapshot_state(snapshot="tank/a/pile@r1", ts=1000, now=1001):
     p1 = patch("pilo.zfs.latest_snapshot_with_time", return_value=snap_time)
     p2 = patch("pilo.util.now_epoch", return_value=now)
     with (p1, p2):
+        yield
+
+
+@contextmanager
+def healthy_system_state():
+    from pilo.back.replication import ReplicationStatus
+    p1 = patch("pilo.state.collect_snapshot_validation",
+               return_value=[])
+    p2 = patch("pilo.back.replication.replication_status",
+               return_value=(ReplicationStatus.OK, None))
+    with ExitStack() as stack:
+        stack.enter_context(p1)
+        stack.enter_context(p2)
         yield
 
 

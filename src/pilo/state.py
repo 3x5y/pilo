@@ -80,31 +80,29 @@ def derive_operational_state(cx):
             ],
         )
 
-    repl_state, repl_msg = replication.replication_status(
-        cx.root_dataset,
-        cx.replica_dataset,
-    )
+    replication_issues = [
+        i for i in report.issues
+        if i.component == "replication"
+    ]
 
-    if repl_state == replication.ReplicationStatus.DIVERGED:
+    diverged = [
+        i for i in replication_issues
+        if i.code == "replication.diverged"
+    ]
+
+    if diverged:
         return SystemState(
             state=OperationalState.REPLICATION_DIVERGED,
             issues=[
-                StateIssue(
-                    "replication.diverged",
-                    repl_msg or "replication diverged",
-                )
+                StateIssue(i.code, i.message)
+                for i in diverged
             ],
         )
 
-    behind = (replication.ReplicationStatus.BEHIND,
-              replication.ReplicationStatus.EMPTY)
-    if repl_state in behind:
-        issues.append(
-            StateIssue(
-                "replication.behind",
-                repl_msg or "replication behind",
-            )
-        )
+    issues.extend([
+        StateIssue(i.code, i.message)
+        for i in replication_issues
+    ])
 
     snapshot_issues = [i for i in report.issues
                        if i.component == "snapshot"]
@@ -137,7 +135,7 @@ def collect_validation_report(cx):
         for i in contract_issues
     ])
     report.extend(collect_snapshot_validation(cx))
-
+    report.extend(collect_replication_validation(cx))
     return report
 
 
@@ -183,4 +181,54 @@ def collect_snapshot_validation(cx):
                 component="snapshot",
             )
         )
+    return issues
+
+
+def collect_replication_validation(cx):
+
+    issues = []
+
+    repl_state, repl_msg = replication.replication_status(
+        cx.root_dataset,
+        cx.replica_dataset,
+    )
+
+    if repl_state == replication.ReplicationStatus.OK:
+        return issues
+
+    if repl_state == replication.ReplicationStatus.DIVERGED:
+        issues.append(
+            ValidationIssue(
+                code="replication.diverged",
+                message=repl_msg or "replication diverged",
+                severity=ValidationSeverity.ERROR,
+                component="replication",
+            )
+        )
+        return issues
+
+    behind = (replication.ReplicationStatus.BEHIND,
+              replication.ReplicationStatus.EMPTY)
+
+    if repl_state in behind:
+        issues.append(
+            ValidationIssue(
+                code="replication.behind",
+                message=repl_msg or "replication behind",
+                severity=ValidationSeverity.WARN,
+                component="replication",
+            )
+        )
+        return issues
+
+    if repl_state == replication.ReplicationStatus.UNKNOWN:
+        issues.append(
+            ValidationIssue(
+                code="replication.unknown",
+                message=repl_msg or "replication status unknown",
+                severity=ValidationSeverity.WARN,
+                component="replication",
+            )
+        )
+
     return issues

@@ -57,7 +57,7 @@ class TestOperationalState(pilotest.TestCase):
         ]
 
         cx = pilotest.make_context()
-        with pilotest.healthy_snapshot_state():
+        with pilotest.healthy_system_state():
             report = state.collect_validation_report(cx)
 
         self.assertEqual(len(report.issues), 1)
@@ -67,7 +67,7 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.normalize.validate_dataset_contracts", return_value=[])
     def test_collect_validation_report_empty(self, validate):
-        with pilotest.healthy_snapshot_state():
+        with pilotest.healthy_system_state():
             cx = pilotest.make_context()
             report = state.collect_validation_report(cx)
 
@@ -122,3 +122,52 @@ class TestOperationalState(pilotest.TestCase):
 
         self.assertEqual(st.state, state.OperationalState.DEGRADED)
         self.assertTrue(any(i.code == "snapshot.stale" for i in st.issues))
+
+    @patch("pilo.back.replication.replication_status")
+    def test_collect_replication_validation_behind(self, repl):
+        from pilo.back.replication import ReplicationStatus
+        repl.return_value = (ReplicationStatus.BEHIND, "behind in tank/b")
+        cx = pilotest.make_context()
+
+        issues = state.collect_replication_validation(cx)
+
+        self.assertEqual(len(issues), 1)
+        issue = issues[0]
+        self.assertEqual(issue.code, "replication.behind")
+        self.assertEqual(issue.component, "replication")
+
+    @patch("pilo.back.replication.replication_status")
+    def test_collect_replication_validation_diverged(self, repl):
+        from pilo.back.replication import ReplicationStatus
+        repl.return_value = (ReplicationStatus.DIVERGED, "diverged")
+        cx = pilotest.make_context()
+
+        issues = state.collect_replication_validation(cx)
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0].code, "replication.diverged")
+        self.assertEqual(issues[0].severity, state.ValidationSeverity.ERROR)
+
+    @patch("pilo.back.replication.replication_status")
+    def test_collect_replication_validation_ok(self, repl):
+        from pilo.back.replication import ReplicationStatus
+        repl.return_value = (ReplicationStatus.OK, None)
+        cx = pilotest.make_context()
+
+        issues = state.collect_replication_validation(cx)
+
+        self.assertEqual(issues, [])
+
+    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.replication.replication_status")
+    def test_replication_behind_degraded_state(self, repl, validate):
+        from pilo.back.replication import ReplicationStatus
+        validate.return_value = []
+        repl.return_value = (ReplicationStatus.BEHIND, "behind")
+        cx = pilotest.make_context()
+
+        with pilotest.healthy_snapshot_state():
+            st = state.derive_operational_state(cx)
+
+        self.assertEqual(st.state, state.OperationalState.DEGRADED)
+        self.assertTrue(any(i.code=="replication.behind" for i in st.issues))
