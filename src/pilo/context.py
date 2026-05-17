@@ -140,7 +140,6 @@ class Context:
             return None
 
         carrier = topology.carrier_root(self.replica_dataset)
-
         carrier_attached = topology.zfs.dataset_exists(carrier)
         dataset_exists = topology.zfs.dataset_exists(self.replica_dataset)
         initialized = False
@@ -155,7 +154,6 @@ class Context:
             carrier_attached=carrier_attached,
             dataset_exists=dataset_exists,
             initialized=initialized,
-            #current=dataset_exists,
             current=carrier_attached,
         )
 

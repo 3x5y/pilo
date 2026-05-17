@@ -27,15 +27,11 @@ def main():
     if status == repl.ReplicationStatus.OK:
         return
 
-    behind = (repl.ReplicationStatus.EMPTY,
-              repl.ReplicationStatus.BEHIND)
-    if status in behind:
-        repl.replicate(src, dst)
-    else:
-        if msg:
-            print(msg)
-        sys.exit(1)
+    if status != repl.ReplicationStatus.BEHIND:
+        print(f"STATUS={status.value}")
+        error.fatal(msg)
 
+    repl.replicate(src, dst)
     status, msg = repl.replication_status(src, dst)
 
     if status != repl.ReplicationStatus.OK:

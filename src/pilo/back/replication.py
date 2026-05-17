@@ -45,7 +45,7 @@ def replication_status(src, dst):
     dst_guid = zfs.get_latest_guid(dst)
 
     if not dst_guid:
-        return ReplicationStatus.EMPTY, "no snapshots on target"
+        return ReplicationStatus.EMPTY, "replica is uninitialized"
 
     mapping = context.DatasetMapping(src, dst)
 

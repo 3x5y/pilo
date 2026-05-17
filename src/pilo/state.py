@@ -186,10 +186,7 @@ def detect_system_state(cx):
             secondary=secondary.root,
         )
 
-    if repl_state in (
-        replication.ReplicationStatus.EMPTY,
-        replication.ReplicationStatus.BEHIND,
-    ):
+    if repl_state == replication.ReplicationStatus.BEHIND:
         return DetectedSystemState(
             state=SystemTopologyState.REPLICATION_BEHIND,
             message=repl_msg,
