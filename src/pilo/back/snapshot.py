@@ -35,13 +35,13 @@ def create_snapshot_with_policy(policy: SnapshotPolicy, dataset: str, ts=None):
 
 
 def create_prefixed_snapshot(prefix, dataset=None):
-    dataset = dataset or os.environ["PILO_ROOT"]
+    dataset = dataset or os.environ["PILO_PRIMARY_ROOT"]
     policy = SnapshotPolicy(prefix=prefix)
     return create_snapshot_with_policy(policy, dataset)
 
 
 def create_anchor(anchor_type, dataset=None):
-    dataset = dataset or os.environ["PILO_ROOT"]
+    dataset = dataset or os.environ["PILO_PRIMARY_ROOT"]
     if anchor_type == "daily":
         policy = SnapshotPolicy(prefix="daily", hold=False)
     elif anchor_type == "rotation":
@@ -52,6 +52,6 @@ def create_anchor(anchor_type, dataset=None):
 
 
 def create_snapshot(name, dataset=None):
-    dataset = dataset or os.environ["PILO_ROOT"]
+    dataset = dataset or os.environ["PILO_PRIMARY_ROOT"]
     policy = SnapshotPolicy(prefix=name, raw=True)
     return create_snapshot_with_policy(policy, dataset, ts="")

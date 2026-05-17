@@ -95,11 +95,10 @@ init_system() {
     : "${PILO_INTAKE_PATH:=$INTAKE_PATH}"
     : "${PILO_PILE_PATH:=$PILE_PATH}"
     : "${PILO_STATIC_PATH:=$STATIC_PATH}"
-    export PILO_USER=ubuntu
-    export PILO_ROOT=$root
-    export PILO_PATH=$mount
+    export PILO_PRIMARY_ROOT=$root
     export PILO_SECONDARY_ROOTS=$REPLICA_ROOT
-    export PILO_REPLICA_ROOT=$REPLICA_ROOT
+    export PILO_PATH=$mount
+    export PILO_USER=ubuntu
     export PILO_ADMIN_PATH
     export PILO_INTAKE_PATH
     export PILO_PILE_PATH
@@ -115,8 +114,7 @@ init_system() {
 }
 
 init_replica() {
-    export PILO_REPLICA_ROOT=$1/$(basename $PILO_ROOT)
-    export PILO_SECONDARY_ROOTS=$1/$(basename $PILO_ROOT)
+    export PILO_SECONDARY_ROOTS=$1/$(basename $PILO_PRIMARY_ROOT)
     zfs create -p -o mountpoint=none $1
 }
 

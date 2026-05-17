@@ -208,7 +208,6 @@ class TestOperationalState(pilotest.TestCase):
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_collect_replication_validation_missing_secondary(self, _):
         cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="",
             PILO_SECONDARY_ROOTS="",
         )
 

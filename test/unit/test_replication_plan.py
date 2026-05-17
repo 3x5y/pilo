@@ -118,8 +118,9 @@ class TestReplicateCommands(pilotest.TestCase):
         mod = pilotest.import_command("replicate")
 
         cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="",
+            PILO_SECONDARY_ROOTS="",
         )
+        cx.args = []
 
         with patch("pilo.context.Context", return_value=cx):
             with pilotest.assert_fatal(self):
@@ -146,7 +147,7 @@ class TestReplicateCommands(pilotest.TestCase):
         mod = pilotest.import_command("replicate-safe")
 
         cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="",
+            PILO_SECONDARY_ROOTS="",
         )
 
         with patch("pilo.context.Context", return_value=cx):
@@ -191,7 +192,7 @@ class TestReplicateCommands(pilotest.TestCase):
         mod = pilotest.import_command("replication-verify")
 
         cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="",
+            PILO_SECONDARY_ROOTS="",
         )
 
         with patch("pilo.context.Context", return_value=cx):

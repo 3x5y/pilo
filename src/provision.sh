@@ -82,8 +82,11 @@ destroy_pool $SEC_POOL $SEC_DEV
 init_pool $PRI_POOL $PRI_DEV
 init_pool $SEC_POOL $SEC_DEV
 
-init_primary $PILO_ROOT $PILO_PATH
-init_replica $PILO_REPLICA_ROOT $PILO_PATH
+init_primary $PILO_PRIMARY_ROOT $PILO_PATH
+for sec in $PILO_SECONDARY_ROOTS
+do
+    init_replica $sec $PILO_PATH
+done
 
 # unused for tests
 #init_secondary $SEC_POOL/sec $PILO_PATH

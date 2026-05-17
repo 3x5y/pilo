@@ -13,15 +13,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.zfs.latest_snapshot")
     def test_build_plan_root(self, mock_latest, mock_exists, *_):
         mock_latest.return_value = "backup/a@r-123"
-
-        def side_effect(ds):
-            # replica exists, target does NOT
-            if ds == "backup/a":
-                return True
-            if ds == "tank/a":
-                return False
-            return False
-        mock_exists.side_effect = side_effect
+        mock_exists.side_effect = lambda ds: ds in ("backup", "backup/a")
         cx = pilotest.make_context()
 
         plan = recover.build_recovery_plan(cx, "tank/a")
@@ -51,15 +43,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.zfs.latest_snapshot")
     def test_build_plan_subdataset(self, mock_latest, mock_exists, *_):
         mock_latest.return_value = "backup/a/foo@r-1"
-
-        def side_effect(ds):
-            # replica exists, target does NOT
-            if ds == "backup/a/foo":
-                return True
-            if ds == "tank/a/foo":
-                return False
-            return False
-        mock_exists.side_effect = side_effect
+        mock_exists.side_effect = lambda ds: ds in ("backup", "backup/a/foo")
 
         cx = pilotest.make_context()
 

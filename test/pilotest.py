@@ -49,8 +49,8 @@ def import_command(name):
 
 def make_environ(root, **kw):
     env = {
-        "PILO_ROOT": "tank/a",
-        "PILO_REPLICA_ROOT": "backup/a",
+        "PILO_PRIMARY_ROOT": "tank/a",
+        "PILO_SECONDARY_ROOTS": "backup/a",
         "PILO_ADMIN_DATASET": "tank/a/admin",
         "PILO_INTAKE_DATASET": "tank/a/intake",
         "PILO_PILE_DATASET": "tank/a/pile",

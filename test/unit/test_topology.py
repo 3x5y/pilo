@@ -110,16 +110,9 @@ class TestStorageTopology(pilotest.TestCase):
             topo.secondary_states()
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
-    def test_current_secondary_dataset_fallback(self, _):
-        cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="backup/legacy",
-        )
-        self.assertEqual("backup/legacy", cx.current_secondary_dataset)
-
-    @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_current_secondary_dataset_none(self, _):
         cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="",
+            PILO_SECONDARY_ROOTS="",
         )
         self.assertIsNone(cx.current_secondary_dataset)
 
@@ -196,16 +189,3 @@ class TestStorageTopology(pilotest.TestCase):
         self.assertIsNotNone(state)
         self.assertEqual(state.root, "backup/current")
         self.assertTrue(state.current)
-
-    @patch("pilo.zfs.dataset_exists", return_value=False)
-    def test_current_secondary_state_compat_fallback(self, _):
-        cx = pilotest.make_context(
-            PILO_REPLICA_ROOT="backup/legacy",
-        )
-
-        state = cx.current_secondary_state
-
-        self.assertEqual(state.root, "backup/legacy")
-        self.assertFalse(state.dataset_exists)
-        self.assertFalse(state.initialized)
-        self.assertFalse(state.current)

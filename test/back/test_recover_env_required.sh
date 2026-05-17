@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
 
-unset PILO_REPLICA_ROOT
 unset PILO_SECONDARY_ROOTS
-export PILO_REPLICA_ROOT PILO_SECONDARY_ROOTS
+export PILO_SECONDARY_ROOTS
 
 capture_status pilo recover
 

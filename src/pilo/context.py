@@ -80,23 +80,15 @@ class StoragePolicy:
 class Context:
     def __init__(self, environ=os.environ, args=sys.argv):
 
-        self.primary_root = environ.get(
-            "PILO_PRIMARY_ROOT",
-            environ["PILO_ROOT"],
-        )
+        self.primary_root = environ["PILO_PRIMARY_ROOT"]
         self.root_dataset = self.primary_root
 
-        secondary = environ.get(
-            "PILO_SECONDARY_ROOTS",
-            environ.get("PILO_REPLICA_ROOT", ""),
-        )
+        secondary = environ.get("PILO_SECONDARY_ROOTS", "")
         self.secondary_roots = [s for s in secondary.split() if s]
         self.topology = topology.StorageTopology(
             primary_root=self.primary_root,
             secondary_roots=self.secondary_roots,
         )
-        # compat
-        self.replica_dataset = environ.get("PILO_REPLICA_ROOT")
 
         self.admin_dataset = environ.get("PILO_ADMIN_DATASET") \
                                 or self.root_dataset + "/active/admin"
@@ -135,27 +127,7 @@ class Context:
         current = self.topology.current_secondary_state()
         if current:
             return current
-
-        if not self.replica_dataset:
-            return None
-
-        carrier = topology.carrier_root(self.replica_dataset)
-        carrier_attached = topology.zfs.dataset_exists(carrier)
-        dataset_exists = topology.zfs.dataset_exists(self.replica_dataset)
-        initialized = False
-        if dataset_exists:
-            initialized = bool(
-                topology.zfs.latest_snapshot(self.replica_dataset)
-            )
-
-        return topology.SecondaryState(
-            root=self.replica_dataset,
-            configured=True,
-            carrier_attached=carrier_attached,
-            dataset_exists=dataset_exists,
-            initialized=initialized,
-            current=carrier_attached,
-        )
+        return None
 
     def storage_policy(self, domain):
         return StoragePolicy.for_domain(self, domain)
