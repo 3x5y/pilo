@@ -72,28 +72,6 @@ def replication_status(src, dst):
     return ReplicationStatus.OK, None
 
 
-def build_replication_plan(src, dst):
-    last_src = zfs.latest_snapshot(src)
-    last_dst = zfs.latest_snapshot(dst)
-
-    if not last_src:
-        error.fatal("no source snapshot")
-
-    checks.require_dataset(src)
-    if not last_dst:
-        return ReplicationPlan( src, dst, last_src, None, "full")
-
-    base = find_incremental_base(src, dst)
-
-    if not base:
-        error.fatal(f"base snapshot missing on source: {base}")
-
-    if base == last_src:
-        return ReplicationPlan(src, dst, last_src, base, "noop")
-
-    return ReplicationPlan(src, dst, last_src, base, "incremental")
-
-
 def build_seed_replication_plan(src, dst):
     checks.require_dataset(src)
 
