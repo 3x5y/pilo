@@ -103,21 +103,16 @@ def collect_manifest_status(cx, st, subset):
         st.warn("manifest", f"{subset} verification failed")
 
 
-
 def collect_system_status(cx, check=None):
 
-    validation_checks = {
-        "datasets",
-        "snapshot",
-        "replication",
-    }
+    include = {"datasets", "snapshot", "replication" }
     if check is not None:
-        validation_checks = {check}
+        include = {check}
 
-    report = state.collect_validation_report(cx, include=validation_checks)
+    report = state.collect_validation_report(cx, include=include)
+    system_state = state.derive_operational_state(cx, report=report)
     st = SystemStatus()
     st.messages.extend(validation_report_to_status_messages(report))
-    system_state = state.derive_operational_state(cx, report=report)
     st.messages.append(
         StatusMessage(
             level="INFO",

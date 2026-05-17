@@ -87,15 +87,12 @@ def derive_operational_state(cx, report=None):
     if report is None:
         report = collect_validation_report(cx)
 
-    dataset_issues = [i for i in report.issues
-                      if i.component == "datasets"]
+    dataset_issues = [i for i in report.issues if i.component == "datasets"]
     if dataset_issues:
+        issues = [StateIssue(i.code, i.message) for i in dataset_issues]
         return SystemState(
             state=OperationalState.INCOMPLETE,
-            issues=[
-                StateIssue(i.code, i.message)
-                for i in dataset_issues
-            ],
+            issues=issues,
         )
 
     replication_issues = [
@@ -107,35 +104,27 @@ def derive_operational_state(cx, report=None):
         i for i in replication_issues
         if i.code == "replication.diverged"
     ]
-
     if diverged:
+        issues = [StateIssue(i.code, i.message)
+                  for i in diverged]
         return SystemState(
             state=OperationalState.REPLICATION_DIVERGED,
-            issues=[
-                StateIssue(i.code, i.message)
-                for i in diverged
-            ],
+            issues=issues,
         )
 
-    issues.extend([
-        StateIssue(i.code, i.message)
-        for i in replication_issues
-    ])
-
-    snapshot_issues = [i for i in report.issues
-                       if i.component == "snapshot"]
     issues.extend([StateIssue(i.code, i.message)
-                   for i in snapshot_issues])
+                   for i in replication_issues])
 
+    issues.extend([StateIssue(i.code, i.message)
+                   for i in report.issues
+                   if i.component == "snapshot"])
     if issues:
         return SystemState(
             state=OperationalState.DEGRADED,
             issues=issues,
         )
 
-    return SystemState(
-        state=OperationalState.HEALTHY,
-    )
+    return SystemState(state=OperationalState.HEALTHY)
 
 
 def detect_system_state(cx):
@@ -207,27 +196,18 @@ def detect_system_state(cx):
     )
 
 
+def collect_dataset_validation(cx):
+    return normalize.validate_dataset_contracts(cx)
+
+
 def collect_validation_report(cx, include=None):
     if include is None:
-        include = {
-            "datasets",
-            "snapshot",
-            "replication",
-        }
+        include = {"datasets", "snapshot", "replication"}
 
     report = ValidationReport()
-    if "datasets" in include:
-        contract_issues = normalize.validate_dataset_contracts(cx)
 
-        report.extend([
-            ValidationIssue(
-                code=i.code,
-                message=i.message,
-                severity=ValidationSeverity.ERROR,
-                component="datasets",
-            )
-            for i in contract_issues
-        ])
+    if "datasets" in include:
+        report.extend(collect_dataset_validation(cx))
 
     if "snapshot" in include:
         report.extend(collect_snapshot_validation(cx))

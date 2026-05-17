@@ -14,13 +14,6 @@ class DatasetContract:
     mount_attr: str | None = None
 
 
-@dataclass(frozen=True)
-class DatasetValidationIssue:
-    dataset: str
-    code: str
-    message: str
-
-
 class dataset_contracts:
 
     ALL = [
@@ -155,14 +148,16 @@ def normalize_system(cx):
 
 
 def validate_dataset_contract(cx, contract):
+    from .state import ValidationIssue,ValidationSeverity
     issues = []
     dataset = contract_dataset(cx, contract)
     if not zfs.dataset_exists(dataset):
         issues.append(
-            DatasetValidationIssue(
-                dataset=dataset,
+            ValidationIssue(
                 code="missing.required.dataset",
                 message=f"missing dataset {dataset}",
+                severity=ValidationSeverity.ERROR,
+                component="datasets",
             )
         )
         return issues
@@ -171,13 +166,14 @@ def validate_dataset_contract(cx, contract):
         if contract.readonly is not None:
             if readonly != contract.readonly:
                 issues.append(
-                    DatasetValidationIssue(
-                        dataset=dataset,
+                    ValidationIssue(
                         code="invalid.readonly",
                         message=(
                             f"{dataset} readonly="
                             f"{readonly} expected={contract.readonly}"
                         ),
+                        severity=ValidationSeverity.ERROR,
+                        component="datasets",
                     )
                 )
     return issues

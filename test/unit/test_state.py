@@ -9,13 +9,12 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.normalize.validate_dataset_contracts")
     def test_incomplete_state(self, validate):
-        from pilo.normalize import DatasetValidationIssue
-
         validate.return_value = [
-            DatasetValidationIssue(
-                dataset="tank/test",
+            state.ValidationIssue(
                 code="missing.required.dataset",
-                message="missing dataset",
+                message="missing dataset tank/test",
+                severity=state.ValidationSeverity.ERROR,
+                component="datasets",
             )
         ]
         cx = pilotest.make_context()
@@ -53,12 +52,12 @@ class TestOperationalState(pilotest.TestCase):
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.normalize.validate_dataset_contracts")
     def test_collect_validation_report(self, validate, *_):
-        from pilo.normalize import DatasetValidationIssue
         validate.return_value = [
-            DatasetValidationIssue(
-                dataset="tank/x",
+            state.ValidationIssue(
                 code="missing.required.dataset",
-                message="missing dataset",
+                message=f"missing dataset tank/x",
+                severity=state.ValidationSeverity.ERROR,
+                component="datasets",
             )
         ]
 
