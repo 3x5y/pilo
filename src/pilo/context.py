@@ -155,7 +155,8 @@ class Context:
             carrier_attached=carrier_attached,
             dataset_exists=dataset_exists,
             initialized=initialized,
-            current=dataset_exists,
+            #current=dataset_exists,
+            current=carrier_attached,
         )
 
     def storage_policy(self, domain):

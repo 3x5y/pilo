@@ -44,22 +44,22 @@ class StorageTopology:
                 initialized=initialized,
                 current=False,
             )
-            #if carrier_attached:
-            #    attached.append(state)
-            if dataset_exists:
-                existing.append(state)
+            if carrier_attached:
+                attached.append(state)
+            #if dataset_exists:
+            #    existing.append(state)
             states.append(state)
 
-        #if len(attached) > 1:
-        if len(existing) > 1:
+        if len(attached) > 1:
+        #if len(existing) > 1:
             raise RuntimeError(
                 f"multiple secondary roots attached: "
-                #f"{[s.root for s in attached]}"
-                f"{[s.root for s in existing]}"
+                f"{[s.root for s in attached]}"
+                #f"{[s.root for s in existing]}"
             )
 
-        #current_root = attached[0].root if attached else None
-        current_root = existing[0].root if existing else None
+        current_root = attached[0].root if attached else None
+        #current_root = existing[0].root if existing else None
         return [
             SecondaryState(
                 root=s.root,
@@ -76,8 +76,8 @@ class StorageTopology:
     def attached_secondary_roots(self):
         return [
             s.root for s in self.secondary_states()
-            #if s.carrier_attached
-            if s.dataset_exists
+            if s.carrier_attached
+            #if s.dataset_exists
         ]
 
     def current_secondary_state(self):

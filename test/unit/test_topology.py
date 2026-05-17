@@ -10,7 +10,10 @@ class TestStorageTopology(pilotest.TestCase):
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists")
     def test_detect_attached_secondary(self, exists, latest):
-        exists.side_effect = lambda ds: ds == "backup/a"
+
+        exists.side_effect = (
+            lambda ds: ds in ("backup", "backup/a")
+        )
 
         latest.side_effect = (
             lambda ds: "backup/a@t0"
@@ -22,7 +25,7 @@ class TestStorageTopology(pilotest.TestCase):
             primary_root="tank/a",
             secondary_roots=[
                 "backup/a",
-                "backup/b",
+                "offline/a",
             ],
         )
 
@@ -60,13 +63,51 @@ class TestStorageTopology(pilotest.TestCase):
             topo.current_secondary_root()
 
     @patch("pilo.zfs.dataset_exists")
-    def test_current_secondary_dataset_prefers_topology(self, mock_exists):
-        mock_exists.side_effect = lambda ds: ds in ("backup", "backup/current")
-        cx = pilotest.make_context(
-            PILO_SECONDARY_ROOTS="backup/old backup/current",
-            PILO_REPLICA_ROOT="backup/legacy",
+    def test_current_secondary_dataset_multiple_attached_invalid(
+        self,
+        mock_exists,
+    ):
+        mock_exists.side_effect = (
+            lambda ds: ds in (
+                "backup1",
+                "backup1/current",
+                "backup2",
+                "backup2/current",
+            )
         )
-        self.assertEqual("backup/current", cx.current_secondary_dataset)
+
+        cx = pilotest.make_context(
+            PILO_SECONDARY_ROOTS=(
+                "backup1/current "
+                "backup2/current"
+            ),
+        )
+
+        with self.assertRaises(RuntimeError):
+            _ = cx.current_secondary_dataset
+
+    @patch("pilo.zfs.dataset_exists")
+    def test_multiple_imported_secondaries_invalid(self, exists):
+
+        exists.side_effect = (
+            lambda ds: ds in (
+                "backup1",
+                "backup1/current",
+                "backup2",
+                "backup2/current",
+            )
+        )
+
+        topo = topology.StorageTopology(
+            primary_root="tank/a",
+            secondary_roots=[
+                "backup1/current",
+                "backup2/current",
+            ],
+        )
+
+        with self.assertRaises(RuntimeError):
+            topo.secondary_states()
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     def test_current_secondary_dataset_fallback(self, _):
@@ -85,8 +126,12 @@ class TestStorageTopology(pilotest.TestCase):
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists")
     def test_secondary_states(self, exists, latest):
+
         exists.side_effect = (
-            lambda ds: ds in ("backup", "backup/current")
+            lambda ds: ds in (
+                "backup",
+                "backup/current",
+            )
         )
 
         latest.side_effect = (
@@ -98,7 +143,7 @@ class TestStorageTopology(pilotest.TestCase):
         topo = topology.StorageTopology(
             primary_root="tank/a",
             secondary_roots=[
-                "backup/old",
+                "offline/old",
                 "backup/current",
             ],
         )
@@ -108,15 +153,15 @@ class TestStorageTopology(pilotest.TestCase):
         self.assertEqual(len(states), 2)
 
         old = states[0]
-        self.assertEqual(old.root, "backup/old")
-        self.assertTrue(old.configured)
+        self.assertEqual(old.root, "offline/old")
+        self.assertFalse(old.carrier_attached)
         self.assertFalse(old.dataset_exists)
         self.assertFalse(old.initialized)
         self.assertFalse(old.current)
 
         cur = states[1]
         self.assertEqual(cur.root, "backup/current")
-        self.assertTrue(cur.configured)
+        self.assertTrue(cur.carrier_attached)
         self.assertTrue(cur.dataset_exists)
         self.assertTrue(cur.initialized)
         self.assertTrue(cur.current)
@@ -126,7 +171,10 @@ class TestStorageTopology(pilotest.TestCase):
     def test_current_secondary_state(self, exists, latest):
 
         exists.side_effect = (
-            lambda ds: ds in ("backup", "backup/current")
+            lambda ds: ds in (
+                "backup",
+                "backup/current",
+            )
         )
 
         latest.side_effect = (
@@ -134,10 +182,11 @@ class TestStorageTopology(pilotest.TestCase):
             if ds == "backup/current"
             else None
         )
+
         topo = topology.StorageTopology(
             primary_root="tank/a",
             secondary_roots=[
-                "backup/old",
+                "offline/old",
                 "backup/current",
             ],
         )
