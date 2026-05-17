@@ -5,7 +5,6 @@ from .. import context
 from .. import error
 from .. import normalize
 from .. import state
-from .. import zfs
 from . import restore
 
 
@@ -16,18 +15,6 @@ class RecoveryPlan:
     replica: str
     snapshot: str
     recursive: bool
-
-
-def recover_dataset_tree(cx, target, replica, require_new=True):
-    plan = build_recovery_plan(cx, target)
-    execute_recovery_plan(plan)
-    # normalise dataset properties
-    normalize.apply_dataset_contract(cx)
-    # ensure datasets are mountable and mounted
-    zfs.mount()
-    # Optional: runtime + ownership (debatable)
-    #ensure_runtime_dirs(cx)
-    #apply_ownership(cx)
 
 
 def build_recovery_plan(cx, target):
