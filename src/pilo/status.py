@@ -43,19 +43,6 @@ def render_system_status(st):
     return [render_status_message(m) for m in st.messages]
 
 
-def validation_issue_to_status_message(issue):
-    return StatusMessage(
-        level=issue.severity.value,
-        category=issue.code,
-        message=issue.message,
-    )
-
-
-def validation_report_to_status_messages(report):
-    return [validation_issue_to_status_message(i)
-            for i in report.issues]
-
-
 def check_transient_status(cx, st: SystemStatus):
     for git_dir in cx.admin_path.rglob(".git"):
         repo = git_dir.parent
@@ -110,14 +97,22 @@ def collect_system_status(cx, check=None):
         include = {check}
 
     report = state.collect_validation_report(cx, include=include)
-    system_state = state.derive_operational_state(cx, report=report)
     st = SystemStatus()
-    st.messages.extend(validation_report_to_status_messages(report))
+    for issue in report.issues:
+        st.messages.append(
+            StatusMessage(
+                level=issue.severity.value,
+                category=issue.code,
+                message=issue.message,
+            )
+        )
+
+    detected = state.detect_system_state(cx)
     st.messages.append(
         StatusMessage(
             level="INFO",
-            category="state",
-            message=system_state.state.name,
+            category="lifecycle",
+            message=detected.state.name,
         )
     )
 

@@ -2,6 +2,7 @@
 set -e
 
 pilo snapshot stale
+pilo replica-seed
 sleep 2
 
 export CONFIG_SNAPSHOT_MAX_AGE=1

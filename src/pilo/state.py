@@ -8,15 +8,6 @@ from . import zfs
 from .back import replication
 
 
-class OperationalState(Enum):
-    HEALTHY = "HEALTHY"
-    INCOMPLETE = "INCOMPLETE"
-    STALE_SNAPSHOTS = "STALE_SNAPSHOTS"
-    REPLICATION_BEHIND = "REPLICATION_BEHIND"
-    REPLICATION_DIVERGED = "REPLICATION_DIVERGED"
-    DEGRADED = "DEGRADED"
-
-
 class SystemTopologyState(Enum):
     NORMAL = "NORMAL"
     REPLICA_UNINITIALIZED = "REPLICA_UNINITIALIZED"
@@ -31,18 +22,6 @@ class ValidationSeverity(Enum):
     INFO = "INFO"
     WARN = "WARN"
     ERROR = "ERROR"
-
-
-@dataclass(frozen=True)
-class StateIssue:
-    code: str
-    message: str
-
-
-@dataclass
-class SystemState:
-    state: OperationalState
-    issues: list[StateIssue] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -67,6 +46,18 @@ class ValidationReport:
     def extend(self, issues):
         self.issues.extend(issues)
 
+    def by_code(self, code):
+        return [
+            i for i in self.issues
+            if i.code == code
+        ]
+
+    def by_component(self, component):
+        return [
+            i for i in self.issues
+            if i.component == component
+        ]
+
     @property
     def has_errors(self):
         return any(
@@ -74,57 +65,33 @@ class ValidationReport:
             for i in self.issues
         )
 
-    def issues_by_code(self, code):
+    @property
+    def warnings(self):
         return [
             i for i in self.issues
-            if i.code == code
+            if i.severity == ValidationSeverity.WARN
         ]
 
+    @property
+    def errors(self):
+        return [
+            i for i in self.issues
+            if i.severity == ValidationSeverity.ERROR
+        ]
 
-def derive_operational_state(cx, report=None):
+    @property
+    def is_healthy(self):
+        return not self.issues
 
-    issues = []
-    if report is None:
-        report = collect_validation_report(cx)
+    @property
+    def highest_severity(self):
+        if self.errors:
+            return ValidationSeverity.ERROR
 
-    dataset_issues = [i for i in report.issues if i.component == "datasets"]
-    if dataset_issues:
-        issues = [StateIssue(i.code, i.message) for i in dataset_issues]
-        return SystemState(
-            state=OperationalState.INCOMPLETE,
-            issues=issues,
-        )
+        if self.warnings:
+            return ValidationSeverity.WARN
 
-    replication_issues = [
-        i for i in report.issues
-        if i.component == "replication"
-    ]
-
-    diverged = [
-        i for i in replication_issues
-        if i.code == "replication.diverged"
-    ]
-    if diverged:
-        issues = [StateIssue(i.code, i.message)
-                  for i in diverged]
-        return SystemState(
-            state=OperationalState.REPLICATION_DIVERGED,
-            issues=issues,
-        )
-
-    issues.extend([StateIssue(i.code, i.message)
-                   for i in replication_issues])
-
-    issues.extend([StateIssue(i.code, i.message)
-                   for i in report.issues
-                   if i.component == "snapshot"])
-    if issues:
-        return SystemState(
-            state=OperationalState.DEGRADED,
-            issues=issues,
-        )
-
-    return SystemState(state=OperationalState.HEALTHY)
+        return ValidationSeverity.INFO
 
 
 def detect_system_state(cx):

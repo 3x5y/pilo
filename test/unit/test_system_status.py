@@ -189,29 +189,6 @@ class TestSystemStatusModel(pilotest.TestCase):
 
         self.assertEqual(mock_manifest.call_count, 3)
 
-    def test_validation_issues_rendered_into_messages(self):
-        report = state.ValidationReport(
-            issues=[
-                state.ValidationIssue(
-                    code="snapshot.stale",
-                    message="snapshot stale",
-                    severity=state.ValidationSeverity.WARN,
-                    component="snapshot",
-                )
-            ]
-        )
-
-        msgs = status.validation_report_to_status_messages(report)
-
-        self.assertEqual(len(msgs), 1)
-        self.assertEqual(
-            msgs[0],
-            status.StatusMessage(
-                level="WARN",
-                category="snapshot.stale",
-                message="snapshot stale",
-            )
-        )
 
 @unittest.skip('dead code')
 class TestStatusRegistry(pilotest.TestCase):

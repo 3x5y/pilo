@@ -18,8 +18,8 @@ class TestOperationalState(pilotest.TestCase):
             )
         ]
         cx = pilotest.make_context()
-        st = state.derive_operational_state(cx)
-        self.assertEqual(st.state, state.OperationalState.INCOMPLETE)
+        report = state.collect_validation_report(cx)
+        self.assertEqual(len(report.by_code("missing.required.dataset")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -30,8 +30,8 @@ class TestOperationalState(pilotest.TestCase):
         from pilo.back.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.DIVERGED, "diverged")
         cx = pilotest.make_context()
-        st = state.derive_operational_state(cx)
-        self.assertEqual(st.state, state.OperationalState.REPLICATION_DIVERGED)
+        report = state.collect_validation_report(cx)
+        self.assertEqual(len(report.by_code("replication.diverged")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -44,9 +44,9 @@ class TestOperationalState(pilotest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.healthy_snapshot_state():
-            st = state.derive_operational_state(cx)
+            report = state.collect_validation_report(cx)
 
-        self.assertEqual(st.state, state.OperationalState.HEALTHY)
+        self.assertEqual(report.issues, [])
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -126,10 +126,10 @@ class TestOperationalState(pilotest.TestCase):
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=0, now=1000):
             with patch.dict("os.environ", env):
-                st = state.derive_operational_state(cx)
+                report = state.collect_validation_report(cx)
 
-        self.assertEqual(st.state, state.OperationalState.DEGRADED)
-        self.assertTrue(any(i.code == "snapshot.stale" for i in st.issues))
+        #self.assertEqual(st.state, state.OperationalState.DEGRADED)
+        self.assertEqual(len(report.by_code("snapshot.stale")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -183,10 +183,10 @@ class TestOperationalState(pilotest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.healthy_snapshot_state():
-            st = state.derive_operational_state(cx)
+            report = state.collect_validation_report(cx)
 
-        self.assertEqual(st.state, state.OperationalState.DEGRADED)
-        self.assertTrue(any(i.code=="replication.behind" for i in st.issues))
+        #self.assertEqual(st.state, state.OperationalState.DEGRADED)
+        self.assertEqual(len(report.by_code("replication.behind")), 1)
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
     @patch("pilo.back.replication.replication_status")
@@ -198,10 +198,7 @@ class TestOperationalState(pilotest.TestCase):
         issues = state.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
-        self.assertEqual(
-            issues[0].code,
-            "replication.secondary_missing",
-        )
+        self.assertEqual(issues[0].code, "replication.secondary_missing")
         repl.assert_not_called()
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
@@ -213,10 +210,7 @@ class TestOperationalState(pilotest.TestCase):
         issues = state.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
-        self.assertEqual(
-            issues[0].code,
-            "replication.secondary_missing",
-        )
+        self.assertEqual(issues[0].code, "replication.secondary_missing")
 
     @patch("pilo.state.detect_system_state")
     def test_collect_replication_validation_uses_classifier(self, detect):
@@ -228,12 +222,9 @@ class TestOperationalState(pilotest.TestCase):
         issues = state.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
-        self.assertEqual(
-            issues[0].code,
-            "replication.behind",
-        )
-
+        self.assertEqual(issues[0].code, "replication.behind")
         detect.assert_called_once_with(cx)
+
 
 class TestSystemClassifier(pilotest.TestCase):
 
