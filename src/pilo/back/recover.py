@@ -19,7 +19,7 @@ class RecoveryPlan:
 
 def build_recovery_plan(cx, target):
 
-    detected = state.detect_system_state(cx)
+    detected = state.detect_lifecycle(cx)
     if detected.secondary is None:
         error.fatal(detected.message or "no secondary available")
 

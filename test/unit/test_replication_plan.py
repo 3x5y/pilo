@@ -132,9 +132,9 @@ class TestReplicateCommands(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
         p1 = patch(
-            "pilo.state.detect_system_state",
-            return_value=state.DetectedSystemState(
-                state=state.SystemTopologyState.REPLICA_MISSING,
+            "pilo.state.detect_lifecycle",
+            return_value=state.LifecycleStatus(
+                state=state.LifecycleState.REPLICA_MISSING,
                 message="secondary unattached: backup/a",
                 secondary=None,
             ),
@@ -158,12 +158,12 @@ class TestReplicateCommands(pilotest.TestCase):
     def test_replicate_safe_uses_classifier_secondary(self, *_):
         mod = pilotest.import_command("replicate-safe")
         cx = pilotest.make_context()
-        detected = state.DetectedSystemState(
-            state=state.SystemTopologyState.REPLICATION_BEHIND,
+        detected = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_BEHIND,
             message="behind",
             secondary="backup/a",
         )
-        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
         p3 = patch("pilo.back.replication.replication_status",
                    side_effect=[
@@ -177,12 +177,12 @@ class TestReplicateCommands(pilotest.TestCase):
     def test_replicate_safe_blocks_diverged_topology(self):
         mod = pilotest.import_command("replicate-safe")
         cx = pilotest.make_context()
-        detected = state.DetectedSystemState(
-            state=state.SystemTopologyState.REPLICATION_DIVERGED,
+        detected = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
             message="divergence in backup/a",
             secondary="backup/a",
         )
-        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2, pilotest.assert_fatal(self)):
@@ -206,13 +206,13 @@ class TestReplicateCommands(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        detected = state.DetectedSystemState(
-            state=state.SystemTopologyState.REPLICA_UNINITIALIZED,
+        detected = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
             message="secondary uninitialized",
             secondary="backup/a",
         )
 
-        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2):
@@ -228,13 +228,13 @@ class TestReplicateCommands(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
 
-        detected = state.DetectedSystemState(
-            state=state.SystemTopologyState.REPLICA_UNINITIALIZED,
+        detected = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
             message="secondary uninitialized",
             secondary="backup/a",
         )
 
-        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2, pilotest.assert_fatal(self)):

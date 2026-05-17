@@ -107,7 +107,7 @@ def collect_system_status(cx, check=None):
             )
         )
 
-    detected = state.detect_system_state(cx)
+    detected = state.detect_lifecycle(cx)
     st.messages.append(
         StatusMessage(
             level="INFO",

@@ -11,12 +11,12 @@ from pilo.back import replication as repl
 def main():
     cx = context.Context()
 
-    detected = state.detect_system_state(cx)
+    detected = state.detect_lifecycle(cx)
 
     if detected.secondary is None:
         error.fatal(detected.message or "no secondary available")
 
-    if detected.state == state.SystemTopologyState.REPLICATION_DIVERGED:
+    if detected.state == state.LifecycleState.REPLICATION_DIVERGED:
         error.fatal(detected.message or "replication diverged")
 
     src = cx.root_dataset

@@ -8,27 +8,27 @@ from . import zfs
 from .back import replication
 
 
-class SystemTopologyState(Enum):
+class LifecycleState(Enum):
     NORMAL = "NORMAL"
-    REPLICA_UNINITIALIZED = "REPLICA_UNINITIALIZED"
     REPLICA_MISSING = "REPLICA_MISSING"
+    REPLICA_UNINITIALIZED = "REPLICA_UNINITIALIZED"
     REPLICATION_BEHIND = "REPLICATION_BEHIND"
     REPLICATION_DIVERGED = "REPLICATION_DIVERGED"
     INVALID_TOPOLOGY = "INVALID_TOPOLOGY"
     UNKNOWN = "UNKNOWN"
 
 
+@dataclass(frozen=True)
+class LifecycleStatus:
+    state: LifecycleState
+    message: str | None = None
+    secondary: topology.SecondaryState | None = None
+
+
 class ValidationSeverity(Enum):
     INFO = "INFO"
     WARN = "WARN"
     ERROR = "ERROR"
-
-
-@dataclass(frozen=True)
-class DetectedSystemState:
-    state: SystemTopologyState
-    message: str | None = None
-    secondary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -94,39 +94,39 @@ class ValidationReport:
         return ValidationSeverity.INFO
 
 
-def detect_system_state(cx):
+def detect_lifecycle(cx):
 
     try:
         secondary = cx.current_secondary_state
     except RuntimeError as e:
-        return DetectedSystemState(
-            state=SystemTopologyState.INVALID_TOPOLOGY,
+        return LifecycleStatus(
+            state=LifecycleState.INVALID_TOPOLOGY,
             message=str(e),
         )
 
     if not secondary:
-        return DetectedSystemState(
-            state=SystemTopologyState.REPLICA_MISSING,
+        return LifecycleStatus(
+            state=LifecycleState.REPLICA_MISSING,
             message="no secondary configured",
         )
 
     if not secondary.carrier_attached:
-        return DetectedSystemState(
-            state=SystemTopologyState.REPLICA_MISSING,
+        return LifecycleStatus(
+            state=LifecycleState.REPLICA_MISSING,
             message=f"secondary unattached: {secondary.root}",
             secondary=secondary.root,
         )
 
     if not secondary.dataset_exists:
-        return DetectedSystemState(
-            state=SystemTopologyState.REPLICA_UNINITIALIZED,
+        return LifecycleStatus(
+            state=LifecycleState.REPLICA_UNINITIALIZED,
             message=f"secondary dataset missing: {secondary.root}",
             secondary=secondary.root,
         )
 
     if not secondary.initialized:
-        return DetectedSystemState(
-            state=SystemTopologyState.REPLICA_UNINITIALIZED,
+        return LifecycleStatus(
+            state=LifecycleState.REPLICA_UNINITIALIZED,
             message=f"secondary uninitialized: {secondary.root}",
             secondary=secondary.root,
         )
@@ -137,27 +137,27 @@ def detect_system_state(cx):
     )
 
     if repl_state == replication.ReplicationStatus.OK:
-        return DetectedSystemState(
-            state=SystemTopologyState.NORMAL,
+        return LifecycleStatus(
+            state=LifecycleState.NORMAL,
             secondary=secondary.root,
         )
 
     if repl_state == replication.ReplicationStatus.BEHIND:
-        return DetectedSystemState(
-            state=SystemTopologyState.REPLICATION_BEHIND,
+        return LifecycleStatus(
+            state=LifecycleState.REPLICATION_BEHIND,
             message=repl_msg,
             secondary=secondary.root,
         )
 
     if repl_state == replication.ReplicationStatus.DIVERGED:
-        return DetectedSystemState(
-            state=SystemTopologyState.REPLICATION_DIVERGED,
+        return LifecycleStatus(
+            state=LifecycleState.REPLICATION_DIVERGED,
             message=repl_msg,
             secondary=secondary.root,
         )
 
-    return DetectedSystemState(
-        state=SystemTopologyState.UNKNOWN,
+    return LifecycleStatus(
+        state=LifecycleState.UNKNOWN,
         message=repl_msg,
         secondary=secondary.root,
     )
@@ -235,12 +235,12 @@ def collect_replication_validation(cx):
 
     issues = []
 
-    detected = detect_system_state(cx)
+    detected = detect_lifecycle(cx)
 
-    if detected.state == SystemTopologyState.NORMAL:
+    if detected.state == LifecycleState.NORMAL:
         return issues
 
-    if detected.state == SystemTopologyState.REPLICA_MISSING:
+    if detected.state == LifecycleState.REPLICA_MISSING:
         issues.append(
             ValidationIssue(
                 code="replication.secondary_missing",
@@ -251,7 +251,7 @@ def collect_replication_validation(cx):
         )
         return issues
 
-    if detected.state == SystemTopologyState.REPLICA_UNINITIALIZED:
+    if detected.state == LifecycleState.REPLICA_UNINITIALIZED:
         issues.append(
             ValidationIssue(
                 code="replication.uninitialized",
@@ -262,7 +262,7 @@ def collect_replication_validation(cx):
         )
         return issues
 
-    if detected.state == SystemTopologyState.REPLICATION_BEHIND:
+    if detected.state == LifecycleState.REPLICATION_BEHIND:
         issues.append(
             ValidationIssue(
                 code="replication.behind",
@@ -273,7 +273,7 @@ def collect_replication_validation(cx):
         )
         return issues
 
-    if detected.state == SystemTopologyState.REPLICATION_DIVERGED:
+    if detected.state == LifecycleState.REPLICATION_DIVERGED:
         issues.append(
             ValidationIssue(
                 code="replication.diverged",
@@ -284,7 +284,7 @@ def collect_replication_validation(cx):
         )
         return issues
 
-    if detected.state == SystemTopologyState.INVALID_TOPOLOGY:
+    if detected.state == LifecycleState.INVALID_TOPOLOGY:
         issues.append(
             ValidationIssue(
                 code="topology.invalid",

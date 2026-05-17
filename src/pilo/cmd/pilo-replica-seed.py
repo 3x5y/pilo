@@ -10,12 +10,12 @@ def main():
 
     cx = context.Context()
 
-    detected = state.detect_system_state(cx)
+    detected = state.detect_lifecycle(cx)
 
     if detected.secondary is None:
         error.fatal(detected.message or "no secondary available")
 
-    if detected.state != state.SystemTopologyState.REPLICA_UNINITIALIZED:
+    if detected.state != state.LifecycleState.REPLICA_UNINITIALIZED:
         error.fatal("secondary already initialized")
 
     repl.execute_replication_plan(

@@ -204,7 +204,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists")
     @patch("pilo.zfs.latest_snapshot")
-    @patch("pilo.state.detect_system_state")
+    @patch("pilo.state.detect_lifecycle")
     def test_build_plan_uses_detected_secondary(
         self,
         mock_detect,
@@ -212,8 +212,8 @@ class TestRecoveryPlan(pilotest.TestCase):
         mock_exists,
         *_,
     ):
-        mock_detect.return_value = state.DetectedSystemState(
-            state=state.SystemTopologyState.NORMAL,
+        mock_detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
             secondary="backup/a",
         )
 

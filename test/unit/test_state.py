@@ -212,10 +212,10 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.secondary_missing")
 
-    @patch("pilo.state.detect_system_state")
+    @patch("pilo.state.detect_lifecycle")
     def test_collect_replication_validation_uses_classifier(self, detect):
-        detect.return_value = state.DetectedSystemState(
-            state=state.SystemTopologyState.REPLICATION_BEHIND,
+        detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_BEHIND,
             message="behind",
         )
         cx = pilotest.make_context()
@@ -234,11 +234,11 @@ class TestSystemClassifier(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
 
-        st = state.detect_system_state(cx)
+        st = state.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.SystemTopologyState.REPLICA_MISSING,
+            state.LifecycleState.REPLICA_MISSING,
         )
 
     @patch("pilo.zfs.latest_snapshot")
@@ -251,11 +251,11 @@ class TestSystemClassifier(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = state.detect_system_state(cx)
+        st = state.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.SystemTopologyState.NORMAL,
+            state.LifecycleState.NORMAL,
         )
 
     @patch("pilo.zfs.latest_snapshot")
@@ -271,11 +271,11 @@ class TestSystemClassifier(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = state.detect_system_state(cx)
+        st = state.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.SystemTopologyState.REPLICATION_BEHIND,
+            state.LifecycleState.REPLICATION_BEHIND,
         )
 
     @patch("pilo.zfs.latest_snapshot")
@@ -291,11 +291,11 @@ class TestSystemClassifier(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = state.detect_system_state(cx)
+        st = state.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.SystemTopologyState.REPLICATION_DIVERGED,
+            state.LifecycleState.REPLICATION_DIVERGED,
         )
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -304,9 +304,9 @@ class TestSystemClassifier(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a backup/b",
         )
 
-        st = state.detect_system_state(cx)
+        st = state.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.SystemTopologyState.INVALID_TOPOLOGY,
+            state.LifecycleState.INVALID_TOPOLOGY,
         )

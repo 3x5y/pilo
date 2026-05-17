@@ -9,7 +9,7 @@ from pilo.back import replication as repl
 def main():
     cx = context.Context()
 
-    detected = state.detect_system_state(cx)
+    detected = state.detect_lifecycle(cx)
 
     if detected.secondary is None:
         error.fatal(detected.message or "no secondary available")
