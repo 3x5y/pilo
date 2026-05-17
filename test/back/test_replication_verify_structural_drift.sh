@@ -2,7 +2,7 @@
 set -e
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 # missing dataset
 zfs create $TEST_ROOT/active/admin/newds

@@ -2,7 +2,7 @@
 set -e
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 # destroy base snapshot on source → break incremental chain
 zfs destroy $TEST_ROOT@t0
 pilo snapshot t1

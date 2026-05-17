@@ -7,7 +7,7 @@ mkfile critical file.txt
 capture_file file.txt
 pilo ingest-pile
 pilo snapshot $snap
-pilo replicate
+pilo replica-seed
 zfs destroy -r $PILE
 
 pilo restore $repl $PILE $snap

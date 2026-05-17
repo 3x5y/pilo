@@ -2,7 +2,7 @@
 set -e
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 zfs destroy -r $ADMIN
 zfs destroy -r $PILE

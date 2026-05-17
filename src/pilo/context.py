@@ -136,16 +136,27 @@ class Context:
         if current:
             return current
 
-        if self.replica_dataset:
-            return topology.SecondaryState(
-                root=self.replica_dataset,
-                configured=True,
-                attached=False,
-                initialized=False,
-                current=False,
+        if not self.replica_dataset:
+            return None
+
+        carrier = topology.carrier_root(self.replica_dataset)
+
+        carrier_attached = topology.zfs.dataset_exists(carrier)
+        dataset_exists = topology.zfs.dataset_exists(self.replica_dataset)
+        initialized = False
+        if dataset_exists:
+            initialized = bool(
+                topology.zfs.latest_snapshot(self.replica_dataset)
             )
 
-        return None
+        return topology.SecondaryState(
+            root=self.replica_dataset,
+            configured=True,
+            carrier_attached=carrier_attached,
+            dataset_exists=dataset_exists,
+            initialized=initialized,
+            current=dataset_exists,
+        )
 
     def storage_policy(self, domain):
         return StoragePolicy.for_domain(self, domain)

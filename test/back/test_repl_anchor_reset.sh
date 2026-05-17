@@ -2,7 +2,7 @@
 set -e
 
 pilo anchor-create rotation
-pilo replicate
+pilo replica-seed
 
 pilo snapshot t1
 pilo replicate

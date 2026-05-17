@@ -2,7 +2,7 @@
 set -e
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 zfs destroy -r $TEST_ROOT
 

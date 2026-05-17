@@ -5,7 +5,7 @@ repl_admin=$TEST_REPLICA/active/admin
 
 echo v1 > $ADMIN_PATH/file.txt
 pilo snapshot-anchor
-pilo replicate
+pilo replica-seed
 
 echo v2 > $ADMIN_PATH/file.txt
 pilo snapshot-rpo

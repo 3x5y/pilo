@@ -13,6 +13,8 @@ def main():
         src, dst = cx.args
     else:
         detected = state.detect_system_state(cx)
+        if detected.state == state.SystemTopologyState.REPLICA_UNINITIALIZED:
+            error.fatal("secondary requires provisioning")
         if detected.secondary is None:
             error.fatal(detected.message or "no secondary available")
 

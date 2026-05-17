@@ -2,7 +2,7 @@
 set -e
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 # introduce corruption
 zfs snapshot $TEST_REPLICA/active/admin@evil

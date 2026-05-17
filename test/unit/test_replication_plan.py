@@ -10,16 +10,29 @@ class TestReplicationPlan(pilotest.TestCase):
 
     @patch('pilo.checks.require_dataset')
     @patch("pilo.zfs.latest_snapshot")
-    def test_plan_full_when_dst_empty(self, mock_latest, *_):
+    def test_plan_fails_uninitialized(self, mock_latest, *_):
         mock_latest.side_effect = ["tank/a@r1", None]
 
-        plan = repl.build_replication_plan("tank/a", "backup/a")
+        with pilotest.assert_fatal(self):
+            plan = repl.build_replication_plan("tank/a", "backup/a")
 
-        self.assertEqual(plan.src, "tank/a")
-        self.assertEqual(plan.dst, "backup/a")
-        self.assertEqual(plan.mode, "full")
+    @patch('pilo.checks.require_dataset')
+    @patch("pilo.zfs.latest_snapshot")
+    def test_seed_plan(self, mock_latest, *_):
+        mock_latest.side_effect = [None, "tank/a@r1"]
+
+        plan = repl.build_seed_replication_plan("tank/a", "backup/a")
+
+        self.assertEqual(plan.mode, "seed")
         self.assertEqual(plan.snapshot, "tank/a@r1")
         self.assertIsNone(plan.base)
+
+    @patch('pilo.checks.require_dataset')
+    @patch("pilo.zfs.latest_snapshot")
+    def test_seed_requires_empty_destination(self, mock_latest, *_):
+        mock_latest.side_effect = ["tank/a@r1", "backup/a@r1"]
+        with pilotest.assert_fatal(self):
+            repl.build_seed_replication_plan("tank/a", "backup/a")
 
     @patch('pilo.checks.require_dataset')
     @patch("pilo.back.replication.find_incremental_base")
@@ -46,13 +59,13 @@ class TestReplicationPlan(pilotest.TestCase):
         self.assertEqual(plan.mode, "noop")
 
     @patch("pilo.zfs.replicate_full")
-    def test_execute_full(self, mock_full):
+    def test_execute_seed(self, mock_full):
         plan = repl.ReplicationPlan(
             src="tank/a",
             dst="backup/a",
             snapshot="tank/a@r1",
             base=None,
-            mode="full",
+            mode="seed",
         )
 
         repl.execute_replication_plan(plan)
@@ -97,6 +110,7 @@ class TestReplicationPlan(pilotest.TestCase):
     def test_no_source_snapshot_fails(self, _):
         with pilotest.assert_fatal(self):
             repl.build_replication_plan("tank/a", "backup/a")
+
 
 class TestReplicateCommands(pilotest.TestCase):
 
@@ -183,3 +197,44 @@ class TestReplicateCommands(pilotest.TestCase):
         with patch("pilo.context.Context", return_value=cx):
             with pilotest.assert_fatal(self):
                 mod.main()
+
+    @patch("pilo.back.replication.execute_replication_plan")
+    @patch("pilo.back.replication.build_seed_replication_plan")
+    def test_replica_seed_uses_seed_plan(self, mock_build, mock_exec):
+        mod = pilotest.import_command("replica-seed")
+
+        cx = pilotest.make_context()
+
+        detected = state.DetectedSystemState(
+            state=state.SystemTopologyState.REPLICA_UNINITIALIZED,
+            message="secondary uninitialized",
+            secondary="backup/a",
+        )
+
+        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p2 = patch("pilo.context.Context", return_value=cx)
+
+        with (p1, p2):
+            mod.main()
+
+        mock_build.assert_called_once_with("tank/a", "backup/a")
+        mock_exec.assert_called_once()
+
+    def test_replicate_rejects_uninitialized_secondary(self):
+        mod = pilotest.import_command("replicate")
+
+        cx = pilotest.make_context(
+            PILO_SECONDARY_ROOTS="backup/a",
+        )
+
+        detected = state.DetectedSystemState(
+            state=state.SystemTopologyState.REPLICA_UNINITIALIZED,
+            message="secondary uninitialized",
+            secondary="backup/a",
+        )
+
+        p1 = patch("pilo.state.detect_system_state", return_value=detected)
+        p2 = patch("pilo.context.Context", return_value=cx)
+
+        with (p1, p2, pilotest.assert_fatal(self)):
+            mod.main()

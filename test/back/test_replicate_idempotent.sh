@@ -2,8 +2,9 @@
 set -eu
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
+pilo replicate
 pilo replicate
 
 zfs list -t snapshot | assert_grep $TEST_REPLICA@t0

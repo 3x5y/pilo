@@ -8,7 +8,7 @@ init_replica $replica_root
 
 snap=baseline
 pilo snapshot $snap
-pilo replicate
+pilo replica-seed
 
 zfs list -t snapshot | assert_not_grep $TEST_REPLICA@$snap
 zfs list -t snapshot | assert_not_grep $TEST_REPLICA/active@$snap

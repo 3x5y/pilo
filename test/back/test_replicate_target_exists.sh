@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
 
-repl=$REPLICA_ROOT/admin
+zfs create $TEST_REPLICA
+pilo snapshot t0
 
-zfs create $repl
-zfs snapshot $ADMIN@t0
-
-capture_status pilo replicate $ADMIN $repl
+capture_status pilo replica-seed
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep 'cannot receive new filesystem stream'

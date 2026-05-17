@@ -7,7 +7,7 @@ echo a0 > /$ADMIN/admin.txt
 with_writable $STATIC \
     sh -c "echo s0 > /$STATIC/doc.txt"
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 echo a1 > /$ADMIN/admin.txt
 with_writable $COLLECTION \

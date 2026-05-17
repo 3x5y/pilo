@@ -5,7 +5,7 @@ snap=baseline
 
 echo data > /$ADMIN/file.txt
 pilo snapshot $snap
-pilo replicate
+pilo replica-seed
 
 # DO NOT destroy destination → it still exists
 

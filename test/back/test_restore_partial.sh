@@ -10,7 +10,7 @@ pilo ingest-pile
 with_writable $STATIC \
     touch /$STATIC/doc.txt
 pilo snapshot $snap
-pilo replicate
+pilo replica-seed
 
 zfs destroy -r $TEST_ROOT
 zfs create -p $TEST_ROOT/active

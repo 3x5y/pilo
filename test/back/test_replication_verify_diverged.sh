@@ -2,7 +2,7 @@
 set -e
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 # create unrelated snapshot on target
 zfs snapshot $TEST_REPLICA/active/admin@evil

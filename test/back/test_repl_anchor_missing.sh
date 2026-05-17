@@ -2,7 +2,7 @@
 set -e
 
 pilo anchor-create rotation
-pilo replicate
+pilo replica-seed
 
 # destroy anchor on source only
 snap=$(zfs list -t snap -s creation -Ho name $TEST_ROOT \

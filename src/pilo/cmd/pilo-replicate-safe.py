@@ -10,34 +10,6 @@ from pilo.back import replication as repl
 
 def main():
     cx = context.Context()
-    src = cx.root_dataset
-    dst = cx.current_secondary_dataset
-    if not dst:
-        error.fatal("no secondary dataset available")
-
-    status, msg = repl.replication_status(src, dst)
-
-    if status == repl.ReplicationStatus.OK:
-        return
-
-    if status in (repl.ReplicationStatus.EMPTY, repl.ReplicationStatus.BEHIND):
-        repl.replicate(src, dst)
-    else:
-        if msg:
-            print(msg)
-        sys.exit(1)
-
-    # post-check
-    status, msg = repl.replication_status(src, dst)
-    if status != repl.ReplicationStatus.OK:
-        print(f"STATUS={status.value}")
-        if msg:
-            print(msg)
-        error.fatal("replication did not converge")
-
-
-def main():
-    cx = context.Context()
 
     detected = state.detect_system_state(cx)
 
@@ -55,10 +27,9 @@ def main():
     if status == repl.ReplicationStatus.OK:
         return
 
-    if status in (
-        repl.ReplicationStatus.EMPTY,
-        repl.ReplicationStatus.BEHIND,
-    ):
+    behind = (repl.ReplicationStatus.EMPTY,
+              repl.ReplicationStatus.BEHIND)
+    if status in behind:
         repl.replicate(src, dst)
     else:
         if msg:

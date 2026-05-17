@@ -3,7 +3,7 @@ set -e
 
 # initial snapshot + replication
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 # new snapshot
 pilo snapshot t1

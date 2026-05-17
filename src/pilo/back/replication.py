@@ -94,8 +94,65 @@ def build_replication_plan(src, dst):
     return ReplicationPlan(src, dst, last_src, base, "incremental")
 
 
+def build_seed_replication_plan(src, dst):
+    checks.require_dataset(src)
+
+    if zfs.latest_snapshot(dst):
+        error.fatal("destination already initialized")
+
+    snapshot = zfs.latest_snapshot(src)
+
+    if not snapshot:
+        error.fatal("no source snapshot")
+
+    return ReplicationPlan(
+        src=src,
+        dst=dst,
+        snapshot=snapshot,
+        base=None,
+        mode="seed",
+    )
+
+
+def build_replication_plan(src, dst):
+
+    checks.require_dataset(src)
+    checks.require_dataset(dst)
+
+    last_src = zfs.latest_snapshot(src)
+    if not last_src:
+        error.fatal("no source snapshot")
+
+    last_dst = zfs.latest_snapshot(dst)
+
+    if not last_dst:
+        error.fatal("destination not initialized")
+
+    base = find_incremental_base(src, dst)
+
+    if not base:
+        error.fatal(f"base snapshot missing on source: {last_dst}")
+
+    if base == last_src:
+        return ReplicationPlan(
+            src,
+            dst,
+            last_src,
+            base,
+            "noop",
+        )
+
+    return ReplicationPlan(
+        src,
+        dst,
+        last_src,
+        base,
+        "incremental",
+    )
+
+
 def execute_replication_plan(plan: ReplicationPlan):
-    if plan.mode == "full":
+    if plan.mode == "seed":
         return zfs.replicate_full(plan.snapshot, plan.dst)
 
     if plan.mode == "incremental":
@@ -103,3 +160,5 @@ def execute_replication_plan(plan: ReplicationPlan):
 
     if plan.mode == "noop":
         return
+
+    error.fatal(f"unrecognized plan mode '{plan.mode}'")

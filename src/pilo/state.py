@@ -154,10 +154,17 @@ def detect_system_state(cx):
             message="no secondary configured",
         )
 
-    if not secondary.attached:
+    if not secondary.carrier_attached:
         return DetectedSystemState(
             state=SystemTopologyState.REPLICA_MISSING,
             message=f"secondary unattached: {secondary.root}",
+            secondary=secondary.root,
+        )
+
+    if not secondary.dataset_exists:
+        return DetectedSystemState(
+            state=SystemTopologyState.REPLICA_UNINITIALIZED,
+            message=f"secondary dataset missing: {secondary.root}",
             secondary=secondary.root,
         )
 

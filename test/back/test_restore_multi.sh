@@ -16,7 +16,7 @@ mkfile pile-data file.txt
 capture_file file.txt
 pilo ingest-pile
 pilo snapshot $snap
-pilo replicate
+pilo replica-seed
 zfs destroy -r $COLLECTION
 zfs destroy -r $PILE
 zfs destroy -r $ADMIN

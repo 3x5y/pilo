@@ -4,7 +4,7 @@ set -e
 snap=t0
 
 pilo snapshot t0
-pilo replicate
+pilo replica-seed
 
 capture_status pilo status replication
 

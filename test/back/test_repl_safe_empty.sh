@@ -3,7 +3,8 @@ set -e
 
 pilo snapshot t0
 
-pilo replicate-safe
+capture_status pilo replicate-safe
 
-capture_status pilo replication-verify
-echo "$OUTPUT" | assert_grep "^STATUS=OK"
+#capture_status pilo replication-verify
+assert_command_fail
+echo "$OUTPUT" | assert_grep "^ERROR: missing required dataset"
