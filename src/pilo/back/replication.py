@@ -78,10 +78,7 @@ def build_seed_replication_plan(src, dst):
     if zfs.latest_snapshot(dst):
         error.fatal("destination already initialized")
 
-    snapshot = zfs.latest_snapshot(src)
-
-    if not snapshot:
-        error.fatal("no source snapshot")
+    snapshot = checks.require_latest_snapshot(src, "source")
 
     return ReplicationPlan(
         src=src,
@@ -97,17 +94,10 @@ def build_replication_plan(src, dst):
     checks.require_dataset(src)
     checks.require_dataset(dst)
 
-    last_src = zfs.latest_snapshot(src)
-    if not last_src:
-        error.fatal("no source snapshot")
-
-    last_dst = zfs.latest_snapshot(dst)
-
-    if not last_dst:
-        error.fatal("destination not initialized")
+    last_src = checks.require_latest_snapshot(src, "source")
+    last_dst = checks.require_latest_snapshot(dst, "destination")
 
     base = find_incremental_base(src, dst)
-
     if not base:
         error.fatal(f"base snapshot missing on source: {last_dst}")
 
@@ -119,14 +109,14 @@ def build_replication_plan(src, dst):
             base,
             "noop",
         )
-
-    return ReplicationPlan(
-        src,
-        dst,
-        last_src,
-        base,
-        "incremental",
-    )
+    else:
+        return ReplicationPlan(
+            src,
+            dst,
+            last_src,
+            base,
+            "incremental",
+        )
 
 
 def execute_replication_plan(plan: ReplicationPlan):

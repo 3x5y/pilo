@@ -24,6 +24,13 @@ def require_snapshot_of_dataset(snap, dataset):
         error.fatal(f"snapshot {snap} does not belong to {dataset}")
 
 
+def require_latest_snapshot(dataset, role):
+    snapshot = zfs.latest_snapshot(dataset)
+    if not snapshot:
+        error.fatal(f"no {role} snapshot")
+    return snapshot
+
+
 def require_within_dataset(target, root):
     if not target == root and not target.startswith(root + "/"):
         error.fatal(f"{target} outside {root}")

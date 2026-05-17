@@ -45,10 +45,7 @@ def build_recovery_plan(cx, target):
     replica = mapping.map(target)
     checks.require_dataset(replica)
 
-    snap = zfs.latest_snapshot(replica)
-    if not snap:
-        error.fatal("no snapshots on replica")
-
+    snap = checks.require_latest_snapshot(replica, "replica")
     checks.require_snapshot_of_dataset(snap, replica)
 
     checks.require_new_dataset(target)
