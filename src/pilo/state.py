@@ -250,76 +250,61 @@ def collect_snapshot_validation(cx, max_age=None):
 
 
 def collect_replication_validation(cx):
+    lifecycle = detect_lifecycle(cx)
+    issue = replication_validation_issue(lifecycle)
+    if issue is None:
+        return []
+    return [issue]
 
-    issues = []
 
-    detected = detect_lifecycle(cx)
+def replication_validation_issue(lifecycle):
 
-    if detected.state == LifecycleState.NORMAL:
-        return issues
+    if lifecycle.state == LifecycleState.NORMAL:
+        return None
 
-    if detected.state == LifecycleState.REPLICA_MISSING:
-        issues.append(
-            ValidationIssue(
-                code="replication.secondary_missing",
-                message=detected.message or "secondary missing",
-                severity=ValidationSeverity.WARN,
-                component="replication",
-            )
-        )
-        return issues
-
-    if detected.state == LifecycleState.REPLICA_UNINITIALIZED:
-        issues.append(
-            ValidationIssue(
-                code="replication.uninitialized",
-                message=detected.message or "secondary uninitialized",
-                severity=ValidationSeverity.WARN,
-                component="replication",
-            )
-        )
-        return issues
-
-    if detected.state == LifecycleState.REPLICATION_BEHIND:
-        issues.append(
-            ValidationIssue(
-                code="replication.behind",
-                message=detected.message or "replication behind",
-                severity=ValidationSeverity.WARN,
-                component="replication",
-            )
-        )
-        return issues
-
-    if detected.state == LifecycleState.REPLICATION_DIVERGED:
-        issues.append(
-            ValidationIssue(
-                code="replication.diverged",
-                message=detected.message or "replication diverged",
-                severity=ValidationSeverity.ERROR,
-                component="replication",
-            )
-        )
-        return issues
-
-    if detected.state == LifecycleState.INVALID_TOPOLOGY:
-        issues.append(
-            ValidationIssue(
-                code="topology.invalid",
-                message=detected.message or "invalid topology",
-                severity=ValidationSeverity.ERROR,
-                component="replication",
-            )
-        )
-        return issues
-
-    issues.append(
-        ValidationIssue(
-            code="replication.unknown",
-            message=detected.message or "replication unknown",
+    if lifecycle.state == LifecycleState.REPLICA_MISSING:
+        return ValidationIssue(
+            code="replication.secondary_missing",
+            message=lifecycle.message or "secondary missing",
             severity=ValidationSeverity.WARN,
             component="replication",
         )
-    )
 
-    return issues
+    if lifecycle.state == LifecycleState.REPLICA_UNINITIALIZED:
+        return ValidationIssue(
+            code="replication.uninitialized",
+            message=lifecycle.message or "secondary uninitialized",
+            severity=ValidationSeverity.WARN,
+            component="replication",
+        )
+
+    if lifecycle.state == LifecycleState.REPLICATION_BEHIND:
+        return ValidationIssue(
+            code="replication.behind",
+            message=lifecycle.message or "replication behind",
+            severity=ValidationSeverity.WARN,
+            component="replication",
+        )
+
+    if lifecycle.state == LifecycleState.REPLICATION_DIVERGED:
+        return ValidationIssue(
+            code="replication.diverged",
+            message=lifecycle.message or "replication diverged",
+            severity=ValidationSeverity.ERROR,
+            component="replication",
+        )
+
+    if lifecycle.state == LifecycleState.INVALID_TOPOLOGY:
+        return ValidationIssue(
+            code="topology.invalid",
+            message=lifecycle.message or "invalid topology",
+            severity=ValidationSeverity.ERROR,
+            component="replication",
+        )
+
+    return ValidationIssue(
+        code="replication.unknown",
+        message=lifecycle.message or "replication unknown",
+        severity=ValidationSeverity.WARN,
+        component="replication",
+    )

@@ -336,3 +336,28 @@ class TestSystemClassifier(pilotest.TestCase):
             st.state,
             state.LifecycleState.INVALID_TOPOLOGY,
         )
+
+    def test_replication_validation_issue_normal(self):
+
+        lifecycle = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+        )
+
+        issue = state.replication_validation_issue(lifecycle)
+
+        self.assertIsNone(issue)
+
+    def test_replication_validation_issue_diverged(self):
+
+        lifecycle = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
+            message="diverged",
+        )
+
+        issue = state.replication_validation_issue(lifecycle)
+
+        self.assertEqual(issue.code, "replication.diverged")
+        self.assertEqual(
+            issue.severity,
+            state.ValidationSeverity.ERROR,
+        )
