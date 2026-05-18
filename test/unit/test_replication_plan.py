@@ -239,3 +239,30 @@ class TestReplicateCommands(pilotest.TestCase):
 
         with (p1, p2, pilotest.assert_fatal(self)):
             mod.main()
+
+    @patch("pilo.state.detect_lifecycle")
+    def test_replicate_safe_rejects_diverged(self, detect):
+        detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
+            message="diverged",
+            secondary="backup/a",
+        )
+        cx = pilotest.make_context()
+        p1 = patch("pilo.context.Context", return_value=cx)
+        mod = pilotest.import_command("replicate-safe")
+
+        with (p1, pilotest.assert_fatal(self)):
+            mod.main()
+
+    @patch("pilo.state.detect_lifecycle")
+    def test_replicate_rejects_uninitialized(self, detect):
+        detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+            secondary="backup/a",
+        )
+        cx = pilotest.make_context()
+        p1 = patch("pilo.context.Context", return_value=cx)
+        mod = pilotest.import_command("replicate")
+
+        with (p1, pilotest.assert_fatal(self)):
+            mod.main()

@@ -13,10 +13,18 @@ def main():
         src, dst = cx.args
     else:
         detected = state.detect_lifecycle(cx)
-        if detected.state == state.LifecycleState.REPLICA_UNINITIALIZED:
+
+        if state.lifecycle_requires_provisioning(detected):
             error.fatal("secondary requires provisioning")
-        if detected.secondary is None:
+
+        if not state.lifecycle_has_secondary(detected):
             error.fatal(detected.message or "no secondary available")
+
+        if not state.lifecycle_replication_permitted(detected):
+            error.fatal(
+                detected.message or
+                "replication not permitted in current lifecycle state"
+            )
 
         src = cx.root_dataset
         dst = detected.secondary

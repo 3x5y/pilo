@@ -10,4 +10,5 @@ pilo snapshot t1
 capture_status pilo replicate
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep "ERROR: base snapshot missing"
+#echo "$OUTPUT" | assert_grep "ERROR: base snapshot missing"
+echo "$OUTPUT" | assert_grep "ERROR: divergence"

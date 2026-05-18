@@ -13,11 +13,14 @@ def main():
 
     detected = state.detect_lifecycle(cx)
 
-    if detected.secondary is None:
+    if not state.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
-    if detected.state == state.LifecycleState.REPLICATION_DIVERGED:
-        error.fatal(detected.message or "replication diverged")
+    if not state.lifecycle_replication_permitted(detected):
+        error.fatal(
+            detected.message or
+            "replication not permitted in current lifecycle state"
+        )
 
     src = cx.root_dataset
     dst = detected.secondary

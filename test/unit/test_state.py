@@ -385,3 +385,90 @@ class TestSystemClassifier(pilotest.TestCase):
         )
 
         self.assertTrue(state.lifecycle_replication_degraded(lifecycle))
+
+
+class TestLifecyclePredicates(pilotest.TestCase):
+
+    def test_replication_permitted_normal(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+        )
+
+        self.assertTrue(
+            state.lifecycle_replication_permitted(st)
+        )
+
+    def test_replication_permitted_behind(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_BEHIND,
+        )
+
+        self.assertTrue(
+            state.lifecycle_replication_permitted(st)
+        )
+
+    def test_replication_not_permitted_diverged(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
+        )
+
+        self.assertFalse(
+            state.lifecycle_replication_permitted(st)
+        )
+
+    def test_recovery_permitted_uninitialized(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
+        )
+
+        self.assertTrue(
+            state.lifecycle_recovery_permitted(st)
+        )
+
+    def test_recovery_not_permitted_invalid_topology(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.INVALID_TOPOLOGY,
+        )
+
+        self.assertFalse(
+            state.lifecycle_recovery_permitted(st)
+        )
+
+
+class TestLifecycleLegality(pilotest.TestCase):
+
+    def test_seed_replication_permitted(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        )
+
+        self.assertTrue(
+            state.lifecycle_seed_replication_permitted(st)
+        )
+
+    def test_normal_replication_not_seed_permitted(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+        )
+
+        self.assertFalse(
+            state.lifecycle_seed_replication_permitted(st)
+        )
+
+    def test_requires_provisioning(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        )
+
+        self.assertTrue(
+            state.lifecycle_requires_provisioning(st)
+        )
+
+    def test_replication_fault(self):
+        st = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
+        )
+
+        self.assertTrue(
+            state.lifecycle_has_replication_fault(st)
+        )

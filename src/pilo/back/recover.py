@@ -21,13 +21,13 @@ def build_recovery_plan(cx, target):
 
     detected = state.detect_lifecycle(cx)
 
-    if not state.lifecycle_recoverable(detected):
+    if not state.lifecycle_recovery_permitted(detected):
         error.fatal(
             detected.message or
             "recovery not permitted in current lifecycle state"
         )
 
-    if detected.secondary is None:
+    if not state.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
     secondary = detected.secondary

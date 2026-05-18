@@ -334,3 +334,40 @@ def lifecycle_recoverable(lifecycle):
         LifecycleState.REPLICATION_BEHIND,
         LifecycleState.REPLICATION_DIVERGED,
     }
+
+
+def lifecycle_replication_permitted(lifecycle):
+    return lifecycle.state in {
+        LifecycleState.NORMAL,
+        LifecycleState.REPLICATION_BEHIND,
+    }
+
+
+def lifecycle_recovery_permitted(lifecycle):
+    return lifecycle.state in {
+        LifecycleState.NORMAL,
+        LifecycleState.REPLICATION_BEHIND,
+        LifecycleState.REPLICATION_DIVERGED,
+    }
+
+
+def lifecycle_validation_permitted(lifecycle):
+    return lifecycle.state != LifecycleState.INVALID_TOPOLOGY
+
+
+def lifecycle_seed_replication_permitted(lifecycle):
+    return lifecycle.state in {
+        LifecycleState.REPLICA_UNINITIALIZED,
+    }
+
+
+def lifecycle_requires_provisioning(lifecycle):
+    return lifecycle.state == LifecycleState.REPLICA_UNINITIALIZED
+
+
+def lifecycle_has_replication_fault(lifecycle):
+    return lifecycle.state in {
+        LifecycleState.REPLICATION_BEHIND,
+        LifecycleState.REPLICATION_DIVERGED,
+        LifecycleState.UNKNOWN,
+    }

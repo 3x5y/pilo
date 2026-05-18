@@ -11,7 +11,7 @@ def main():
 
     detected = state.detect_lifecycle(cx)
 
-    if detected.secondary is None:
+    if not state.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
     src = cx.root_dataset
