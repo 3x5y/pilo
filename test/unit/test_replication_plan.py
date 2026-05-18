@@ -111,6 +111,35 @@ class TestReplicationPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             repl.build_replication_plan("tank/a", "backup/a")
 
+    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.back.replication.build_seed_replication_plan")
+    def test_build_replica_seed_plan(self, mock_build, mock_detect):
+        cx = pilotest.make_context()
+
+        mock_detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+            secondary="backup/a",
+        )
+
+        repl.build_replica_seed_plan(cx)
+
+        mock_build.assert_called_once_with(
+            "tank/a",
+            "backup/a",
+        )
+
+    @patch("pilo.state.detect_lifecycle")
+    def test_build_replica_seed_plan_rejects_normal(self, mock_detect):
+        cx = pilotest.make_context()
+
+        mock_detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+            secondary="backup/a",
+        )
+
+        with pilotest.assert_fatal(self):
+            repl.build_replica_seed_plan(cx)
+
 
 class TestReplicateCommands(pilotest.TestCase):
 

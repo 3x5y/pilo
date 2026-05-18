@@ -472,3 +472,20 @@ class TestLifecycleLegality(pilotest.TestCase):
         self.assertTrue(
             state.lifecycle_has_replication_fault(st)
         )
+
+    def test_lifecycle_replica_seed_permitted(self):
+        ls = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        )
+        self.assertTrue(state.lifecycle_seed_replication_permitted(ls))
+
+        ls = state.LifecycleStatus(state=state.LifecycleState.NORMAL)
+        self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
+
+        ls = state.LifecycleStatus(state=state.LifecycleState.REPLICATION_BEHIND)
+        self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
+
+        ls = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_DIVERGED,
+        )
+        self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
