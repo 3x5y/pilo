@@ -176,6 +176,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.back.recover.build_recovery_plan")
     def test_recover_uses_plan(self, mock_build, mock_exec):
         cx = pilotest.make_context()
+        cx.args = ["tank/a"]
         mock_build.return_value = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
@@ -183,11 +184,11 @@ class TestRecoveryPlan(pilotest.TestCase):
             recursive=True,
         )
 
+        mod = pilotest.import_command('recover')
+
         with pilotest.suppress_stdout():
             with patch("pilo.context.Context", return_value=cx):
-                with patch.object(cx, "args", ["tank/a"]):
-                    mod = pilotest.import_command('recover')
-                    mod.main()
+                mod.main()
 
         mock_build.assert_called_once_with(cx, "tank/a")
         mock_exec.assert_called_once()

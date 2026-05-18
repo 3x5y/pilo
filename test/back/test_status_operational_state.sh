@@ -8,4 +8,4 @@ pilo replicate
 capture_status pilo status
 
 assert_command_ok
-echo "$OUTPUT" | assert_grep "lifecycle: NORMAL"
+echo "$OUTPUT" | assert_grep "lifecycle.state: NORMAL"

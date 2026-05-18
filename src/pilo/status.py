@@ -9,64 +9,53 @@ from . import util
 from . import zfs
 
 
-@dataclass(frozen=True)
-class StatusMessage:
-    level: str
-    category: str
-    message: str
+def render_validation_issue(issue):
+    return (
+        f"{issue.severity.value}: "
+        f"{issue.code}: "
+        f"{issue.message}"
+    )
 
 
-@dataclass
-class SystemStatus:
-    messages: list[StatusMessage] = None
-    code: int = 0
-
-    def __post_init__(self):
-        if self.messages is None:
-            self.messages = []
-
-    def warn(self, category, msg):
-        sm = StatusMessage("WARN", category, msg)
-        self.messages.append(sm)
-        self.code = 1
-
-    def ok(self, category, msg):
-        sm = StatusMessage("OK", category, msg)
-        self.messages.append(sm)
+def render_validation_report(report):
+    return [render_validation_issue(i) for i in report.issues]
 
 
-def render_status_message(msg):
-    return f"{msg.level}: {msg.category}: {msg.message}"
-
-
-def render_system_status(st):
-    return [render_status_message(m) for m in st.messages]
-
-
-def check_transient_status(cx, st: SystemStatus):
+def collect_transient_validation(cx):
+    issues = []
     for git_dir in cx.admin_path.rglob(".git"):
         repo = git_dir.parent
         if git.is_dirty(repo):
-            st.warn("transient", f"repo {repo} has uncommitted changes")
+            i = state.ValidationIssue(
+                code="transient.state",
+                message=f"repo {repo} has uncommitted changes",
+                severity=state.ValidationSeverity.WARN,
+                component="transient",
+            )
+            issues.append(i)
+    return issues
 
 
-def check_pile_status(cx, st: SystemStatus):
+def collect_pile_validation(cx):
     pile = cx.pile_path
     if not pile.exists():
-        return
+        return []
 
     now = util.now_epoch()
     max_age = int(os.environ.get("CONFIG_PILE_MAX_AGE", "86400"))
 
+    issues = []
     for f in fs.iter_files(pile):
         age = now - int(f.stat().st_mtime)
         if age > max_age:
-            st.warn("pile", f"{f} is older than threshold")
-
-
-def check_manifest_status(cx, st):
-    for subset in ("pile", "collection", "filing"):
-        collect_manifest_status(cx, st, subset)
+            i = state.ValidationIssue(
+                code="pile.state",
+                message=f"{f} is older than threshold",
+                severity=state.ValidationSeverity.WARN,
+                component="pile",
+            )
+            issues.append(i)
+    return issues
 
 
 def collect_manifest_status(cx, st, subset):
@@ -90,42 +79,63 @@ def collect_manifest_status(cx, st, subset):
         st.warn("manifest", f"{subset} verification failed")
 
 
-def collect_system_status(cx, check=None):
+def collect_manifest_validation(cx):
+    issues = []
+    for subset in ("pile", "collection", "filing"):
+        i = check_manifest(cx, subset)
+        if i:
+            issues.append(i)
+    return issues
+
+
+def check_manifest(cx, subset):
+    if subset == 'pile':
+        base_dir = cx.pile_path
+    elif subset in ('collection', 'filing'):
+        base_dir = cx.static_path / subset
+    else:
+        raise Exception(f"Unsupported subset '{subset}'")
+
+    manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
+
+    if (not manifest.is_file() or manifest.stat().st_size == 0):
+        return
+
+    try:
+        cmd = ["sha256sum", "--quiet", "--strict", "-c", manifest]
+        subprocess.run(cmd, cwd=str(base_dir), check=True)
+        return state.ValidationIssue(
+                code="manifest.state",
+                message=f"{subset} verified",
+                severity=state.ValidationSeverity.INFO,
+                component="manifest",
+            )
+    except subprocess.CalledProcessError:
+        return state.ValidationIssue(
+                code="manifest.state",
+                message=f"{subset} verification failed",
+                severity=state.ValidationSeverity.ERROR,
+                component="manifest",
+            )
+
+
+def collect_report(cx, check=None):
 
     include = {"datasets", "snapshot", "replication" }
     if check is not None:
         include = {check}
 
     report = state.collect_validation_report(cx, include=include)
-    st = SystemStatus()
-    for issue in report.issues:
-        st.messages.append(
-            StatusMessage(
-                level=issue.severity.value,
-                category=issue.code,
-                message=issue.message,
-            )
-        )
-
-    detected = state.detect_lifecycle(cx)
-    st.messages.append(
-        StatusMessage(
-            level="INFO",
-            category="lifecycle",
-            message=detected.state.name,
-        )
-    )
-
-    if report.issues:
-        st.code = 1
 
     if check in (None, "transient"):
-        check_transient_status(cx, st)
+        report.extend(collect_transient_validation(cx))
 
     if check in (None, "pile"):
-        check_pile_status(cx, st)
+        report.extend(collect_pile_validation(cx))
 
     if check in (None, "manifest"):
-        check_manifest_status(cx, st)
+        report.extend(collect_manifest_validation(cx))
 
-    return st
+    return report
+
+

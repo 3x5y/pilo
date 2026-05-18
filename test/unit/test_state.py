@@ -46,7 +46,7 @@ class TestOperationalState(pilotest.TestCase):
         with pilotest.healthy_snapshot_state():
             report = state.collect_validation_report(cx)
 
-        self.assertEqual(report.issues, [])
+        self.assertTrue(report.is_healthy)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -65,10 +65,8 @@ class TestOperationalState(pilotest.TestCase):
         with pilotest.healthy_system_state():
             report = state.collect_validation_report(cx)
 
-        self.assertEqual(len(report.issues), 1)
-        issue = report.issues[0]
-        self.assertEqual(issue.code, "missing.required.dataset")
-        self.assertEqual(issue.component, "datasets")
+        issues = report.by_code("missing.required.dataset")
+        self.assertEqual(len(issues), 1)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -78,8 +76,7 @@ class TestOperationalState(pilotest.TestCase):
             cx = pilotest.make_context()
             report = state.collect_validation_report(cx)
 
-        self.assertEqual(report.issues, [])
-        self.assertFalse(report.has_errors)
+        self.assertTrue(report.is_healthy)
 
     def test_collect_snapshot_validation_stale(self):
         cx = pilotest.make_context()
@@ -224,6 +221,35 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.behind")
         detect.assert_called_once_with(cx)
+
+    def test_validation_report_error_exit_code(self):
+        cx = pilotest.make_context()
+        report = state.ValidationReport()
+        report.extend([
+            state.ValidationIssue(
+                code="foo.bar",
+                message="bad condition",
+                severity=state.ValidationSeverity.ERROR,
+                component="foo",
+            )
+        ])
+
+        self.assertEqual(report.exit_code, 1)
+
+
+    def test_validation_report_warning_exit_code(self):
+        cx = pilotest.make_context()
+        report = state.ValidationReport()
+        report.extend([
+            state.ValidationIssue(
+                code="foo.bar",
+                message="less bad",
+                severity=state.ValidationSeverity.WARN,
+                component="foo",
+            )
+        ])
+
+        self.assertEqual(report.exit_code, 1)
 
 
 class TestSystemClassifier(pilotest.TestCase):

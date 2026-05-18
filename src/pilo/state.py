@@ -42,6 +42,7 @@ class ValidationIssue:
 @dataclass
 class ValidationReport:
     issues: list[ValidationIssue] = field(default_factory=list)
+    lifecycle: LifecycleStatus | None = None
 
     def extend(self, issues):
         self.issues.extend(issues)
@@ -57,6 +58,10 @@ class ValidationReport:
             i for i in self.issues
             if i.component == component
         ]
+
+    @property
+    def exit_code(self):
+        return 1 if not self.is_healthy else 0
 
     @property
     def has_errors(self):
@@ -81,7 +86,7 @@ class ValidationReport:
 
     @property
     def is_healthy(self):
-        return not self.issues
+        return not self.errors and not self.warnings
 
     @property
     def highest_severity(self):
@@ -163,6 +168,15 @@ def detect_lifecycle(cx):
     )
 
 
+def lifecycle_validation_issue(lifecycle):
+    return ValidationIssue(
+        code="lifecycle.state",
+        message=lifecycle.state.value,
+        severity=ValidationSeverity.INFO,
+        component="lifecycle",
+    )
+
+
 def collect_dataset_validation(cx):
     return normalize.validate_dataset_contracts(cx)
 
@@ -171,7 +185,11 @@ def collect_validation_report(cx, include=None):
     if include is None:
         include = {"datasets", "snapshot", "replication"}
 
-    report = ValidationReport()
+    lifecycle = detect_lifecycle(cx)
+    report = ValidationReport(lifecycle=lifecycle)
+    report.extend([
+        lifecycle_validation_issue(lifecycle)
+    ])
 
     if "datasets" in include:
         report.extend(collect_dataset_validation(cx))

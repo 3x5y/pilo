@@ -13,4 +13,4 @@ echo change >> file.txt
 capture_status pilo status transient
 
 assert_command_fail status returned success
-echo "$OUTPUT" | assert_grep transient:.*uncommitted
+echo "$OUTPUT" | assert_grep transient.state:.*uncommitted

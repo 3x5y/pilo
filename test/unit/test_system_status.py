@@ -10,21 +10,9 @@ import pilotest
 class TestSystemStatusModel(pilotest.TestCase):
 
     def test_empty_status_is_ok(self):
-        st = status.SystemStatus()
-
-        self.assertEqual(st.code, 0)
-        self.assertEqual(st.messages, [])
-
-    def test_status_message_model(self):
-        msg = status.StatusMessage(
-            level="WARN",
-            category="snapshot",
-            message="stale",
-        )
-
-        self.assertEqual(msg.level, "WARN")
-        self.assertEqual(msg.category, "snapshot")
-        self.assertEqual(msg.message, "stale")
+        report = state.ValidationReport()
+        self.assertTrue(report.is_healthy)
+        self.assertEqual(report.issues, [])
 
     @unittest.skip("dead code")
     @patch("pilo.back.replication.replication_status")
@@ -80,20 +68,21 @@ class TestSystemStatusModel(pilotest.TestCase):
 
     @patch("pilo.git.is_dirty", return_value=True)
     def test_dirty_repo(self, _):
+        cx = pilotest.make_context()
+        report = state.ValidationReport()
+
         with pilotest.make_tmp_context() as cx:
-            st = status.SystemStatus()
-
-            # simulate one repo
             (cx.admin_path / "repo" / ".git").mkdir(parents=True, exist_ok=True)
+            report.extend(status.collect_transient_validation(cx))
 
-            status.check_transient_status(cx, st)
-
-            self.assertTrue(any(m.category == "transient" for m in st.messages))
+        self.assertFalse(report.is_healthy)
+        issues = report.by_component("transient")
+        self.assertEqual(len(issues), 1)
+        self.assertIn('uncommitted', issues[0].message)
 
     @patch("pilo.state.collect_validation_report")
-    @patch("pilo.status.check_transient_status")
-    def test_collect_system_status_uses_validation_report(
-        self,
+    @patch("pilo.status.collect_transient_validation")
+    def test_collect_system_status_uses_validation_report(self,
         transient,
         collect,
     ):
@@ -101,51 +90,47 @@ class TestSystemStatusModel(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = status.collect_system_status(cx)
+        report = status.collect_report(cx)
 
-        self.assertIsInstance(st,status.SystemStatus)
+        self.assertIsInstance(report, state.ValidationReport)
         inc = {"datasets", "snapshot", "replication"}
         collect.assert_called_once_with(cx, include=inc)
         transient.assert_called_once()
 
-    def test_render_status_message(self):
-        msg = status.StatusMessage(
-            level="WARN",
-            category="snapshot",
-            message="stale",
+    def test_render_validation_issue(self):
+        i = state.ValidationIssue(
+            code="foo.bar",
+            message="bad stuff",
+            severity=state.ValidationSeverity.WARN,
+            component="foo",
         )
 
-        rendered = status.render_status_message(msg)
+        rendered = status.render_validation_issue(i)
 
-        self.assertEqual(
-            rendered,
-            "WARN: snapshot: stale",
-        )
+        self.assertEqual(rendered, "WARN: foo.bar: bad stuff")
 
     def test_manifest_status_missing_manifest_is_ok(self):
         cx = pilotest.make_context()
-        st = status.SystemStatus()
+        report = state.ValidationReport()
 
-        status.collect_manifest_status(cx, st, "pile")
+        report.extend(status.collect_manifest_validation(cx))
 
-        self.assertEqual(st.code, 0)
+        self.assertTrue(report.is_healthy)
 
     @patch("subprocess.run")
     def test_manifest_status_ok(self, mock_run):
         with pilotest.make_tmp_context() as cx:
-            st = status.SystemStatus()
-
+            report = state.ValidationReport()
             manifest = cx.admin_path / "manifest" / "pile.manifest"
-
             manifest.parent.mkdir(parents=True, exist_ok=True)
             manifest.write_text("abc\n")
 
-            status.collect_manifest_status(cx, st, "pile")
+            report.extend(status.collect_manifest_validation(cx))
 
-            sm = status.StatusMessage(level="OK",
-                                    category="manifest",
-                                    message="pile verified")
-            self.assertIn(sm, st.messages)
+            self.assertTrue(report.is_healthy)
+            issues = report.by_component("manifest")
+            self.assertEqual(len(issues), 1)
+            self.assertEqual(issues[0].message, "pile verified")
 
     @patch("subprocess.run")
     def test_manifest_status_failure(self, mock_run):
@@ -155,72 +140,36 @@ class TestSystemStatusModel(pilotest.TestCase):
         )
 
         with pilotest.make_tmp_context() as cx:
-            st = status.SystemStatus()
+            report = state.ValidationReport()
 
             manifest = cx.admin_path / "manifest" / "pile.manifest"
             manifest.parent.mkdir(parents=True, exist_ok=True)
             manifest.write_text("abc\n")
 
-            status.collect_manifest_status(cx, st, "pile")
+            report.extend(status.collect_manifest_validation(cx))
 
-            self.assertEqual(st.code, 1)
-            sm = status.StatusMessage(level="WARN",
-                                    category="manifest",
-                                    message="pile verification failed")
-            self.assertIn(sm, st.messages)
+            self.assertFalse(report.is_healthy)
+
+            issues = report.by_component("manifest")
+            self.assertEqual(len(issues), 1)
+            self.assertEqual(issues[0].message, "pile verification failed")
 
     @patch("pilo.state.collect_validation_report")
-    @patch("pilo.status.collect_manifest_status")
+    @patch("pilo.status.check_manifest")
     def test_collect_calls_manifest(self, mock_manifest, *_):
         cx = pilotest.make_context()
 
-        status.collect_system_status(cx)
+        status.collect_report(cx)
 
-        mock_manifest.assert_any_call(cx, unittest.mock.ANY, "pile")
-        mock_manifest.assert_any_call(cx, unittest.mock.ANY, "collection")
-        mock_manifest.assert_any_call(cx, unittest.mock.ANY, "filing")
+        mock_manifest.assert_any_call(cx, "pile")
+        mock_manifest.assert_any_call(cx, "collection")
+        mock_manifest.assert_any_call(cx, "filing")
 
     @patch("pilo.state.collect_validation_report")
-    @patch("pilo.status.collect_manifest_status")
+    @patch("pilo.status.check_manifest")
     def test_collect_manifest_only(self, mock_manifest, *_):
         cx = pilotest.make_context()
 
-        status.collect_system_status(cx, check="manifest")
+        status.collect_report(cx, check="manifest")
 
         self.assertEqual(mock_manifest.call_count, 3)
-
-
-@unittest.skip('dead code')
-class TestStatusRegistry(pilotest.TestCase):
-
-    def test_status_checks_order(self):
-        names = [
-            check.name
-            for check in status.status_checks.ALL
-        ]
-
-        self.assertEqual(
-            names,
-            [
-                "transient",
-                "pile",
-                "snapshot",
-                "replication",
-                "datasets",
-                "manifest",
-            ],
-        )
-
-    def test_status_check_lookup(self):
-        check = status.status_checks.lookup("snapshot")
-
-        self.assertEqual(check.name, "snapshot")
-        self.assertEqual(
-            check.func,
-            status.check_snapshot_status,
-        )
-
-    def test_unknown_status_check_returns_none(self):
-        self.assertIsNone(
-            status.status_checks.lookup("missing")
-        )

@@ -8,12 +8,12 @@ from pilo import status
 def main():
     cx = context.Context()
     check = cx.args[0] if cx.args else None
-    st = status.collect_system_status(cx, check=check)
 
-    for msg in status.render_system_status(st):
+    report = status.collect_report(cx, check=check)
+    for msg in status.render_validation_report(report):
         print(msg)
 
-    exit(st.code)
+    exit(report.exit_code)
 
 
 if __name__ == "__main__":

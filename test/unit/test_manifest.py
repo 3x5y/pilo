@@ -193,8 +193,8 @@ class TestManifest(pilotest.TestCase):
                     manifest_status.verify_manifest_op(op)
 
     @patch("sys.exit")
-    @patch("pilo.status.render_system_status")
-    @patch("pilo.status.check_manifest_status")
+    @patch("pilo.status.render_validation_report")
+    @patch("pilo.status.collect_manifest_validation")
     def test_manifest_verify_uses_status_system(
         self,
         mock_check,
@@ -202,12 +202,9 @@ class TestManifest(pilotest.TestCase):
         mock_exit,
     ):
         cx = pilotest.make_context()
+        mod = pilotest.import_command("manifest-verify")
 
         with patch("pilo.context.Context", return_value=cx):
-            mod = pilotest.import_command(
-                "manifest-verify"
-            )
-
             mod.main()
 
         mock_check.assert_called_once()
@@ -215,56 +212,16 @@ class TestManifest(pilotest.TestCase):
         mock_exit.assert_called_once()
 
     @patch("sys.exit")
-    @patch("pilo.status.render_system_status")
-    def test_manifest_verify_returns_status_code(
-        self,
-        mock_render,
-        mock_exit,
-    ):
-        cx = pilotest.make_context()
-
-        st = status.SystemStatus()
-        st.code = 1
-
-        with patch("pilo.context.Context", return_value=cx):
-            with patch(
-                "pilo.status.check_manifest_status",
-                side_effect=lambda cx, s: setattr(s, "code", 1),
-            ):
-                mod = pilotest.import_command(
-                    "manifest-verify"
-                )
-
-                mod.main()
-
-        mock_exit.assert_called_once_with(1)
-
+    @patch("pilo.status.check_manifest")
+    @patch("pilo.status.render_validation_report", return_value=["OK"])
     @patch("builtins.print")
-    @patch("sys.exit")
-    @patch("pilo.status.check_manifest_status")
-    @patch(
-        "pilo.status.render_system_status",
-        return_value=["OK: manifest: pile verified"],
-    )
-    def test_manifest_verify_renders_messages(
-        self,
-        mock_render,
-        mock_check,
-        mock_exit,
-        mock_print,
-    ):
+    def test_manifest_verify_renders_messages(self, mock_print, *_):
         cx = pilotest.make_context()
-
+        mod = pilotest.import_command("manifest-verify")
         with patch("pilo.context.Context", return_value=cx):
-            mod = pilotest.import_command(
-                "manifest-verify"
-            )
-
             mod.main()
 
-        mock_print.assert_called_once_with(
-            "OK: manifest: pile verified"
-        )
+        mock_print.assert_called_once_with("OK")
 
     def test_checksum_provenance_values(self):
         p = manifest_model.ChecksumProvenance
