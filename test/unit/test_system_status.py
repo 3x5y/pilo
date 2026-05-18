@@ -14,58 +14,6 @@ class TestSystemStatusModel(pilotest.TestCase):
         self.assertTrue(report.is_healthy)
         self.assertEqual(report.issues, [])
 
-    @unittest.skip("dead code")
-    @patch("pilo.back.replication.replication_status")
-    @patch("pilo.zfs.latest_snapshot")
-    def test_replication_ok(self, mock_snap, mock_repl):
-        mock_snap.side_effect = ["tank/a@r1", "backup/a@r1"]
-        from pilo.back.replication import ReplicationStatus
-        mock_repl.return_value = (ReplicationStatus.OK, None)
-
-        cx = pilotest.make_context()
-        st = status.SystemStatus()
-
-        status.check_replication_status(cx, st)
-
-        self.assertIn(
-            status.StatusMessage(
-                level="OK",
-                category="replication",
-                message="r1",
-            ),
-            st.messages,
-        )
-
-    @unittest.skip("dead code")
-    @patch("pilo.zfs.latest_snapshot_with_time")
-    @patch("pilo.util.now_epoch", return_value=1000)
-    def test_snapshot_fresh(self, mock_now, mock_snap):
-        mock_snap.return_value = ("tank/a@r1", 990)
-
-        cx = pilotest.make_context()
-        st = status.SystemStatus()
-
-        status.check_snapshot_status(cx, st, max_age=20)
-
-        self.assertIn(
-                status.StatusMessage(
-                    level="OK",
-                    category="snapshot",
-                    message="fresh (10 s)",
-                    ),
-                st.messages,
-                )
-
-    @unittest.skip('dead code')
-    @patch("pilo.zfs.dataset_exists", return_value=False)
-    def test_missing_dataset(self, _):
-        cx = pilotest.make_context()
-        st = status.SystemStatus()
-
-        status.check_dataset_status(cx, st)
-
-        self.assertTrue(any(m.category == "missing.required.dataset" for m in st.messages))
-
     @patch("pilo.git.is_dirty", return_value=True)
     def test_dirty_repo(self, _):
         cx = pilotest.make_context()
