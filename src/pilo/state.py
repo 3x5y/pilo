@@ -308,3 +308,29 @@ def replication_validation_issue(lifecycle):
         severity=ValidationSeverity.WARN,
         component="replication",
     )
+
+
+def lifecycle_has_secondary(lifecycle):
+    return lifecycle.state not in {
+        LifecycleState.REPLICA_MISSING,
+        LifecycleState.INVALID_TOPOLOGY,
+    }
+
+
+def lifecycle_replication_healthy(lifecycle):
+    return lifecycle.state == LifecycleState.NORMAL
+
+
+def lifecycle_replication_degraded(lifecycle):
+    return lifecycle.state in {
+        LifecycleState.REPLICATION_BEHIND,
+        LifecycleState.REPLICATION_DIVERGED,
+    }
+
+
+def lifecycle_recoverable(lifecycle):
+    return lifecycle.state in {
+        LifecycleState.NORMAL,
+        LifecycleState.REPLICATION_BEHIND,
+        LifecycleState.REPLICATION_DIVERGED,
+    }

@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+pilo snapshot baseline
+pilo replica-seed
+
+zfs destroy -r $TEST_ROOT
+
 path=/random/path
 capture_status pilo recover /random/path
 

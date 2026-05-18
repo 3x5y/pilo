@@ -8,12 +8,19 @@ import pilotest
 
 class TestRecoveryPlan(pilotest.TestCase):
 
+    @patch("pilo.state.lifecycle_recoverable", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-123")
+    @patch("pilo.state.detect_lifecycle")
     @patch("pilo.zfs.dataset_exists")
-    @patch("pilo.zfs.latest_snapshot")
-    def test_build_plan_root(self, mock_latest, mock_exists, *_):
-        mock_latest.return_value = "backup/a@r-123"
-        mock_exists.side_effect = lambda ds: ds in ("backup", "backup/a")
+    def test_build_plan_root(self, exists, detect, *_):
+
+        detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+            secondary="backup/a",
+        )
+        exists.side_effect = lambda ds: ds == "backup/a"
+
         cx = pilotest.make_context()
 
         plan = recover.build_recovery_plan(cx, "tank/a")
@@ -38,12 +45,18 @@ class TestRecoveryPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "tank/a")
 
+    @patch("pilo.state.lifecycle_recoverable", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.latest_snapshot", return_value="backup/a/foo@r-1")
+    @patch("pilo.state.detect_lifecycle")
     @patch("pilo.zfs.dataset_exists")
-    @patch("pilo.zfs.latest_snapshot")
-    def test_build_plan_subdataset(self, mock_latest, mock_exists, *_):
-        mock_latest.return_value = "backup/a/foo@r-1"
-        mock_exists.side_effect = lambda ds: ds in ("backup", "backup/a/foo")
+    def test_build_plan_subdataset(self, exists, detect, *_):
+
+        detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+            secondary="backup/a",
+        )
+        exists.side_effect = lambda ds: ds == "backup/a/foo"
 
         cx = pilotest.make_context()
 

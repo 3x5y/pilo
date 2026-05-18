@@ -361,3 +361,27 @@ class TestSystemClassifier(pilotest.TestCase):
             issue.severity,
             state.ValidationSeverity.ERROR,
         )
+
+    def test_lifecycle_recoverable_normal(self):
+
+        lifecycle = state.LifecycleStatus(
+            state=state.LifecycleState.NORMAL,
+        )
+
+        self.assertTrue(state.lifecycle_recoverable(lifecycle))
+
+    def test_lifecycle_recoverable_missing(self):
+
+        lifecycle = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICA_MISSING,
+        )
+
+        self.assertFalse(state.lifecycle_recoverable(lifecycle))
+
+    def test_lifecycle_replication_degraded(self):
+
+        lifecycle = state.LifecycleStatus(
+            state=state.LifecycleState.REPLICATION_BEHIND,
+        )
+
+        self.assertTrue(state.lifecycle_replication_degraded(lifecycle))
