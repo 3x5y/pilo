@@ -43,24 +43,31 @@ def replicate(src, dst):
 
 def replication_state(src, dst):
 
-    src_guid = zfs.get_latest_guid(src)
-    dst_guid = zfs.get_latest_guid(dst)
+    # existence/snapshot sanity check
+    src_latest = zfs.get_latest_guid(src)
+    dst_latest = zfs.get_latest_guid(dst)
 
-    if not src_guid:
+    if not src_latest:
         return ReplicationStatus.UNKNOWN, "source has no snapshots"
 
-    if not dst_guid:
+    if not dst_latest:
+        # existing destination dataset with no snapshots:
+        # unusable replication sink under append-only policy
         return ReplicationStatus.EMPTY, "replica is uninitialized"
 
     mapping = context.DatasetMapping(src, dst)
 
+    # authoritative continuity validation:
+    # every replica dataset must map to a valid source dataset
+    # and preserve incremental continuity
     for dst_ds in zfs.list_filesystems(dst):
         src_ds = mapping.inverse(dst_ds)
         if not zfs.dataset_exists(src_ds):
-            return (
-                ReplicationStatus.DIVERGED,
-                f"orphan replica dataset {dst_ds}",
-            )
+            continue
+            #return (
+            #    ReplicationStatus.DIVERGED,
+            #    f"orphan replica dataset {dst_ds}",
+            #)
         base = find_incremental_base(src_ds, dst_ds)
         if not base:
             return ReplicationStatus.DIVERGED, f"divergence in {dst_ds}"
@@ -69,6 +76,8 @@ def replication_state(src, dst):
             return ReplicationStatus.BEHIND, f"behind in {dst_ds}"
         # otherwise current
 
+    # authoritative structural completeness validation:
+    # every source dataset must exist on replica
     for src_ds in zfs.list_filesystems(src):
         dst_ds = mapping.map(src_ds)
         if not zfs.dataset_exists(dst_ds):

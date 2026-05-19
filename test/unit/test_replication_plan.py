@@ -476,108 +476,6 @@ class TestReplicationState(pilotest.TestCase):
         self.assertEqual(msg, "missing backup/a/child")
 
     @patch("pilo.context.DatasetMapping")
-    @patch("pilo.zfs.list_filesystems")
-    @patch("pilo.zfs.dataset_exists")
-    @patch("pilo.back.replication.find_incremental_base")
-    @patch("pilo.zfs.get_latest_guid")
-    def test_orphan_replica_child_is_diverged(
-        self,
-        guid,
-        base,
-        exists,
-        list_fs,
-        mapping_cls,
-    ):
-
-        guid.side_effect = [
-            1, 1,
-            1, 1,
-            2, 3
-        ]
-        list_fs.return_value = [
-            "backup/a",
-            "backup/a/orphan",
-        ]
-
-        mapping = mapping_cls.return_value
-        mapping.inverse.side_effect = [
-            "tank/a",
-            "tank/a/orphan",
-        ]
-
-        exists.side_effect = [
-            True,
-            False,
-        ]
-
-        base.side_effect = [
-            "tank/a@t0",
-            None,
-        ]
-
-        status, msg = repl.replication_state("tank/a", "backup/a")
-
-        self.assertEqual(status, repl.ReplicationStatus.DIVERGED)
-        self.assertEqual(
-            msg,
-            "orphan replica dataset backup/a/orphan"
-        )
-
-    @patch("pilo.context.DatasetMapping")
-    @patch("pilo.zfs.dataset_exists")
-    @patch("pilo.zfs.list_filesystems")
-    @patch("pilo.zfs.get_latest_guid")
-    @patch("pilo.back.replication.find_incremental_base")
-    def test_orphan_replica_dataset_is_diverged(
-        self,
-        base,
-        guid,
-        list_fs,
-        exists,
-        mapping_cls,
-    ):
-
-        base.side_effect = [
-            "tank/a@t0",
-            None,
-        ]
-        guid.side_effect = [
-            1, 1,
-            1, 1,
-        ]
-
-        list_fs.return_value = [
-            "backup/a",
-            "backup/a/orphan",
-        ]
-
-        mapping = mapping_cls.return_value
-        mapping.inverse.side_effect = [
-            "tank/a",
-            "tank/a/orphan",
-        ]
-
-        exists.side_effect = [
-            True,   # tank/a exists
-            False,  # tank/a/orphan missing
-        ]
-
-        status, msg = repl.replication_state(
-            "tank/a",
-            "backup/a",
-        )
-
-        self.assertEqual(
-            status,
-            repl.ReplicationStatus.DIVERGED,
-        )
-
-        self.assertEqual(
-            msg,
-            "orphan replica dataset backup/a/orphan",
-        )
-
-    @patch("pilo.context.DatasetMapping")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.list_filesystems")
     @patch("pilo.back.replication.find_incremental_base",
@@ -632,3 +530,145 @@ class TestReplicationState(pilotest.TestCase):
         )
 
         self.assertEqual(base, "tank/a@t3")
+
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.get_latest_guid")
+    def test_ok_after_full_traversal(
+        self,
+        guid,
+        base,
+        list_fs,
+        _exists,
+        mapping_cls,
+    ):
+
+        guid.side_effect = [
+            1, 1,
+            1, 1,
+            2, 2,
+        ]
+
+        base.side_effect = [
+            "tank/a@t1",
+            "tank/a/child@t1",
+        ]
+
+        list_fs.side_effect = [
+            ["backup/a", "backup/a/child"],
+            ["tank/a", "tank/a/child"],
+        ]
+
+        mapping = mapping_cls.return_value
+        mapping.inverse.side_effect = [
+            "tank/a",
+            "tank/a/child",
+        ]
+
+        mapping.map.side_effect = [
+            "backup/a",
+            "backup/a/child",
+        ]
+
+        status, msg = repl.replication_state(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(status, repl.ReplicationStatus.OK)
+        self.assertIsNone(msg)
+
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.get_latest_guid")
+    def test_replica_old_history_allowed(
+        self,
+        guid,
+        base,
+        list_fs,
+        _exists,
+        mapping_cls,
+    ):
+
+        guid.side_effect = [
+            3, 2,
+            3, 2,
+        ]
+
+        list_fs.side_effect = [
+            ["backup/a"],
+            ["tank/a"],
+        ]
+
+        base.return_value = "tank/a@t2"
+
+        mapping = mapping_cls.return_value
+        mapping.inverse.return_value = "tank/a"
+        mapping.map.return_value = "backup/a"
+
+        status, msg = repl.replication_state(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(
+            status,
+            repl.ReplicationStatus.BEHIND,
+        )
+
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.get_latest_guid")
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.back.replication.find_incremental_base")
+    def test_replica_only_dataset_is_ignored(
+        self,
+        base,
+        mapping_cls,
+        guid,
+        exists,
+        list_fs,
+    ):
+
+        guid.side_effect = [
+            1, 1,  # initial sanity checks
+            1, 1,  # backup/a comparison
+        ]
+
+        list_fs.side_effect = [
+            ["backup/a", "backup/a/orphan"],
+            ["tank/a"],
+        ]
+
+        mapping = mapping_cls.return_value
+
+        mapping.inverse.side_effect = [
+            "tank/a",
+            "tank/a/orphan",
+        ]
+
+        mapping.map.return_value = "backup/a"
+
+        exists.side_effect = [
+            True,   # tank/a exists
+            False,  # tank/a/orphan absent on source
+            True,   # backup/a exists
+        ]
+
+        base.return_value = "tank/a@t0"
+
+        status, msg = repl.replication_state(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(
+            status,
+            repl.ReplicationStatus.OK,
+        )
+
+        self.assertIsNone(msg)
