@@ -365,6 +365,12 @@ def mount():
     run(cmd)
 
 
+def create_dataset(dataset):
+    cmd = "zfs create -o canmount=off -o mountpoint=none ".split()
+    args = [dataset]
+    run(cmd + args)
+
+
 @contextmanager
 def dataset_writable(dataset):
     was = get_readonly(dataset)

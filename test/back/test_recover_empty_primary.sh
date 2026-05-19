@@ -12,4 +12,4 @@ zfs create $TEST_ROOT
 capture_status pilo recover
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep destination.exists
+echo "$OUTPUT" | assert_grep "dataset exists"

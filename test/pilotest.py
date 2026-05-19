@@ -120,3 +120,6 @@ class TestCase(unittest.TestCase):
                 print(d)
                 shutil.rmtree(d)
                 os._exit(1)
+
+    def assert_fatal(self):
+        return assert_fatal(self)

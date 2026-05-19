@@ -10,7 +10,7 @@ def require_dataset(dataset):
 
 def require_new_dataset(dataset):
     if zfs.dataset_exists(dataset):
-        error.fatal(f"destination exists: {dataset}")
+        error.fatal(f"dataset exists: {dataset}")
 
 
 def require_snapshot(snapshot):

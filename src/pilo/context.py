@@ -90,6 +90,8 @@ class Context:
             secondary_roots=self.secondary_roots,
         )
 
+        self.active_dataset = environ.get("PILO_ACTIVE_DATASET") \
+                                or self.root_dataset + "/active"
         self.admin_dataset = environ.get("PILO_ADMIN_DATASET") \
                                 or self.root_dataset + "/active/admin"
         self.intake_dataset = environ.get("PILO_INTAKE_DATASET") \

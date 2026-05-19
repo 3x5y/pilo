@@ -12,4 +12,4 @@ pilo replica-seed
 capture_status pilo recover $ADMIN
 
 assert_command_fail
-echo "$OUTPUT" | assert_grep "destination exists"
+echo "$OUTPUT" | assert_grep "dataset exists"
