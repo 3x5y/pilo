@@ -295,3 +295,340 @@ class TestReplicateCommands(pilotest.TestCase):
 
         with (p1, pilotest.assert_fatal(self)):
             mod.main()
+
+
+class TestReplicationState(pilotest.TestCase):
+
+    @patch("pilo.zfs.get_latest_guid", return_value=None)
+    def test_incr_base_none(self, *_):
+        base = repl.find_incremental_base("tank/a", "backup/a")
+        self.assertIsNone(base)
+
+    @patch("pilo.zfs.get_latest_guid", return_value=1)
+    @patch("pilo.zfs.snapshot_guids")
+    def test_incr_base_simple(self, guid, *_):
+        guid.return_value = [
+            ['tank/a@t0', 1]
+        ]
+        base = repl.find_incremental_base("tank/a", "backup/a")
+        self.assertEqual(base, "tank/a@t0")
+
+    @patch("pilo.zfs.get_latest_guid", return_value=1)
+    @patch("pilo.zfs.snapshot_guids")
+    def test_incr_base_many(self, guid, *_):
+        guid.return_value = [
+            ["tank/a@t1", 2],
+            ['tank/a@t0', 1]
+        ]
+        base = repl.find_incremental_base("tank/a", "backup/a")
+        self.assertEqual(base, "tank/a@t0")
+
+    @patch("pilo.zfs.get_latest_guid", return_value=1)
+    @patch("pilo.zfs.snapshot_guids")
+    def test_incr_base_no_match(self, guid, *_):
+        guid.return_value = [
+            ["tank/a@t1", 2],
+            ['tank/a@t0', 3]
+        ]
+        base = repl.find_incremental_base("tank/a", "backup/a")
+        self.assertIsNone(base)
+
+    @patch("pilo.zfs.get_latest_guid", side_effect=['guid', None])
+    def test_empty_replica(self, *_):
+
+        status, msg = repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(status, repl.ReplicationStatus.EMPTY)
+        self.assertEqual(msg, "replica is uninitialized")
+
+    @patch("pilo.zfs.get_latest_guid", side_effect=[None, 1])
+    def test_missing_source_snapshots(self, *_):
+
+        status, msg = repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(status, repl.ReplicationStatus.UNKNOWN)
+        self.assertEqual(msg, "source has no snapshots")
+
+    @patch("pilo.zfs.list_filesystems",
+           return_value=["backup/a"])
+    @patch("pilo.back.replication.find_incremental_base",
+           return_value="tank/a@t0")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.get_latest_guid", side_effect=[1, 2, 1, 2])
+    @patch("pilo.context.DatasetMapping")
+    def test_behind(self, Mapping, *_):
+
+        mapping = Mapping.return_value
+        mapping.inverse.return_value = "tank/a"
+        status, msg = repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(status, repl.ReplicationStatus.BEHIND)
+        self.assertEqual(msg, "behind in backup/a")
+
+    @patch("pilo.zfs.list_filesystems",
+           return_value=["backup/a"])
+    @patch("pilo.back.replication.find_incremental_base",
+           return_value=None)
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.get_latest_guid", side_effect=[1, 1])
+    @patch("pilo.context.DatasetMapping")
+    def test_no_base(self, Mapping, *_):
+
+        mapping = Mapping.return_value
+        mapping.inverse.return_value = "tank/a"
+        status, msg = repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(status, repl.ReplicationStatus.DIVERGED)
+        self.assertEqual(msg, "divergence in backup/a")
+
+    @patch("pilo.zfs.list_filesystems",
+           return_value=["backup/a"])
+    @patch("pilo.back.replication.find_incremental_base",
+           return_value=None)
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.get_latest_guid", side_effect=[1, 1])
+    @patch("pilo.context.DatasetMapping")
+    def test_diverged_precedes_behind(self, Mapping, *_):
+
+        mapping = Mapping.return_value
+        mapping.inverse.return_value = "tank/a"
+        status, msg = repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(status, repl.ReplicationStatus.DIVERGED)
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.back.replication.find_incremental_base",
+           return_value="tank/a@t0")
+    @patch("pilo.zfs.get_latest_guid")
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.context.DatasetMapping")
+    def test_checks_replica_child_filesystems(
+        self,
+        Mapping,
+        list_fs,
+        guid,
+        *_
+    ):
+        guid.side_effect = [
+            1, 1,
+            1, 1,
+            2, 3
+        ]
+        list_fs.return_value = [
+            "backup/a",
+            "backup/a/child",
+        ]
+        mapping = Mapping.return_value
+        mapping.inverse.side_effect = [
+            "tank/a",
+            "tank/a/child",
+        ]
+
+        repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(list_fs.call_count, 1)
+        self.assertEqual(mapping.inverse.call_count, 2)
+
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.zfs.get_latest_guid")
+    @patch("pilo.back.replication.find_incremental_base",
+           return_value="tank/a@t0")
+    def test_missing_replica_child_is_behind(
+        self,
+        _base,
+        guid,
+        list_fs,
+        exists,
+        mapping_cls,
+    ):
+
+        guid.side_effect = [
+            1, 1,
+            1, 1,
+            2, 3
+        ]
+        list_fs.side_effect = [
+            ["backup/a"],
+            ["tank/a", "tank/a/child"],
+        ]
+
+        mapping = mapping_cls.return_value
+        mapping.inverse.return_value = "tank/a"
+        mapping.map.side_effect = [
+            "backup/a",
+            "backup/a/child",
+        ]
+
+        exists.side_effect = [
+            True,   # source exists for backup/a
+            True,   # backup/a exists
+            False,  # backup/a/child missing
+        ]
+
+        status, msg = repl.replication_state(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(status, repl.ReplicationStatus.BEHIND)
+        self.assertEqual(msg, "missing backup/a/child")
+
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.get_latest_guid")
+    def test_orphan_replica_child_is_diverged(
+        self,
+        guid,
+        base,
+        exists,
+        list_fs,
+        mapping_cls,
+    ):
+
+        guid.side_effect = [
+            1, 1,
+            1, 1,
+            2, 3
+        ]
+        list_fs.return_value = [
+            "backup/a",
+            "backup/a/orphan",
+        ]
+
+        mapping = mapping_cls.return_value
+        mapping.inverse.side_effect = [
+            "tank/a",
+            "tank/a/orphan",
+        ]
+
+        exists.side_effect = [
+            True,
+            False,
+        ]
+
+        base.side_effect = [
+            "tank/a@t0",
+            None,
+        ]
+
+        status, msg = repl.replication_state("tank/a", "backup/a")
+
+        self.assertEqual(status, repl.ReplicationStatus.DIVERGED)
+        self.assertEqual(
+            msg,
+            "orphan replica dataset backup/a/orphan"
+        )
+
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.zfs.dataset_exists")
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.zfs.get_latest_guid")
+    @patch("pilo.back.replication.find_incremental_base")
+    def test_orphan_replica_dataset_is_diverged(
+        self,
+        base,
+        guid,
+        list_fs,
+        exists,
+        mapping_cls,
+    ):
+
+        base.side_effect = [
+            "tank/a@t0",
+            None,
+        ]
+        guid.side_effect = [
+            1, 1,
+            1, 1,
+        ]
+
+        list_fs.return_value = [
+            "backup/a",
+            "backup/a/orphan",
+        ]
+
+        mapping = mapping_cls.return_value
+        mapping.inverse.side_effect = [
+            "tank/a",
+            "tank/a/orphan",
+        ]
+
+        exists.side_effect = [
+            True,   # tank/a exists
+            False,  # tank/a/orphan missing
+        ]
+
+        status, msg = repl.replication_state(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(
+            status,
+            repl.ReplicationStatus.DIVERGED,
+        )
+
+        self.assertEqual(
+            msg,
+            "orphan replica dataset backup/a/orphan",
+        )
+
+    @patch("pilo.context.DatasetMapping")
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_filesystems")
+    @patch("pilo.back.replication.find_incremental_base",
+           return_value="tank/a@t0")
+    @patch("pilo.zfs.get_latest_guid")
+    def test_synchronized(
+        self,
+        guid,
+        _base,
+        list_fs,
+        _exists,
+        mapping_cls,
+    ):
+
+        guid.side_effect = [
+            1, 1,   # root
+            1, 1,   # child compare
+        ]
+
+        list_fs.side_effect = [
+            ["backup/a"],
+            ["tank/a"],
+        ]
+
+        mapping = mapping_cls.return_value
+        mapping.inverse.return_value = "tank/a"
+        mapping.map.return_value = "backup/a"
+
+        status, msg = repl.replication_state(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(status, repl.ReplicationStatus.OK)
+        self.assertIsNone(msg)
+
+    @patch("pilo.zfs.get_latest_guid", return_value=3)
+    @patch("pilo.zfs.snapshot_guids")
+    def test_incremental_base_allows_pruned_older_snapshots(
+        self,
+        guids,
+        *_
+    ):
+
+        guids.return_value = [
+            ["tank/a@t3", 3],
+        ]
+
+        base = repl.find_incremental_base(
+            "tank/a",
+            "backup/a",
+        )
+
+        self.assertEqual(base, "tank/a@t3")

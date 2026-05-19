@@ -489,3 +489,18 @@ class TestLifecycleLegality(pilotest.TestCase):
             state=state.LifecycleState.REPLICATION_DIVERGED,
         )
         self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
+
+    @patch("pilo.state.detect_lifecycle")
+    def test_recovery_permitted_unknown(self, detect):
+
+        detect.return_value = state.LifecycleStatus(
+            state=state.LifecycleState.UNKNOWN,
+            message="source has no snapshots",
+            secondary="backup/a",
+        )
+
+        self.assertTrue(
+            state.lifecycle_recovery_permitted(
+                detect.return_value
+            )
+        )

@@ -41,9 +41,13 @@ def replicate(src, dst):
     return execute_replication_plan(plan)
 
 
-def replication_status(src, dst):
+def replication_state(src, dst):
+
     src_guid = zfs.get_latest_guid(src)
     dst_guid = zfs.get_latest_guid(dst)
+
+    if not src_guid:
+        return ReplicationStatus.UNKNOWN, "source has no snapshots"
 
     if not dst_guid:
         return ReplicationStatus.EMPTY, "replica is uninitialized"
@@ -52,25 +56,29 @@ def replication_status(src, dst):
 
     for dst_ds in zfs.list_filesystems(dst):
         src_ds = mapping.inverse(dst_ds)
-
-        src_guids = set(zfs.list_guids(src_ds))
-        dst_guids = set(zfs.list_guids(dst_ds))
-
-        if dst_guids - src_guids:
+        if not zfs.dataset_exists(src_ds):
+            return (
+                ReplicationStatus.DIVERGED,
+                f"orphan replica dataset {dst_ds}",
+            )
+        base = find_incremental_base(src_ds, dst_ds)
+        if not base:
             return ReplicationStatus.DIVERGED, f"divergence in {dst_ds}"
 
         if zfs.get_latest_guid(src_ds) != zfs.get_latest_guid(dst_ds):
             return ReplicationStatus.BEHIND, f"behind in {dst_ds}"
+        # otherwise current
 
     for src_ds in zfs.list_filesystems(src):
         dst_ds = mapping.map(src_ds)
         if not zfs.dataset_exists(dst_ds):
             return ReplicationStatus.BEHIND, f"missing {dst_ds}"
 
-    if src_guid != dst_guid:
-        return ReplicationStatus.UNKNOWN, "root GUID mismatch"
-
     return ReplicationStatus.OK, None
+
+
+# compat
+replication_status = replication_state
 
 
 def build_seed_replication_plan(src, dst):

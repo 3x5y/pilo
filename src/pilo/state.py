@@ -348,6 +348,7 @@ def lifecycle_recovery_permitted(lifecycle):
         LifecycleState.NORMAL,
         LifecycleState.REPLICATION_BEHIND,
         LifecycleState.REPLICATION_DIVERGED,
+        LifecycleState.UNKNOWN,
     }
 
 
