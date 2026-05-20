@@ -123,6 +123,8 @@ def primary_holds_to_release(cx, secondary_root, keep=1):
 
 
 def ageing_plan(cx, secondary_root, keep=1):
+    if keep < 1:
+        error.fatal(f"keep must be >= 1, got {keep}")
     return AgeingPlan(
         secondary_to_prune=unheld_snapshots(secondary_root),
         secondary_to_release=expired_secondary_anchors(cx, secondary_root),
@@ -131,6 +133,15 @@ def ageing_plan(cx, secondary_root, keep=1):
             cx, secondary_root, keep=keep,
         ),
     )
+
+
+def execute_ageing_plan(cx, secondary_root, plan):
+    zfs.destroy_snapshots(plan.secondary_to_prune)
+    for anchor in plan.secondary_to_release:
+        zfs.release(hold_tag(anchor.secondary_label), anchor.snapshot)
+    zfs.destroy_snapshots(plan.primary_to_prune)
+    for anchor in plan.primary_to_release:
+        zfs.release(hold_tag(anchor.secondary_label), anchor.snapshot)
 
 
 def resolve_label(cx, root_dataset):

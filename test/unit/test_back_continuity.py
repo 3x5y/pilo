@@ -527,3 +527,76 @@ class TestAgeingPlan(TestContinuityAnchor):
         mock_primary.assert_called_once_with(
             self.cx, "pool1/backup", keep=3,
         )
+
+    def test_keep_below_one_fatal(self):
+        with pilotest.assert_fatal(self):
+            continuity.ageing_plan(self.cx, "pool1/backup", keep=0)
+
+    def test_keep_negative_fatal(self):
+        with pilotest.assert_fatal(self):
+            continuity.ageing_plan(self.cx, "pool1/backup", keep=-1)
+
+
+class TestExecuteAgeingPlan(TestContinuityAnchor):
+
+    def setUp(self):
+        super().setUp()
+        self.plan = continuity.AgeingPlan(
+            secondary_to_prune=["pool1/backup@sec_a"],
+            secondary_to_release=[
+                continuity.ContinuityAnchor(
+                    secondary_label="pool1", snapshot="pool1/backup@sec_b",
+                ),
+            ],
+            primary_to_prune=["tank/a@pri_a"],
+            primary_to_release=[
+                continuity.ContinuityAnchor(
+                    secondary_label="pool1", snapshot="tank/a@pri_b",
+                ),
+            ],
+        )
+
+    @patch("pilo.back.continuity.zfs.release")
+    @patch("pilo.back.continuity.zfs.destroy_snapshots")
+    def test_execute_secondary_prune_first(self, mock_destroy, mock_release):
+        continuity.execute_ageing_plan(self.cx, "pool1/backup", self.plan)
+
+        self.assertEqual(mock_destroy.call_args_list[0][0][0],
+                         ["pool1/backup@sec_a"])
+
+    @patch("pilo.back.continuity.zfs.release")
+    @patch("pilo.back.continuity.zfs.destroy_snapshots")
+    def test_execute_releases_secondary_holds(self, mock_destroy, mock_release):
+        continuity.execute_ageing_plan(self.cx, "pool1/backup", self.plan)
+
+        mock_release.assert_any_call("pilo:pool1", "pool1/backup@sec_b")
+        mock_release.assert_any_call("pilo:pool1", "tank/a@pri_b")
+
+    @patch("pilo.back.continuity.zfs.release")
+    @patch("pilo.back.continuity.zfs.destroy_snapshots")
+    def test_execute_full_order(self, mock_destroy, mock_release):
+        continuity.execute_ageing_plan(self.cx, "pool1/backup", self.plan)
+
+        self.assertEqual(mock_destroy.call_args_list[0][0][0],
+                         ["pool1/backup@sec_a"])
+        self.assertEqual(mock_release.call_args_list[0][0],
+                         ("pilo:pool1", "pool1/backup@sec_b"))
+        self.assertEqual(mock_destroy.call_args_list[1][0][0],
+                         ["tank/a@pri_a"])
+        self.assertEqual(mock_release.call_args_list[1][0],
+                         ("pilo:pool1", "tank/a@pri_b"))
+
+    @patch("pilo.back.continuity.zfs.release")
+    @patch("pilo.back.continuity.zfs.run")
+    def test_execute_empty_plan(self, mock_run, mock_release):
+        empty = continuity.AgeingPlan(
+            secondary_to_prune=[],
+            secondary_to_release=[],
+            primary_to_prune=[],
+            primary_to_release=[],
+        )
+
+        continuity.execute_ageing_plan(self.cx, "pool1/backup", empty)
+
+        mock_run.assert_not_called()
+        mock_release.assert_not_called()

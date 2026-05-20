@@ -22,7 +22,7 @@ class LifecycleState(Enum):
 class LifecycleStatus:
     state: LifecycleState
     message: str | None = None
-    secondary: topology.SecondaryState | None = None
+    secondary: str | None = None
 
 
 class ValidationSeverity(Enum):

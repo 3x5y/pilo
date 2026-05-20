@@ -335,6 +335,15 @@ def snapshot(name: str, dataset: str):
     run(cmd + args)
 
 
+def destroy_snapshots(snap_names):
+    if not snap_names:
+        return
+    snaps = ",".join(snap_names)
+    cmd = "zfs destroy -r".split()
+    args = [snaps]
+    run(cmd + args)
+
+
 def hold(tag, snapshot):
     cmd = "zfs hold -r".split()
     args = [tag, snapshot]

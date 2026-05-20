@@ -50,6 +50,26 @@ class TestZfsRun(pilotest.TestCase):
         args = run.call_args[0][0]
         self.assertEqual(args, ["zfs", "release", "-r", "pilo:z1", "tank/a@snap1"])
 
+    @patch("pilo.zfs.run")
+    def test_destroy_snapshots_empty(self, run):
+        zfs.destroy_snapshots([])
+
+        run.assert_not_called()
+
+    @patch("pilo.zfs.run")
+    def test_destroy_snapshots_calls_zfs(self, run):
+        zfs.destroy_snapshots([
+            "pool1/backup@snap1",
+            "pool1/backup@snap2",
+        ])
+
+        run.assert_called_once()
+        args = run.call_args[0][0]
+        self.assertEqual(
+            args,
+            ["zfs", "destroy", "-r", "pool1/backup@snap1,pool1/backup@snap2"],
+        )
+
     @patch("pilo.zfs.run_get_lines")
     def test_list_holds(self, mock_run):
         mock_run.return_value = [
