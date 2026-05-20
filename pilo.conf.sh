@@ -6,5 +6,3 @@ PILO_ADMIN_PATH=/z/admin
 PILO_INTAKE_PATH=/z/intake
 PILO_PILE_PATH=/z/pile
 PILO_STATIC_PATH=/z/static
-PILO_COLLECTION_PATH=/z/static/collection
-PILO_FILING_PATH=/z/static/filing

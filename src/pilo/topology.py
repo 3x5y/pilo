@@ -96,6 +96,7 @@ class StorageTopology:
             for s in states
         ]
 
+    # unused
     @property
     def attached_secondary_roots(self):
         return [
@@ -109,6 +110,7 @@ class StorageTopology:
                 return state
         return None
 
+    # unused
     def current_secondary_root(self):
         current = self.current_secondary_state()
         if current:

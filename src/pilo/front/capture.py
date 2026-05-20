@@ -27,12 +27,6 @@ class CaptureSession:
     def verify(self):
         if not self.manifest.exists():
             return False
-        lines = self.manifest.read_text().splitlines()
-        return manifest_verify.verify_manifest_lines(self.root, lines)
-
-    def verify(self):
-        if not self.manifest.exists():
-            return False
 
         lines = self.manifest.read_text().splitlines()
 

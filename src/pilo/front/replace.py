@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import checks
-from .. import checksum
 from .. import continuity
 from .. import manifest_model
 from .. import manifest_policy

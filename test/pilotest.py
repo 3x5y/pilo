@@ -23,6 +23,7 @@ def assert_fatal(testcase):
             yield cx
 
 
+# unused
 @contextmanager
 def suppress_stderr():
     stream = StringIO()

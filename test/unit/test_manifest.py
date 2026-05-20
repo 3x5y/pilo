@@ -12,7 +12,6 @@ from pilo import manifest_codec
 from pilo import manifest_model
 from pilo import manifest_mutation
 from pilo import manifest_policy
-from pilo import manifest_status
 from pilo import manifest_store
 from pilo import manifest_update
 from pilo import manifest_verify
@@ -107,91 +106,6 @@ class TestManifest(pilotest.TestCase):
 
             self.assertFalse(manifest_verify.verify_manifest_lines(root, lines))
 
-    def test_manifest_verify_op_model(self):
-        op = manifest_status.ManifestVerifyOp(
-            subset="pile",
-            root=Path("/tmp/pile"),
-            manifest=Path("/tmp/admin/manifest/pile.manifest"),
-        )
-
-        self.assertEqual(op.subset, "pile")
-        self.assertEqual(op.root, Path("/tmp/pile"))
-        self.assertEqual(op.manifest, Path("/tmp/admin/manifest/pile.manifest"))
-
-    def test_build_manifest_verify_plan(self):
-        cx = pilotest.make_context()
-
-        ops = manifest_status.build_manifest_verify_plan(
-            cx,
-            ["pile", "collection"],
-        )
-
-        self.assertEqual(len(ops), 2)
-        self.assertEqual(ops[0].root, cx.pile_path)
-        self.assertEqual(ops[1].root, cx.static_path / "collection")
-        self.assertEqual(ops[0].manifest, cx.admin_path / "manifest/pile.manifest")
-
-    @patch("subprocess.run")
-    def test_verify_manifest_op(self, mock_run):
-        op = manifest_status.ManifestVerifyOp(
-            subset="pile",
-            root=Path("/tmp/pile"),
-            manifest=Path("/tmp/pile.manifest"),
-        )
-
-        with patch.object(Path, "is_file", return_value=True):
-            with patch.object(
-                Path,
-                "stat",
-            ) as mock_stat:
-
-                mock_stat.return_value.st_size = 123
-
-                manifest_status.verify_manifest_op(op)
-
-        mock_run.assert_called_once()
-
-    @patch("pilo.manifest_status.verify_manifest_op")
-    def test_execute_manifest_verify_plan(
-        self,
-        mock_verify,
-    ):
-        ops = [
-            manifest_status.ManifestVerifyOp(
-                subset="pile",
-                root=Path("/tmp/pile"),
-                manifest=Path("/tmp/pile.manifest"),
-            )
-        ]
-
-        manifest_status.execute_manifest_verify_plan(ops)
-
-        mock_verify.assert_called_once()
-
-    @patch("subprocess.run")
-    def test_verify_manifest_failure_raises_fatal(
-        self,
-        mock_run,
-    ):
-        op = manifest_status.ManifestVerifyOp(
-            subset="pile",
-            root=Path("/tmp/pile"),
-            manifest=Path("/tmp/pile.manifest"),
-        )
-
-        mock_run.side_effect = subprocess.CalledProcessError(
-            1,
-            ["sha256sum"],
-        )
-
-        with patch.object(Path, "is_file", return_value=True):
-            with patch.object(Path, "stat") as mock_stat:
-
-                mock_stat.return_value.st_size = 1
-
-                with pilotest.assert_fatal(self):
-                    manifest_status.verify_manifest_op(op)
-
     @patch("sys.exit")
     @patch("pilo.status.render_validation_report")
     @patch("pilo.status.collect_manifest_validation")
@@ -228,16 +142,6 @@ class TestManifest(pilotest.TestCase):
         self.assertEqual(p.MANIFEST.value, "manifest")
         self.assertEqual(p.VERIFIED.value, "verified")
         self.assertEqual(p.GENERATED.value, "generated")
-
-    def test_generated_checksum_helper(self):
-
-        item = manifest_model.build_generated_checksum(
-            Path("a.txt"),
-            "abc123",
-        )
-
-        self.assertEqual(item.provenance,
-                         manifest_model.ChecksumProvenance.GENERATED)
 
     def test_reuse_manifest_checksum_marks_manifest(self):
 

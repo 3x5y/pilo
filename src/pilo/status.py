@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import os
 import subprocess
 
@@ -6,7 +5,6 @@ from . import fs
 from . import git
 from . import state
 from . import util
-from . import zfs
 
 
 def render_validation_issue(issue):
@@ -56,27 +54,6 @@ def collect_pile_validation(cx):
             )
             issues.append(i)
     return issues
-
-
-def collect_manifest_status(cx, st, subset):
-    if subset == 'pile':
-        base_dir = cx.pile_path
-    elif subset in ('collection', 'filing'):
-        base_dir = cx.static_path / subset
-    else:
-        raise Exception(f"Unsupported subset '{subset}'")
-
-    manifest = cx.admin_path / "manifest" / f"{subset}.manifest"
-
-    if (not manifest.is_file() or manifest.stat().st_size == 0):
-        return
-
-    try:
-        cmd = ["sha256sum", "--quiet", "--strict", "-c", manifest]
-        subprocess.run(cmd, cwd=str(base_dir), check=True)
-        st.ok("manifest", f"{subset} verified")
-    except subprocess.CalledProcessError:
-        st.warn("manifest", f"{subset} verification failed")
 
 
 def collect_manifest_validation(cx):

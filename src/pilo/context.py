@@ -29,6 +29,7 @@ class DatasetMapping:
     def validate_within_src(self, dataset: str):
         policy.require_child_dataset(dataset, self.src_root)
 
+    # unused; kept for symmetry with above
     def validate_within_dst(self, dataset: str):
         policy.require_child_dataset(dataset, self.dst_root)
 
@@ -117,6 +118,7 @@ class Context:
         self.user_id = pwd.getpwnam(self.user).pw_uid
         self.args = args and args[1:] or []
 
+    # unused
     @property
     def current_secondary_dataset(self):
         current = self.current_secondary_state

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
-
 from pilo import context
 from pilo import error
 from pilo import state

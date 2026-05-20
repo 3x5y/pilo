@@ -109,27 +109,6 @@ class TestLatestAnchor(TestContinuityAnchor):
         self.assertIsNone(result)
 
 
-class TestApplyReleaseHolds(TestContinuityAnchor):
-
-    @patch("pilo.zfs.hold")
-    def test_apply_hold(self, mock_hold):
-        continuity.apply_hold(self.cx, "pool1", "tank/a@snap1")
-
-        mock_hold.assert_called_once_with(
-            "pilo:pool1",
-            "tank/a@snap1",
-        )
-
-    @patch("pilo.zfs.release")
-    def test_release_hold(self, mock_release):
-        continuity.release_hold(self.cx, "pool2", "tank/a@snap2")
-
-        mock_release.assert_called_once_with(
-            "pilo:pool2",
-            "tank/a@snap2",
-        )
-
-
 class TestUnheldSnapshots(TestContinuityAnchor):
 
     @patch("pilo.zfs.snapshots_userrefs")

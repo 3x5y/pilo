@@ -91,6 +91,7 @@ def as_checksum_index(items):
     return ChecksumIndex(items)
 
 
+# superseded by continuity.acquire_generated_checksum()
 def build_generated_checksum(path, checksum):
     return ProvenancedChecksum(
         path=path,

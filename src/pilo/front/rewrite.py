@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import checks
-from .. import checksum
 from .. import continuity
 from .. import error
 from .. import manifest_model

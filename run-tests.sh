@@ -26,9 +26,10 @@ env_setup() {
     printf "[SETUP] %s TMP_ROOT=%s\n" "$USAGE" "$TMP_ROOT"
     zpool_cleanup
     truncate -s 2G /$TMP_ROOT/vdev1
-    truncate -s 2G /$TMP_ROOT/vdev2
+    #truncate -s 2G /$TMP_ROOT/vdev2
     LOOP1=$(losetup --show -f /$TMP_ROOT/vdev1)
-    LOOP2=$(losetup --show -f /$TMP_ROOT/vdev2)
+    # unused; intended for future multi-pool setup
+    #LOOP2=$(losetup --show -f /$TMP_ROOT/vdev2)
     zpool create tank "$LOOP1"
 }
 
@@ -110,8 +111,6 @@ init_system() {
     zfs create -p $PILE
     zfs create -p $COLLECTION
     zfs create -p $FILING
-    #zfs create -p $root/stash
-    #zfs create -p $root/static/filing/2025
     pilo init
 }
 

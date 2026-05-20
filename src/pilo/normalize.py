@@ -69,6 +69,7 @@ class dataset_contracts:
         ),
     ]
 
+    # unused
     @staticmethod
     def lookup(name):
         for c in dataset_contracts.ALL:

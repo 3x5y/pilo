@@ -10,12 +10,6 @@ from . import manifest_mutation
 from . import mutation_exec
 
 
-class ExecutionPhase(Enum):
-    PREFLIGHT = auto()
-    FILESYSTEM = auto()
-    MANIFEST = auto()
-
-
 @dataclass(frozen=True)
 class ExecutionPlan:
     preflight_steps: list = field(default_factory=list)

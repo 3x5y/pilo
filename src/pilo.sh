@@ -26,7 +26,6 @@ fi
 : "${PILO_PRIMARY_ROOT:?PILO_PRIMARY_ROOT not set}"
 : "${PILO_PATH:?PILO_PATH not set}"
 : "${PILO_USER:?PILO_USER not set}"
-#: "${PILO_SECONDARY_ROOTS:="${PILO_SECONDARY_ROOTS:-}"}"
 : "${PILO_ADMIN_PATH:="$PILO_PATH/active/admin"}"
 : "${PILO_INTAKE_PATH:="$PILO_PATH/active/pile-intake"}"
 : "${PILO_PILE_PATH:="$PILO_PATH/active/pile-readonly"}"

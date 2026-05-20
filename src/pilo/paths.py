@@ -37,6 +37,7 @@ class Resolved:
     dataset: str
 
 
+# maybe unused
 def logical_namespace(rel: Path):
     parts = rel.parts
     if not parts:

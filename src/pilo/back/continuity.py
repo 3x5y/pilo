@@ -45,21 +45,12 @@ def anchors(cx, label=None):
     return result
 
 
+# unused; kept for reference
 def latest_anchor(cx, label):
     held = anchors(cx, label=label)
     if not held:
         return None
     return held[-1]
-
-
-def apply_hold(cx, label, snapshot):
-    tag = hold_tag(label)
-    zfs.hold(tag, snapshot)
-
-
-def release_hold(cx, label, snapshot):
-    tag = hold_tag(label)
-    zfs.release(tag, snapshot)
 
 
 def label_for_secondary(cx, root_dataset):
@@ -161,6 +152,7 @@ def execute_ageing_plan(cx, secondary_root, plan):
         zfs.release(hold_tag(anchor.secondary_label), anchor.snapshot)
 
 
+# unused; kept for reference
 def resolve_label(cx, root_dataset):
     label = label_for_secondary(cx, root_dataset)
     tag = hold_tag(label)
