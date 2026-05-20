@@ -135,6 +135,23 @@ def ageing_plan(cx, secondary_root, keep=1):
     )
 
 
+def is_preview_mode(cx):
+    return len(cx.args) >= 1 and cx.args[0] == "--preview"
+
+
+def preview_ageing_plan(plan):
+    lines = []
+    for snap in plan.secondary_to_prune:
+        lines.append(f"destroy {snap}")
+    for anchor in plan.secondary_to_release:
+        lines.append(f"release {hold_tag(anchor.secondary_label)} {anchor.snapshot}")
+    for snap in plan.primary_to_prune:
+        lines.append(f"destroy {snap}")
+    for anchor in plan.primary_to_release:
+        lines.append(f"release {hold_tag(anchor.secondary_label)} {anchor.snapshot}")
+    return lines
+
+
 def execute_ageing_plan(cx, secondary_root, plan):
     zfs.destroy_snapshots(plan.secondary_to_prune)
     for anchor in plan.secondary_to_release:

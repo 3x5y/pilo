@@ -537,6 +537,98 @@ class TestAgeingPlan(TestContinuityAnchor):
             continuity.ageing_plan(self.cx, "pool1/backup", keep=-1)
 
 
+class TestAgeingPlanPreview(TestContinuityAnchor):
+
+    def test_preview_empty_plan(self):
+        plan = continuity.AgeingPlan(
+            secondary_to_prune=[],
+            secondary_to_release=[],
+            primary_to_prune=[],
+            primary_to_release=[],
+        )
+        lines = continuity.preview_ageing_plan(plan)
+        self.assertEqual(lines, [])
+
+    def test_preview_full_plan(self):
+        plan = continuity.AgeingPlan(
+            secondary_to_prune=["sec@a"],
+            secondary_to_release=[
+                continuity.ContinuityAnchor(
+                    secondary_label="pool1", snapshot="sec@b",
+                ),
+            ],
+            primary_to_prune=["pri@x"],
+            primary_to_release=[
+                continuity.ContinuityAnchor(
+                    secondary_label="pool1", snapshot="pri@y",
+                ),
+            ],
+        )
+        lines = continuity.preview_ageing_plan(plan)
+        self.assertEqual(lines, [
+            "destroy sec@a",
+            "release pilo:pool1 sec@b",
+            "destroy pri@x",
+            "release pilo:pool1 pri@y",
+        ])
+
+    def test_preview_secondary_to_prune_only(self):
+        plan = continuity.AgeingPlan(
+            secondary_to_prune=["sec@a", "sec@b"],
+            secondary_to_release=[],
+            primary_to_prune=[],
+            primary_to_release=[],
+        )
+        lines = continuity.preview_ageing_plan(plan)
+        self.assertEqual(lines, [
+            "destroy sec@a",
+            "destroy sec@b",
+        ])
+
+    def test_preview_primary_to_release_only(self):
+        plan = continuity.AgeingPlan(
+            secondary_to_prune=[],
+            secondary_to_release=[],
+            primary_to_prune=[],
+            primary_to_release=[
+                continuity.ContinuityAnchor(
+                    secondary_label="pool1", snapshot="pri@z",
+                ),
+            ],
+        )
+        lines = continuity.preview_ageing_plan(plan)
+        self.assertEqual(lines, [
+            "release pilo:pool1 pri@z",
+        ])
+
+    def test_preview_release_tag_matches_hold_tag(self):
+        plan = continuity.AgeingPlan(
+            secondary_to_prune=[],
+            secondary_to_release=[
+                continuity.ContinuityAnchor(
+                    secondary_label="my-label", snapshot="sec@x",
+                ),
+            ],
+            primary_to_prune=[],
+            primary_to_release=[],
+        )
+        lines = continuity.preview_ageing_plan(plan)
+        self.assertEqual(lines[0],
+                         "release pilo:my-label sec@x")
+
+    def test_is_preview_mode_true(self):
+        self.cx.args = ["--preview"]
+        self.assertTrue(continuity.is_preview_mode(self.cx))
+
+    def test_is_preview_mode_false_no_args(self):
+        self.cx.args = []
+        self.assertFalse(continuity.is_preview_mode(self.cx))
+
+    def test_is_preview_mode_false_other_args(self):
+        self.cx.args = ["--delete", "x"]
+        self.assertFalse(continuity.is_preview_mode(self.cx))
+
+
 class TestExecuteAgeingPlan(TestContinuityAnchor):
 
     def setUp(self):

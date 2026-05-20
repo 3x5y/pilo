@@ -22,6 +22,12 @@ def main():
 
     secondary_root = detected.secondary
     plan = continuity.ageing_plan(cx, secondary_root, keep=keep)
+
+    if continuity.is_preview_mode(cx):
+        for line in continuity.preview_ageing_plan(plan):
+            print(line)
+        return
+
     continuity.execute_ageing_plan(cx, secondary_root, plan)
 
 
