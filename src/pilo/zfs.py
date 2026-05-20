@@ -324,6 +324,40 @@ def hold(tag, snapshot):
     run(cmd + args)
 
 
+def release(tag, snapshot):
+    cmd = "zfs release -r".split()
+    args = [tag, snapshot]
+    run(cmd + args)
+
+
+def list_holds(snapshot):
+    cmd = "zfs holds -Hp".split()
+    args = [snapshot]
+    lines = run_get_lines(cmd + args, check=False)
+    holds = []
+    for line in lines:
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            holds.append((parts[0], parts[1]))
+    return holds
+
+
+def held_snapshots(dataset, tag=None):
+    snaps = list_snapshots(dataset)
+    result = []
+    for snap in snaps:
+        holds = list_holds(snap)
+        if not holds:
+            continue
+        if tag is None:
+            result.append(snap)
+        elif any(t == tag for _, t in holds):
+            result.append(snap)
+    return result
+
+
 def create_parent(dataset):
     parent = dataset.rsplit("/", 1)[0]
     if parent and not dataset_exists(parent):
