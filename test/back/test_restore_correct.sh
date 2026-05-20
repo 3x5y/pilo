@@ -8,6 +8,7 @@ capture_file file.txt
 pilo ingest-pile
 pilo snapshot $snap
 pilo replica-seed
+clear_holds $PILE
 zfs destroy -r $PILE
 
 pilo restore $repl $PILE $snap

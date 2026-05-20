@@ -17,6 +17,9 @@ capture_file file.txt
 pilo ingest-pile
 pilo snapshot $snap
 pilo replica-seed
+clear_holds $COLLECTION
+clear_holds $PILE
+clear_holds $ADMIN
 zfs destroy -r $COLLECTION
 zfs destroy -r $PILE
 zfs destroy -r $ADMIN

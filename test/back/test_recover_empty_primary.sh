@@ -6,6 +6,7 @@ echo v1 > $ADMIN_PATH/file.txt
 pilo snapshot t0
 pilo replica-seed
 
+clear_holds
 zfs destroy -r $TEST_ROOT
 zfs create $TEST_ROOT
 

@@ -7,6 +7,7 @@ from .. import error
 from .. import state
 from .. import util
 from .. import zfs
+from . import continuity
 
 
 class ReplicationStatus(Enum):
@@ -23,7 +24,9 @@ class ReplicationPlan:
     dst: str
     snapshot: str
     base: str | None
-    mode: str  # "full" | "incremental" | "noop"
+    mode: str
+    hold_snapshot: str | None = None
+    hold_tag: str | None = None
 
 
 def find_incremental_base(src, dst):
@@ -90,7 +93,15 @@ def replication_state(src, dst):
 replication_status = replication_state
 
 
-def build_seed_replication_plan(src, dst):
+def _has_continuity_hold(snapshot, label):
+    tag = continuity.hold_tag(label)
+    for _, t in zfs.list_holds(snapshot):
+        if t == tag:
+            return True
+    return False
+
+
+def build_seed_replication_plan(src, dst, label=None):
     checks.require_dataset(src)
 
     if zfs.latest_snapshot(dst):
@@ -98,12 +109,17 @@ def build_seed_replication_plan(src, dst):
 
     snapshot = checks.require_latest_snapshot(src, "source")
 
+    hold = snapshot if label else None
+    tag = continuity.hold_tag(label) if label else None
+
     return ReplicationPlan(
         src=src,
         dst=dst,
         snapshot=snapshot,
         base=None,
         mode="seed",
+        hold_snapshot=hold,
+        hold_tag=tag,
     )
 
 
@@ -119,13 +135,16 @@ def build_replica_seed_plan(cx):
     if not state.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
+    label = continuity.label_for_secondary(cx, detected.secondary)
+
     return build_seed_replication_plan(
         cx.root_dataset,
         detected.secondary,
+        label=label,
     )
 
 
-def build_replication_plan(src, dst):
+def build_replication_plan(src, dst, label=None):
 
     checks.require_dataset(src)
     checks.require_dataset(dst)
@@ -138,24 +157,34 @@ def build_replication_plan(src, dst):
         error.fatal(f"base snapshot missing on source: {last_dst}")
 
     if base == last_src:
-        return ReplicationPlan(
-            src,
-            dst,
-            last_src,
-            base,
-            "noop",
-        )
+        mode = "noop"
     else:
-        return ReplicationPlan(
-            src,
-            dst,
-            last_src,
-            base,
-            "incremental",
-        )
+        mode = "incremental"
+
+    hold_snap = None
+    hold_t = None
+    if label is not None:
+        if mode == "noop":
+            if not _has_continuity_hold(last_src, label):
+                error.fatal(
+                    f"replica current but continuity hold missing "
+                    f"on {last_src}"
+                )
+        else:
+            hold_snap = last_src
+            hold_t = continuity.hold_tag(label)
+
+    return ReplicationPlan(
+        src, dst, last_src, base, mode,
+        hold_snapshot=hold_snap,
+        hold_tag=hold_t,
+    )
 
 
 def execute_replication_plan(plan: ReplicationPlan):
+    if plan.hold_snapshot and plan.hold_tag:
+        zfs.hold(plan.hold_tag, plan.hold_snapshot)
+
     if plan.mode == "seed":
         return zfs.replicate_full(plan.snapshot, plan.dst)
 

@@ -126,6 +126,7 @@ class TestReplicationPlan(pilotest.TestCase):
         mock_build.assert_called_once_with(
             "tank/a",
             "backup/a",
+            label="backup",
         )
 
     @patch("pilo.state.detect_lifecycle")
@@ -139,6 +140,106 @@ class TestReplicationPlan(pilotest.TestCase):
 
         with pilotest.assert_fatal(self):
             repl.build_replica_seed_plan(cx)
+
+
+class TestReplicationPlanWithLabel(pilotest.TestCase):
+
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_plan_incremental_with_label(self, mock_latest, mock_base, *_):
+        mock_latest.side_effect = ["tank/a@r2", "backup/a@r1"]
+        mock_base.return_value = "tank/a@r1"
+
+        plan = repl.build_replication_plan(
+            "tank/a", "backup/a", label="mylabel"
+        )
+
+        self.assertEqual(plan.mode, "incremental")
+        self.assertEqual(plan.hold_snapshot, "tank/a@r2")
+        self.assertEqual(plan.hold_tag, "pilo:mylabel")
+
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_plan_seed_with_label(self, mock_latest, *_):
+        mock_latest.side_effect = [None, "tank/a@r1"]
+
+        plan = repl.build_seed_replication_plan(
+            "tank/a", "backup/a", label="mylabel"
+        )
+
+        self.assertEqual(plan.mode, "seed")
+        self.assertEqual(plan.hold_snapshot, "tank/a@r1")
+        self.assertEqual(plan.hold_tag, "pilo:mylabel")
+
+    @patch("pilo.back.replication._has_continuity_hold", return_value=True)
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_plan_noop_with_label_hold_ok(
+        self, mock_latest, mock_base, *_
+    ):
+        mock_latest.side_effect = ["tank/a@r1", "backup/a@r1"]
+        mock_base.return_value = "tank/a@r1"
+
+        plan = repl.build_replication_plan(
+            "tank/a", "backup/a", label="mylabel"
+        )
+
+        self.assertEqual(plan.mode, "noop")
+
+    @patch("pilo.back.replication._has_continuity_hold", return_value=False)
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_plan_noop_with_label_hold_missing_fatal(
+        self, mock_latest, mock_base, *_
+    ):
+        mock_latest.side_effect = ["tank/a@r1", "backup/a@r1"]
+        mock_base.return_value = "tank/a@r1"
+
+        with pilotest.assert_fatal(self):
+            repl.build_replication_plan(
+                "tank/a", "backup/a", label="mylabel"
+            )
+
+    @patch("pilo.zfs.hold")
+    @patch("pilo.zfs.replicate_full")
+    def test_execute_seed_applies_hold(self, mock_full, mock_hold):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@r1",
+            base=None,
+            mode="seed",
+            hold_snapshot="tank/a@r1",
+            hold_tag="pilo:z1",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_hold.assert_called_once_with("pilo:z1", "tank/a@r1")
+        mock_full.assert_called_once_with("tank/a@r1", "backup/a")
+
+    @patch("pilo.zfs.hold")
+    @patch("pilo.zfs.replicate_incremental")
+    def test_execute_incremental_applies_hold(self, mock_incr, mock_hold):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@r2",
+            base="tank/a@r1",
+            mode="incremental",
+            hold_snapshot="tank/a@r2",
+            hold_tag="pilo:z1",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_hold.assert_called_once_with("pilo:z1", "tank/a@r2")
+        mock_incr.assert_called_once_with(
+            "tank/a@r1", "tank/a@r2", "backup/a",
+        )
 
 
 class TestReplicateCommands(pilotest.TestCase):
@@ -184,6 +285,8 @@ class TestReplicateCommands(pilotest.TestCase):
                 mod.main()
 
     @patch("pilo.back.replication.replicate")
+    @patch("pilo.back.replication.build_replication_plan")
+    @patch("pilo.back.replication.execute_replication_plan")
     def test_replicate_safe_uses_classifier_secondary(self, *_):
         mod = pilotest.import_command("replicate-safe")
         cx = pilotest.make_context()
@@ -247,7 +350,7 @@ class TestReplicateCommands(pilotest.TestCase):
         with (p1, p2):
             mod.main()
 
-        mock_build.assert_called_once_with("tank/a", "backup/a")
+        mock_build.assert_called_once_with("tank/a", "backup/a", label="backup")
         mock_exec.assert_called_once()
 
     def test_replicate_rejects_uninitialized_secondary(self):

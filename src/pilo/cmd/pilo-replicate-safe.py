@@ -5,6 +5,7 @@ import sys
 from pilo import context
 from pilo import error
 from pilo import state
+from pilo.back import continuity
 from pilo.back import replication as repl
 
 
@@ -34,7 +35,10 @@ def main():
         print(f"STATUS={status.value}")
         error.fatal(msg)
 
-    repl.replicate(src, dst)
+    label = continuity.label_for_secondary(cx, dst)
+    plan = repl.build_replication_plan(src, dst, label=label)
+    repl.execute_replication_plan(plan)
+
     status, msg = repl.replication_status(src, dst)
 
     if status != repl.ReplicationStatus.OK:

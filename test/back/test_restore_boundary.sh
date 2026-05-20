@@ -10,6 +10,8 @@ zfs create -p $STASH
 echo temp > /$STASH/$temp
 pilo snapshot $snap
 pilo replica-seed
+clear_holds $ADMIN
+clear_holds $STASH
 zfs destroy -r $ADMIN
 zfs destroy -r $STASH
 

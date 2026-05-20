@@ -5,6 +5,7 @@ pilo snapshot-rpo
 pilo replica-seed
 
 # destroy source snapshot
+clear_holds
 snap=$(zfs list -t snap -s creation -Ho name $TEST_ROOT \
         | grep @r- | tail -n1)
 zfs destroy "$snap"

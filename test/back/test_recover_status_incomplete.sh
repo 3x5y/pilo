@@ -4,6 +4,8 @@ set -e
 pilo snapshot t0
 pilo replica-seed
 
+clear_holds $ADMIN
+clear_holds $PILE
 zfs destroy -r $ADMIN
 zfs destroy -r $PILE
 

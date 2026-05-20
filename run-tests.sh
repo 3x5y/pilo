@@ -61,7 +61,9 @@ test_setup() {
 }
 
 clear_holds() {
-    for snap in $(zfs list -t snap -d 99999 -Ho name $ROOT_DATASET)
+    local dataset=${1:-$ROOT_DATASET}
+    local snap ign tag rest
+    for snap in $(zfs list -t snap -d 99999 -Ho name $dataset)
     do
         zfs holds -H $snap \
             | while read ign tag rest

@@ -8,6 +8,7 @@ pilo snapshot t1
 pilo replicate
 
 # prune old source snapshot
+clear_holds
 zfs destroy $TEST_ROOT@t0
 
 capture_status pilo replication-verify

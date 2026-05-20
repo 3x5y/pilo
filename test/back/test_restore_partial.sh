@@ -12,6 +12,7 @@ with_writable $STATIC \
 pilo snapshot $snap
 pilo replica-seed
 
+clear_holds
 zfs destroy -r $TEST_ROOT
 zfs create -p $TEST_ROOT/active
 

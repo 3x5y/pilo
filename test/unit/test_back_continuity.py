@@ -128,3 +128,27 @@ class TestApplyReleaseHolds(TestContinuityAnchor):
             "pilo:pool2",
             "tank/a@snap2",
         )
+
+
+class TestResolveLabel(TestContinuityAnchor):
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_resolve_label_finds_anchor(self, mock_held):
+        mock_held.return_value = ["pool1/backup@snap1", "pool1/backup@snap2"]
+
+        result = continuity.resolve_label(self.cx, "pool1/backup")
+
+        self.assertIsInstance(result, continuity.ContinuityAnchor)
+        self.assertEqual(result.secondary_label, "pool1")
+        self.assertEqual(result.snapshot, "pool1/backup@snap2")
+        mock_held.assert_called_once_with(
+            "pool1/backup",
+            tag="pilo:pool1",
+        )
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_resolve_label_fatal_when_no_hold(self, mock_held):
+        mock_held.return_value = []
+
+        with pilotest.assert_fatal(self):
+            continuity.resolve_label(self.cx, "pool1/backup")

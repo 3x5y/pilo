@@ -4,6 +4,7 @@ set -e
 pilo snapshot baseline
 pilo replica-seed
 
+clear_holds
 zfs destroy -r $TEST_ROOT
 
 path=/random/path

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from .. import error
 from .. import zfs
 
 
@@ -44,3 +45,24 @@ def apply_hold(cx, label, snapshot):
 def release_hold(cx, label, snapshot):
     tag = hold_tag(label)
     zfs.release(tag, snapshot)
+
+
+def label_for_secondary(cx, root_dataset):
+    for config in cx.secondary_configs:
+        if config.root == root_dataset:
+            return config.label
+    error.fatal(f"no secondary config found for {root_dataset}")
+
+
+def resolve_label(cx, root_dataset):
+    label = label_for_secondary(cx, root_dataset)
+    tag = hold_tag(label)
+    snaps = zfs.held_snapshots(root_dataset, tag=tag)
+    if not snaps:
+        error.fatal(
+            f"no snapshot on {root_dataset} with hold {tag}"
+        )
+    return ContinuityAnchor(
+        secondary_label=label,
+        snapshot=snaps[-1],
+    )
