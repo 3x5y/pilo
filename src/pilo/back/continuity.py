@@ -106,6 +106,14 @@ def expired_secondary_anchors(cx, secondary_root):
     return result
 
 
+def primary_holds_to_release(cx, secondary_root, keep=1):
+    label = label_for_secondary(cx, secondary_root)
+    held = anchors(cx, label=label)
+    if len(held) <= keep:
+        return []
+    return held[:-keep]
+
+
 def resolve_label(cx, root_dataset):
     label = label_for_secondary(cx, root_dataset)
     tag = hold_tag(label)

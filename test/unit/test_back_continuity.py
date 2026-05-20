@@ -392,3 +392,77 @@ class TestResolveLabel(TestContinuityAnchor):
 
         with pilotest.assert_fatal(self):
             continuity.resolve_label(self.cx, "pool1/backup")
+
+
+class TestPrimaryHoldsToRelease(TestContinuityAnchor):
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_keep_one(self, mock_held):
+        mock_held.return_value = [
+            "tank/a@snap1",
+            "tank/a@snap2",
+            "tank/a@snap3",
+            "tank/a@snap4",
+            "tank/a@snap5",
+        ]
+
+        result = continuity.primary_holds_to_release(
+            self.cx, "pool1/backup", keep=1,
+        )
+
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].snapshot, "tank/a@snap1")
+        self.assertEqual(result[1].snapshot, "tank/a@snap2")
+        self.assertEqual(result[2].snapshot, "tank/a@snap3")
+        self.assertEqual(result[3].snapshot, "tank/a@snap4")
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_keep_three(self, mock_held):
+        mock_held.return_value = [
+            "tank/a@snap1",
+            "tank/a@snap2",
+            "tank/a@snap3",
+            "tank/a@snap4",
+            "tank/a@snap5",
+        ]
+
+        result = continuity.primary_holds_to_release(
+            self.cx, "pool1/backup", keep=3,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].snapshot, "tank/a@snap1")
+        self.assertEqual(result[1].snapshot, "tank/a@snap2")
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_single_anchor_keep_one(self, mock_held):
+        mock_held.return_value = ["tank/a@snap1"]
+
+        result = continuity.primary_holds_to_release(
+            self.cx, "pool1/backup", keep=1,
+        )
+
+        self.assertEqual(result, [])
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_no_anchors(self, mock_held):
+        mock_held.return_value = []
+
+        result = continuity.primary_holds_to_release(
+            self.cx, "pool1/backup", keep=1,
+        )
+
+        self.assertEqual(result, [])
+
+    @patch("pilo.zfs.held_snapshots")
+    def test_keep_exceeds_count(self, mock_held):
+        mock_held.return_value = [
+            "tank/a@snap1",
+            "tank/a@snap2",
+        ]
+
+        result = continuity.primary_holds_to_release(
+            self.cx, "pool1/backup", keep=5,
+        )
+
+        self.assertEqual(result, [])
