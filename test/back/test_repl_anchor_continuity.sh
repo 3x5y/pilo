@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pilo anchor-create rotation
+pilo snapshot-rpo
 pilo replica-seed
 
 pilo snapshot t1

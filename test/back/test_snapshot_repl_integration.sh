@@ -4,7 +4,7 @@ set -e
 repl_admin=$TEST_REPLICA/active/admin
 
 echo v1 > $ADMIN_PATH/file.txt
-pilo snapshot-anchor
+pilo snapshot-rpo
 pilo replica-seed
 
 echo v2 > $ADMIN_PATH/file.txt
@@ -12,7 +12,7 @@ pilo snapshot-rpo
 pilo replicate
 
 echo v3 > $ADMIN_PATH/file.txt
-pilo snapshot-anchor
+pilo snapshot-rpo
 pilo replicate
 
 snap=$(zfs list -t snap -s creation -Ho name "$repl_admin" \

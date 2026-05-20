@@ -9,7 +9,6 @@ from .. import zfs
 @dataclass(frozen=True)
 class SnapshotPolicy:
     prefix: str
-    hold: bool = False
     raw: bool = False
 
     def build_name(self, ts: str) -> str:
@@ -28,26 +27,12 @@ def create_snapshot_with_policy(policy: SnapshotPolicy, dataset: str, ts=None):
     zfs.snapshot(name, dataset)
     snap = f"{dataset}@{name}"
 
-    if policy.hold:
-        zfs.hold("repl-anchor", snap)
-
     return snap
 
 
 def create_prefixed_snapshot(prefix, dataset=None):
     dataset = dataset or os.environ["PILO_PRIMARY_ROOT"]
     policy = SnapshotPolicy(prefix=prefix)
-    return create_snapshot_with_policy(policy, dataset)
-
-
-def create_anchor(anchor_type, dataset=None):
-    dataset = dataset or os.environ["PILO_PRIMARY_ROOT"]
-    if anchor_type == "daily":
-        policy = SnapshotPolicy(prefix="daily", hold=False)
-    elif anchor_type == "rotation":
-        policy = SnapshotPolicy(prefix="rotation", hold=True)
-    else:
-        error.fatal("invalid anchor type")
     return create_snapshot_with_policy(policy, dataset)
 
 

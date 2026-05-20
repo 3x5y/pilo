@@ -15,6 +15,13 @@ class TestSnapshotPolicy(pilotest.TestCase):
 
         self.assertEqual(name, "r-20240101_000000_000000")
 
+    def test_policy_no_timestamp_for_raw(self):
+        policy = snapshot.SnapshotPolicy(prefix="x", raw=True)
+
+        name = policy.build_name("TS")
+
+        self.assertEqual(name, "x")
+
     @patch("pilo.util.snapshot_timestamp", return_value="TS")
     def test_policy_uses_timestamp(self, mock_ts):
         policy = snapshot.SnapshotPolicy(prefix="x")
@@ -42,27 +49,9 @@ class TestSnapshotPolicy(pilotest.TestCase):
         mock_create.assert_called_once()
 
     @patch("pilo.back.snapshot.create_snapshot_with_policy")
-    def test_rotation_anchor_sets_hold(self, mock_create):
-        mock_create.return_value = "tank/a@rotation-TS"
-
-        snap = snapshot.create_anchor("rotation", "tank/a")
-
-        policy = mock_create.call_args[0][0]
-        self.assertTrue(policy.hold)
-
-    @patch("pilo.back.snapshot.create_snapshot_with_policy")
     def test_create_snapshot_uses_policy(self, mock_create):
         mock_create.return_value = "tank/a@foo"
 
         snap = snapshot.create_snapshot("foo", "tank/a")
 
         self.assertEqual(snap, "tank/a@foo")
-
-    @patch("pilo.zfs.hold")
-    @patch("pilo.zfs.snapshot")
-    def test_hold_applied(self, mock_snap, mock_hold):
-        policy = snapshot.SnapshotPolicy(prefix="x", hold=True)
-
-        snap = snapshot.create_snapshot_with_policy(policy, "tank/a", ts="TS")
-
-        mock_hold.assert_called_once_with("repl-anchor", "tank/a@x-TS")

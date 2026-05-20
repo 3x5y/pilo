@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-capture_status pilo anchor-create rotation
+capture_status pilo snapshot-rpo
 
-assert_command_ok failed to create rotation anchor
+assert_command_ok failed to create snapshot
 
 snap=$(zfs list -t snap -s creation -Ho name | tail -n1)
 
-zfs holds "$snap" | assert_grep repl-anchor
+zfs list "$snap" > /dev/null

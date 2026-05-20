@@ -1,13 +1,13 @@
 #!/bin/sh
 set -e
 
-pilo anchor-create rotation
+pilo snapshot-rpo
 pilo replica-seed
 
 pilo snapshot t1
 pilo replicate
 
-pilo anchor-create rotation
+pilo snapshot-rpo
 pilo replicate
 
 capture_status pilo replication-verify

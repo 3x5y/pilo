@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-anchor
+pilo snapshot-rpo
 
-zfs list -t snapshot | assert_grep "$ADMIN@a-"
-zfs list -t snapshot | assert_grep "$COLLECTION@a-"
+zfs list -t snapshot | assert_grep "$ADMIN@r-"
+zfs list -t snapshot | assert_grep "$COLLECTION@r-"

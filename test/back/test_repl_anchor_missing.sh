@@ -1,19 +1,17 @@
 #!/bin/sh
 set -e
 
-pilo anchor-create rotation
+pilo snapshot-rpo
 pilo replica-seed
 
-# destroy anchor on source only
+# destroy source snapshot
 snap=$(zfs list -t snap -s creation -Ho name $TEST_ROOT \
-        | grep rotation- | tail -n1)
-zfs release repl-anchor $snap
+        | grep @r- | tail -n1)
 zfs destroy "$snap"
 
 pilo snapshot t1
 
 capture_status pilo replicate
 
-assert_command_fail expected missing anchor failure
-#echo "$OUTPUT" | assert_grep "base snapshot missing"
+assert_command_fail expected missing snapshot failure
 echo "$OUTPUT" | assert_grep "ERROR: divergence"
