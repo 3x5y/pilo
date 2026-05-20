@@ -130,6 +130,60 @@ class TestApplyReleaseHolds(TestContinuityAnchor):
         )
 
 
+class TestUnheldSnapshots(TestContinuityAnchor):
+
+    @patch("pilo.zfs.snapshots_userrefs")
+    def test_none_held(self, mock_userrefs):
+        mock_userrefs.return_value = [
+            ("tank/a@snap1", 0),
+            ("tank/a@snap2", 0),
+            ("tank/a@snap3", 0),
+        ]
+
+        result = continuity.unheld_snapshots("tank/a")
+
+        self.assertEqual(result, [
+            "tank/a@snap1",
+            "tank/a@snap2",
+            "tank/a@snap3",
+        ])
+
+    @patch("pilo.zfs.snapshots_userrefs")
+    def test_stops_at_first_held(self, mock_userrefs):
+        mock_userrefs.return_value = [
+            ("tank/a@snap1", 0),
+            ("tank/a@snap2", 0),
+            ("tank/a@snap3", 1),
+            ("tank/a@snap4", 0),
+        ]
+
+        result = continuity.unheld_snapshots("tank/a")
+
+        self.assertEqual(result, [
+            "tank/a@snap1",
+            "tank/a@snap2",
+        ])
+
+    @patch("pilo.zfs.snapshots_userrefs")
+    def test_all_held(self, mock_userrefs):
+        mock_userrefs.return_value = [
+            ("tank/a@snap1", 2),
+            ("tank/a@snap2", 1),
+        ]
+
+        result = continuity.unheld_snapshots("tank/a")
+
+        self.assertEqual(result, [])
+
+    @patch("pilo.zfs.snapshots_userrefs")
+    def test_empty_dataset(self, mock_userrefs):
+        mock_userrefs.return_value = []
+
+        result = continuity.unheld_snapshots("tank/a")
+
+        self.assertEqual(result, [])
+
+
 class TestResolveLabel(TestContinuityAnchor):
 
     @patch("pilo.zfs.held_snapshots")

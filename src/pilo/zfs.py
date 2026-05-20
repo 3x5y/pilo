@@ -272,6 +272,23 @@ def latest_snapshot(dataset):
     return snaps and snaps[-1] or None
 
 
+def snapshots_userrefs(dataset):
+    lines = zfs_list(["name", "userrefs"], dataset, types="snapshot",
+                     sort="creation", check=False)
+    result = []
+    for line in lines:
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            name, refs = parts[0], parts[1]
+            try:
+                result.append((name, int(refs)))
+            except ValueError:
+                result.append((name, 0))
+    return result
+
+
 def list_guids(dataset):
     cmd = "zfs list -t snapshot -Ho guid".split()
     args = [dataset]

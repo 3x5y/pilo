@@ -54,6 +54,15 @@ def label_for_secondary(cx, root_dataset):
     error.fatal(f"no secondary config found for {root_dataset}")
 
 
+def unheld_snapshots(dataset):
+    result = []
+    for name, refs in zfs.snapshots_userrefs(dataset):
+        if refs > 0:
+            break
+        result.append(name)
+    return result
+
+
 def resolve_label(cx, root_dataset):
     label = label_for_secondary(cx, root_dataset)
     tag = hold_tag(label)
