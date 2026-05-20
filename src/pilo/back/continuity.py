@@ -10,6 +10,14 @@ class ContinuityAnchor:
     snapshot: str
 
 
+@dataclass(frozen=True)
+class AgeingPlan:
+    secondary_to_prune: list[str]
+    secondary_to_release: list[ContinuityAnchor]
+    primary_to_prune: list[str]
+    primary_to_release: list[ContinuityAnchor]
+
+
 def hold_tag(label: str) -> str:
     return f"pilo:{label}"
 
@@ -112,6 +120,17 @@ def primary_holds_to_release(cx, secondary_root, keep=1):
     if len(held) <= keep:
         return []
     return held[:-keep]
+
+
+def ageing_plan(cx, secondary_root, keep=1):
+    return AgeingPlan(
+        secondary_to_prune=unheld_snapshots(secondary_root),
+        secondary_to_release=expired_secondary_anchors(cx, secondary_root),
+        primary_to_prune=unheld_snapshots(cx.root_dataset),
+        primary_to_release=primary_holds_to_release(
+            cx, secondary_root, keep=keep,
+        ),
+    )
 
 
 def resolve_label(cx, root_dataset):

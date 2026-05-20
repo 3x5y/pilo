@@ -466,3 +466,64 @@ class TestPrimaryHoldsToRelease(TestContinuityAnchor):
         )
 
         self.assertEqual(result, [])
+
+
+class TestAgeingPlan(TestContinuityAnchor):
+
+    @patch("pilo.back.continuity.primary_holds_to_release")
+    @patch("pilo.back.continuity.expired_secondary_anchors")
+    @patch("pilo.back.continuity.unheld_snapshots")
+    def test_composes_correctly(self, mock_unheld, mock_expired, mock_primary):
+        mock_unheld.side_effect = [
+            ["sec@a", "sec@b"],
+            ["pri@x"],
+        ]
+        mock_expired.return_value = [
+            continuity.ContinuityAnchor(
+                secondary_label="pool1", snapshot="sec@b",
+            ),
+        ]
+        mock_primary.return_value = [
+            continuity.ContinuityAnchor(
+                secondary_label="pool1", snapshot="pri@a",
+            ),
+        ]
+
+        plan = continuity.ageing_plan(self.cx, "pool1/backup", keep=1)
+
+        self.assertIsInstance(plan, continuity.AgeingPlan)
+        self.assertEqual(plan.secondary_to_prune, ["sec@a", "sec@b"])
+        self.assertEqual(len(plan.secondary_to_release), 1)
+        self.assertEqual(plan.secondary_to_release[0].snapshot, "sec@b")
+        self.assertEqual(plan.primary_to_prune, ["pri@x"])
+        self.assertEqual(len(plan.primary_to_release), 1)
+        self.assertEqual(plan.primary_to_release[0].snapshot, "pri@a")
+
+    @patch("pilo.back.continuity.primary_holds_to_release")
+    @patch("pilo.back.continuity.expired_secondary_anchors")
+    @patch("pilo.back.continuity.unheld_snapshots")
+    def test_empty_plan(self, mock_unheld, mock_expired, mock_primary):
+        mock_unheld.return_value = []
+        mock_expired.return_value = []
+        mock_primary.return_value = []
+
+        plan = continuity.ageing_plan(self.cx, "pool1/backup")
+
+        self.assertEqual(plan.secondary_to_prune, [])
+        self.assertEqual(plan.secondary_to_release, [])
+        self.assertEqual(plan.primary_to_prune, [])
+        self.assertEqual(plan.primary_to_release, [])
+
+    @patch("pilo.back.continuity.primary_holds_to_release")
+    @patch("pilo.back.continuity.expired_secondary_anchors")
+    @patch("pilo.back.continuity.unheld_snapshots")
+    def test_keep_forwarded(self, mock_unheld, mock_expired, mock_primary):
+        mock_unheld.return_value = []
+        mock_expired.return_value = []
+        mock_primary.return_value = []
+
+        continuity.ageing_plan(self.cx, "pool1/backup", keep=3)
+
+        mock_primary.assert_called_once_with(
+            self.cx, "pool1/backup", keep=3,
+        )
