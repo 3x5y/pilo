@@ -1,10 +1,38 @@
 from dataclasses import dataclass
 
+from . import error
 from . import zfs
 
 
 @dataclass(frozen=True)
+class SecondaryConfig:
+    label: str
+    root: str
+
+
+def parse_secondary_roots(envstr):
+    tokens = envstr.split()
+    configs = []
+    for token in tokens:
+        if not token:
+            continue
+        label = token.split("/")[0]
+        configs.append(SecondaryConfig(label=label, root=token))
+
+    labels = [c.label for c in configs]
+    if len(labels) != len(set(labels)):
+        error.fatal(f"duplicate secondary labels: {labels}")
+
+    roots = [c.root for c in configs]
+    if len(roots) != len(set(roots)):
+        error.fatal(f"duplicate secondary roots: {roots}")
+
+    return configs
+
+
+@dataclass(frozen=True)
 class SecondaryState:
+    label: str
     root: str
     configured: bool
     carrier_attached: bool
@@ -23,21 +51,21 @@ def carrier_root(dataset):
 @dataclass(frozen=True)
 class StorageTopology:
     primary_root: str
-    secondary_roots: list[str]
+    secondary_configs: list[SecondaryConfig]
 
     def secondary_states(self):
         states = []
         attached = []
-        existing = []
-        for root in self.secondary_roots:
-            carrier = carrier_root(root)
+        for config in self.secondary_configs:
+            carrier = carrier_root(config.root)
             carrier_attached = zfs.dataset_exists(carrier)
-            dataset_exists = zfs.dataset_exists(root)
+            dataset_exists = zfs.dataset_exists(config.root)
             initialized = False
             if dataset_exists:
-                initialized = bool(zfs.latest_snapshot(root))
+                initialized = bool(zfs.latest_snapshot(config.root))
             state = SecondaryState(
-                root=root,
+                label=config.label,
+                root=config.root,
                 configured=True,
                 carrier_attached=carrier_attached,
                 dataset_exists=dataset_exists,
@@ -57,6 +85,7 @@ class StorageTopology:
         current_root = attached[0].root if attached else None
         return [
             SecondaryState(
+                label=s.label,
                 root=s.root,
                 configured=s.configured,
                 carrier_attached=s.carrier_attached,
@@ -70,8 +99,8 @@ class StorageTopology:
     @property
     def attached_secondary_roots(self):
         return [
-            s.root for s in self.secondary_states()
-            if s.carrier_attached
+            c.root for c in self.secondary_configs
+            if zfs.dataset_exists(carrier_root(c.root))
         ]
 
     def current_secondary_state(self):

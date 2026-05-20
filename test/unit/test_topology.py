@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from pilo import topology
+from pilo.topology import SecondaryConfig
 import pilotest
 
 
@@ -23,9 +24,9 @@ class TestStorageTopology(pilotest.TestCase):
 
         topo = topology.StorageTopology(
             primary_root="tank/a",
-            secondary_roots=[
-                "backup/a",
-                "offline/a",
+            secondary_configs=[
+                SecondaryConfig(label="backup", root="backup/a"),
+                SecondaryConfig(label="offline", root="offline/a"),
             ],
         )
 
@@ -40,7 +41,9 @@ class TestStorageTopology(pilotest.TestCase):
 
         topo = topology.StorageTopology(
             primary_root="tank/a",
-            secondary_roots=["backup/a"],
+            secondary_configs=[
+                SecondaryConfig(label="backup", root="backup/a"),
+            ],
         )
 
         self.assertIsNone(
@@ -53,9 +56,9 @@ class TestStorageTopology(pilotest.TestCase):
 
         topo = topology.StorageTopology(
             primary_root="tank/a",
-            secondary_roots=[
-                "backup/a",
-                "backup/b",
+            secondary_configs=[
+                SecondaryConfig(label="b1", root="backup/a"),
+                SecondaryConfig(label="b2", root="backup/b"),
             ],
         )
 
@@ -100,9 +103,9 @@ class TestStorageTopology(pilotest.TestCase):
 
         topo = topology.StorageTopology(
             primary_root="tank/a",
-            secondary_roots=[
-                "backup1/current",
-                "backup2/current",
+            secondary_configs=[
+                SecondaryConfig(label="backup1", root="backup1/current"),
+                SecondaryConfig(label="backup2", root="backup2/current"),
             ],
         )
 
@@ -135,9 +138,9 @@ class TestStorageTopology(pilotest.TestCase):
 
         topo = topology.StorageTopology(
             primary_root="tank/a",
-            secondary_roots=[
-                "offline/old",
-                "backup/current",
+            secondary_configs=[
+                SecondaryConfig(label="offline", root="offline/old"),
+                SecondaryConfig(label="backup", root="backup/current"),
             ],
         )
 
@@ -146,6 +149,7 @@ class TestStorageTopology(pilotest.TestCase):
         self.assertEqual(len(states), 2)
 
         old = states[0]
+        self.assertEqual(old.label, "offline")
         self.assertEqual(old.root, "offline/old")
         self.assertFalse(old.carrier_attached)
         self.assertFalse(old.dataset_exists)
@@ -153,6 +157,7 @@ class TestStorageTopology(pilotest.TestCase):
         self.assertFalse(old.current)
 
         cur = states[1]
+        self.assertEqual(cur.label, "backup")
         self.assertEqual(cur.root, "backup/current")
         self.assertTrue(cur.carrier_attached)
         self.assertTrue(cur.dataset_exists)
@@ -178,14 +183,15 @@ class TestStorageTopology(pilotest.TestCase):
 
         topo = topology.StorageTopology(
             primary_root="tank/a",
-            secondary_roots=[
-                "offline/old",
-                "backup/current",
+            secondary_configs=[
+                SecondaryConfig(label="offline", root="offline/old"),
+                SecondaryConfig(label="backup", root="backup/current"),
             ],
         )
 
         state = topo.current_secondary_state()
 
         self.assertIsNotNone(state)
+        self.assertEqual(state.label, "backup")
         self.assertEqual(state.root, "backup/current")
         self.assertTrue(state.current)

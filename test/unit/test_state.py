@@ -327,7 +327,7 @@ class TestSystemClassifier(pilotest.TestCase):
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_detect_system_state_invalid_topology(self, _exists):
         cx = pilotest.make_context(
-            PILO_SECONDARY_ROOTS="backup/a backup/b",
+            PILO_SECONDARY_ROOTS="pool1/backup pool2/backup",
         )
 
         st = state.detect_lifecycle(cx)

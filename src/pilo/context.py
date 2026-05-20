@@ -84,10 +84,10 @@ class Context:
         self.root_dataset = self.primary_root
 
         secondary = environ.get("PILO_SECONDARY_ROOTS", "")
-        self.secondary_roots = [s for s in secondary.split() if s]
+        self.secondary_configs = topology.parse_secondary_roots(secondary)
         self.topology = topology.StorageTopology(
             primary_root=self.primary_root,
-            secondary_roots=self.secondary_roots,
+            secondary_configs=self.secondary_configs,
         )
 
         self.active_dataset = environ.get("PILO_ACTIVE_DATASET") \
