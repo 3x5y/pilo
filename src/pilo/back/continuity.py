@@ -14,6 +14,13 @@ def hold_tag(label: str) -> str:
     return f"pilo:{label}"
 
 
+def parse_hold_tag(tag: str) -> str | None:
+    prefix = "pilo:"
+    if tag.startswith(prefix):
+        return tag[len(prefix):]
+    return None
+
+
 def anchors(cx, label=None):
     result = []
     for config in cx.secondary_configs:
@@ -60,6 +67,42 @@ def unheld_snapshots(dataset):
         if refs > 0:
             break
         result.append(name)
+    return result
+
+
+def _guid_set(dataset):
+    guids = set()
+    for name, guid in zfs.snapshot_guids(dataset):
+        guids.add(guid)
+    return guids
+
+
+def expired_secondary_anchors(cx, secondary_root):
+    if not zfs.dataset_exists(secondary_root):
+        return []
+
+    primary_guids = _guid_set(cx.root_dataset)
+    sec_guid_map = {
+        name: guid
+        for name, guid in zfs.snapshot_guids(secondary_root)
+    }
+
+    result = []
+    for name, refs in zfs.snapshots_userrefs(secondary_root):
+        guid = sec_guid_map.get(name)
+        if guid is None:
+            continue
+        if guid in primary_guids:
+            break
+        if refs == 0:
+            continue
+        for snap, tag in zfs.list_holds(name):
+            label = parse_hold_tag(tag)
+            if label is not None:
+                result.append(ContinuityAnchor(
+                    secondary_label=label,
+                    snapshot=name,
+                ))
     return result
 
 

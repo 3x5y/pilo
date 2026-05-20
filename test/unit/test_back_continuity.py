@@ -184,6 +184,192 @@ class TestUnheldSnapshots(TestContinuityAnchor):
         self.assertEqual(result, [])
 
 
+class TestExpiredSecondaryAnchors(TestContinuityAnchor):
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_holds")
+    @patch("pilo.zfs.snapshots_userrefs")
+    @patch("pilo.zfs.snapshot_guids")
+    def test_some_expired(self, mock_guids, mock_userrefs, mock_holds, _):
+        def guid_side_effect(ds):
+            if ds == "tank/a":
+                return [["tank/a@c", "333"]]
+            return [
+                ["pool1/backup@a", "111"],
+                ["pool1/backup@b", "222"],
+                ["pool1/backup@c", "333"],
+                ["pool1/backup@d", "444"],
+            ]
+
+        mock_guids.side_effect = guid_side_effect
+        mock_userrefs.return_value = [
+            ("pool1/backup@a", 1),
+            ("pool1/backup@b", 1),
+            ("pool1/backup@c", 1),
+            ("pool1/backup@d", 1),
+        ]
+
+        def holds_side_effect(snap):
+            if "a" in snap:
+                return [("pool1/backup@a", "pilo:pool1")]
+            if "b" in snap:
+                return [("pool1/backup@b", "pilo:pool1")]
+            return []
+
+        mock_holds.side_effect = holds_side_effect
+
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].secondary_label, "pool1")
+        self.assertEqual(result[0].snapshot, "pool1/backup@a")
+        self.assertEqual(result[1].secondary_label, "pool1")
+        self.assertEqual(result[1].snapshot, "pool1/backup@b")
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_holds")
+    @patch("pilo.zfs.snapshots_userrefs")
+    @patch("pilo.zfs.snapshot_guids")
+    def test_stops_at_match(self, mock_guids, mock_userrefs, mock_holds, _):
+        def guid_side_effect(ds):
+            if ds == "tank/a":
+                return [["tank/a@b", "222"]]
+            return [
+                ["pool1/backup@a", "111"],
+                ["pool1/backup@b", "222"],
+                ["pool1/backup@c", "333"],
+            ]
+
+        mock_guids.side_effect = guid_side_effect
+        mock_userrefs.return_value = [
+            ("pool1/backup@a", 1),
+            ("pool1/backup@b", 1),
+            ("pool1/backup@c", 1),
+        ]
+
+        def holds_side_effect(snap):
+            return [(snap, "pilo:pool1")]
+
+        mock_holds.side_effect = holds_side_effect
+
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].snapshot, "pool1/backup@a")
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_holds")
+    @patch("pilo.zfs.snapshots_userrefs")
+    @patch("pilo.zfs.snapshot_guids")
+    def test_all_current(self, mock_guids, mock_userrefs, mock_holds, _):
+        def guid_side_effect(ds):
+            if ds == "tank/a":
+                return [["tank/a@a", "111"], ["tank/a@b", "222"]]
+            return [
+                ["pool1/backup@a", "111"],
+                ["pool1/backup@b", "222"],
+            ]
+
+        mock_guids.side_effect = guid_side_effect
+        mock_userrefs.return_value = [
+            ("pool1/backup@a", 1),
+            ("pool1/backup@b", 1),
+        ]
+        mock_holds.return_value = []
+
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(result, [])
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_holds")
+    @patch("pilo.zfs.snapshots_userrefs")
+    @patch("pilo.zfs.snapshot_guids")
+    def test_none_match_all_expired(self, mock_guids, mock_userrefs, mock_holds, _):
+        def guid_side_effect(ds):
+            if ds == "tank/a":
+                return [["tank/a@x", "999"]]
+            return [
+                ["pool1/backup@a", "111"],
+                ["pool1/backup@b", "222"],
+            ]
+
+        mock_guids.side_effect = guid_side_effect
+        mock_userrefs.return_value = [
+            ("pool1/backup@a", 1),
+            ("pool1/backup@b", 1),
+        ]
+
+        def holds_side_effect(snap):
+            return [(snap, "pilo:pool1")]
+
+        mock_holds.side_effect = holds_side_effect
+
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(len(result), 2)
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.list_holds")
+    @patch("pilo.zfs.snapshots_userrefs")
+    @patch("pilo.zfs.snapshot_guids")
+    def test_skips_unheld(self, mock_guids, mock_userrefs, mock_holds, _):
+        def guid_side_effect(ds):
+            if ds == "tank/a":
+                return [["tank/a@c", "333"]]
+            return [
+                ["pool1/backup@a", "111"],
+                ["pool1/backup@b", "222"],
+                ["pool1/backup@c", "333"],
+            ]
+
+        mock_guids.side_effect = guid_side_effect
+        mock_userrefs.return_value = [
+            ("pool1/backup@a", 0),
+            ("pool1/backup@b", 1),
+            ("pool1/backup@c", 1),
+        ]
+
+        def holds_side_effect(snap):
+            return [(snap, "pilo:pool1")]
+
+        mock_holds.side_effect = holds_side_effect
+
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].snapshot, "pool1/backup@b")
+
+    @patch("pilo.zfs.dataset_exists", return_value=True)
+    @patch("pilo.zfs.snapshot_guids")
+    def test_empty_secondary(self, mock_guids, _):
+        mock_guids.return_value = []
+
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(result, [])
+
+    @patch("pilo.zfs.dataset_exists", return_value=False)
+    def test_secondary_not_exist(self, _):
+        result = continuity.expired_secondary_anchors(
+            self.cx, "pool1/backup",
+        )
+
+        self.assertEqual(result, [])
+
+
 class TestResolveLabel(TestContinuityAnchor):
 
     @patch("pilo.zfs.held_snapshots")
