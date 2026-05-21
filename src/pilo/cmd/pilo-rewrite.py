@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo import execution
+from pilo.front import execution
 from pilo import manifest_codec
 from pilo.front import rewrite
 

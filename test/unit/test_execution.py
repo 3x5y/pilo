@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo.execution import (
+from pilo.front.execution import (
     ExecutionPlan,
     ManifestStep,
     VerifyChecksumStep,
@@ -79,7 +79,7 @@ class TestExecutionPlan(pilotest.TestCase):
 
 
     @patch("pilo.mutation_exec.execute_fs_mutations")
-    @patch("pilo.execution.execute_verify_checksum_step")
+    @patch("pilo.front.execution.execute_verify_checksum_step")
     def test_preflight_executes_before_mutations(
         self,
         mock_verify,
@@ -114,7 +114,7 @@ class TestExecutionPlan(pilotest.TestCase):
 
 
     @patch("pilo.mutation_exec.execute_fs_mutations")
-    @patch("pilo.execution.execute_verify_checksum_step")
+    @patch("pilo.front.execution.execute_verify_checksum_step")
     def test_preflight_failure_prevents_mutation(
         self,
         mock_verify,

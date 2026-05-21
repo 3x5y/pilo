@@ -6,7 +6,7 @@ from pathlib import Path
 from pilo import mutation
 from pilo import paths
 from pilo.front import replace
-from pilo.execution import ExecutionPlan
+from pilo.front.execution import ExecutionPlan
 import pilotest
 
 

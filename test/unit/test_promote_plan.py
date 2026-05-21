@@ -3,7 +3,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
-from pilo import execution
+from pilo.front import execution
 from pilo import manifest_model
 from pilo import mutation
 from pilo import paths
@@ -385,7 +385,7 @@ class TestPromotePlan(pilotest.TestCase):
         subsets = [step.subset for step in steps]
         self.assertEqual(subsets, ["pile", "collection", "filing"])
 
-    @patch("pilo.checksum.verify_checksum")
+    @patch("pilo.front.checksum.verify_checksum")
     def test_promote_verified_checksums_verify_existing_entries(self,
                                                                 mock_verify):
 

@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import checksum
-from . import manifest_model
-from . import manifest_policy
+from .. import manifest_model
+from .. import manifest_policy
 
 
 @dataclass(frozen=True)

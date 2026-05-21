@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from . import error
-from . import fs
-from . import manifest_model
+from .. import error
+from .. import fs
+from .. import manifest_model
 
 
 def generate_checksum(path: Path):

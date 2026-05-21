@@ -7,7 +7,7 @@ from pilo import manifest_model
 from pilo import mutation_types
 from pilo.front import capture
 from pilo.front import ingest
-from pilo.execution import ExecutionPlan
+from pilo.front.execution import ExecutionPlan
 import pilotest
 
 
@@ -454,7 +454,7 @@ class TestIngestOps(pilotest.TestCase):
         self.assertEqual(op.manifest_path, mpath)
         self.assertEqual(len(op.build_mutations()), 1)
 
-    @patch("pilo.checksum.generate_checksum")
+    @patch("pilo.front.checksum.generate_checksum")
     def test_ingest_manifest_mutations_use_acquisition_layer(
         self,
         mock_generate,

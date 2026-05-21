@@ -4,10 +4,10 @@ from enum import Enum, auto
 from pathlib import Path
 
 
-from . import error
-from . import fs
-from . import manifest_mutation
-from . import mutation_exec
+from .. import error
+from .. import fs
+from .. import manifest_mutation
+from .. import mutation_exec
 
 
 @dataclass(frozen=True)

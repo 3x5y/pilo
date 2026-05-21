@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import checksum
+from pilo.front import checksum
 from pilo import manifest_model
 import pilotest
 

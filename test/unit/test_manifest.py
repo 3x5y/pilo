@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from pilo import checksum
+from pilo.front import checksum
 from pilo import context
 from pilo import fs
 from pilo import manifest_codec
