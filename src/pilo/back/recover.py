@@ -4,7 +4,7 @@ from .. import checks
 from .. import context
 from .. import error
 from . import normalize
-from .. import state
+from .. import lifecycle
 from . import restore
 
 
@@ -19,15 +19,15 @@ class RecoveryPlan:
 
 def build_recovery_plan(cx, target):
 
-    detected = state.detect_lifecycle(cx)
+    detected = lifecycle.detect_lifecycle(cx)
 
-    if not state.lifecycle_recovery_permitted(detected):
+    if not lifecycle.lifecycle_recovery_permitted(detected):
         error.fatal(
             detected.message or
             "recovery not permitted in current lifecycle state"
         )
 
-    if not state.lifecycle_has_secondary(detected):
+    if not lifecycle.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
     secondary = detected.secondary

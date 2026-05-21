@@ -2,7 +2,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from pilo import state
+from pilo import lifecycle
 from pilo import status
 import pilotest
 
@@ -10,14 +10,14 @@ import pilotest
 class TestSystemStatusModel(pilotest.TestCase):
 
     def test_empty_status_is_ok(self):
-        report = state.ValidationReport()
+        report = lifecycle.ValidationReport()
         self.assertTrue(report.is_healthy)
         self.assertEqual(report.issues, [])
 
     @patch("pilo.git.is_dirty", return_value=True)
     def test_dirty_repo(self, _):
         cx = pilotest.make_context()
-        report = state.ValidationReport()
+        report = lifecycle.ValidationReport()
 
         with pilotest.make_tmp_context() as cx:
             (cx.admin_path / "repo" / ".git").mkdir(parents=True, exist_ok=True)
@@ -34,22 +34,22 @@ class TestSystemStatusModel(pilotest.TestCase):
         transient,
         collect,
     ):
-        collect.return_value = state.ValidationReport()
+        collect.return_value = lifecycle.ValidationReport()
 
         cx = pilotest.make_context()
 
         report = status.collect_report(cx)
 
-        self.assertIsInstance(report, state.ValidationReport)
+        self.assertIsInstance(report, lifecycle.ValidationReport)
         inc = {"datasets", "snapshot", "replication"}
         collect.assert_called_once_with(cx, include=inc)
         transient.assert_called_once()
 
     def test_render_validation_issue(self):
-        i = state.ValidationIssue(
+        i = lifecycle.ValidationIssue(
             code="foo.bar",
             message="bad stuff",
-            severity=state.ValidationSeverity.WARN,
+            severity=lifecycle.ValidationSeverity.WARN,
             component="foo",
         )
 
@@ -59,7 +59,7 @@ class TestSystemStatusModel(pilotest.TestCase):
 
     def test_manifest_status_missing_manifest_is_ok(self):
         cx = pilotest.make_context()
-        report = state.ValidationReport()
+        report = lifecycle.ValidationReport()
 
         report.extend(status.collect_manifest_validation(cx))
 
@@ -68,7 +68,7 @@ class TestSystemStatusModel(pilotest.TestCase):
     @patch("subprocess.run")
     def test_manifest_status_ok(self, mock_run):
         with pilotest.make_tmp_context() as cx:
-            report = state.ValidationReport()
+            report = lifecycle.ValidationReport()
             manifest = cx.admin_path / "manifest" / "pile.manifest"
             manifest.parent.mkdir(parents=True, exist_ok=True)
             manifest.write_text("abc\n")
@@ -88,7 +88,7 @@ class TestSystemStatusModel(pilotest.TestCase):
         )
 
         with pilotest.make_tmp_context() as cx:
-            report = state.ValidationReport()
+            report = lifecycle.ValidationReport()
 
             manifest = cx.admin_path / "manifest" / "pile.manifest"
             manifest.parent.mkdir(parents=True, exist_ok=True)

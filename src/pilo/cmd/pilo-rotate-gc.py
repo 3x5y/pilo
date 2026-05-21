@@ -4,18 +4,18 @@ import os
 
 from pilo import context
 from pilo import error
-from pilo import state
+from pilo import lifecycle
 from pilo.back import continuity
 
 
 def main():
     cx = context.Context()
-    detected = state.detect_lifecycle(cx)
+    detected = lifecycle.detect_lifecycle(cx)
 
-    if state.lifecycle_requires_provisioning(detected):
+    if lifecycle.lifecycle_requires_provisioning(detected):
         error.fatal("secondary requires provisioning")
 
-    if not state.lifecycle_has_secondary(detected):
+    if not lifecycle.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
     keep = int(os.environ.get("PILO_ROTATE_GC_KEEP", "1"))

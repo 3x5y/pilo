@@ -149,7 +149,7 @@ def normalize_system(cx):
 
 
 def validate_dataset_contract(cx, contract):
-    from ..state import ValidationIssue,ValidationSeverity
+    from ..lifecycle import ValidationIssue,ValidationSeverity
     issues = []
     dataset = contract_dataset(cx, contract)
     if not zfs.dataset_exists(dataset):

@@ -1,6 +1,6 @@
 from unittest.mock import call, patch, Mock
 
-from pilo import state
+from pilo import lifecycle
 import pilotest
 
 
@@ -15,9 +15,9 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx = pilotest.make_context()
 
         p1 = patch(
-            "pilo.state.detect_lifecycle",
-            return_value=state.LifecycleStatus(
-                state=state.LifecycleState.REPLICA_MISSING,
+            "pilo.lifecycle.detect_lifecycle",
+            return_value=lifecycle.LifecycleStatus(
+                state=lifecycle.LifecycleState.REPLICA_MISSING,
                 message="no secondary",
                 secondary=None,
             ),
@@ -31,9 +31,9 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx = pilotest.make_context()
 
         p1 = patch(
-            "pilo.state.detect_lifecycle",
-            return_value=state.LifecycleStatus(
-                state=state.LifecycleState.REPLICA_UNINITIALIZED,
+            "pilo.lifecycle.detect_lifecycle",
+            return_value=lifecycle.LifecycleStatus(
+                state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
                 message="requires provisioning",
                 secondary="pool1/backup",
             ),
@@ -57,9 +57,9 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx.args = ["--preview"]
 
         p1 = patch(
-            "pilo.state.detect_lifecycle",
-            return_value=state.LifecycleStatus(
-                state=state.LifecycleState.NORMAL,
+            "pilo.lifecycle.detect_lifecycle",
+            return_value=lifecycle.LifecycleStatus(
+                state=lifecycle.LifecycleState.NORMAL,
                 message="ok",
                 secondary="pool1/backup",
             ),
@@ -87,9 +87,9 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx.args = ["--preview"]
 
         p1 = patch(
-            "pilo.state.detect_lifecycle",
-            return_value=state.LifecycleStatus(
-                state=state.LifecycleState.NORMAL,
+            "pilo.lifecycle.detect_lifecycle",
+            return_value=lifecycle.LifecycleStatus(
+                state=lifecycle.LifecycleState.NORMAL,
                 message="ok",
                 secondary="pool1/backup",
             ),

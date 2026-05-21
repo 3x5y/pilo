@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from pilo import state
+from pilo import lifecycle
 from pilo.back import replication as repl
 import pilotest
 
@@ -111,13 +111,13 @@ class TestReplicationPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             repl.build_replication_plan("tank/a", "backup/a")
 
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     @patch("pilo.back.replication.build_seed_replication_plan")
     def test_build_replica_seed_plan(self, mock_build, mock_detect):
         cx = pilotest.make_context()
 
-        mock_detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        mock_detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
             secondary="backup/a",
         )
 
@@ -129,12 +129,12 @@ class TestReplicationPlan(pilotest.TestCase):
             label="backup",
         )
 
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     def test_build_replica_seed_plan_rejects_normal(self, mock_detect):
         cx = pilotest.make_context()
 
-        mock_detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        mock_detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
             secondary="backup/a",
         )
 
@@ -262,9 +262,9 @@ class TestReplicateCommands(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
         p1 = patch(
-            "pilo.state.detect_lifecycle",
-            return_value=state.LifecycleStatus(
-                state=state.LifecycleState.REPLICA_MISSING,
+            "pilo.lifecycle.detect_lifecycle",
+            return_value=lifecycle.LifecycleStatus(
+                state=lifecycle.LifecycleState.REPLICA_MISSING,
                 message="secondary unattached: backup/a",
                 secondary=None,
             ),
@@ -290,12 +290,12 @@ class TestReplicateCommands(pilotest.TestCase):
     def test_replicate_safe_uses_classifier_secondary(self, *_):
         mod = pilotest.import_command("replicate-safe")
         cx = pilotest.make_context()
-        detected = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_BEHIND,
+        detected = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_BEHIND,
             message="behind",
             secondary="backup/a",
         )
-        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
         p3 = patch("pilo.back.replication.replication_status",
                    side_effect=[
@@ -309,12 +309,12 @@ class TestReplicateCommands(pilotest.TestCase):
     def test_replicate_safe_blocks_diverged_topology(self):
         mod = pilotest.import_command("replicate-safe")
         cx = pilotest.make_context()
-        detected = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        detected = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
             message="divergence in backup/a",
             secondary="backup/a",
         )
-        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2, pilotest.assert_fatal(self)):
@@ -338,13 +338,13 @@ class TestReplicateCommands(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        detected = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        detected = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
             message="secondary uninitialized",
             secondary="backup/a",
         )
 
-        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2):
@@ -360,22 +360,22 @@ class TestReplicateCommands(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
 
-        detected = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        detected = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
             message="secondary uninitialized",
             secondary="backup/a",
         )
 
-        p1 = patch("pilo.state.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2, pilotest.assert_fatal(self)):
             mod.main()
 
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     def test_replicate_safe_rejects_diverged(self, detect):
-        detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
             message="diverged",
             secondary="backup/a",
         )
@@ -386,10 +386,10 @@ class TestReplicateCommands(pilotest.TestCase):
         with (p1, pilotest.assert_fatal(self)):
             mod.main()
 
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     def test_replicate_rejects_uninitialized(self, detect):
-        detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
             secondary="backup/a",
         )
         cx = pilotest.make_context()

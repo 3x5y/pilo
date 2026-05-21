@@ -2,16 +2,16 @@
 
 from pilo import context
 from pilo import error
-from pilo import state
+from pilo import lifecycle
 from pilo.back import replication as repl
 
 
 def main():
     cx = context.Context()
 
-    detected = state.detect_lifecycle(cx)
+    detected = lifecycle.detect_lifecycle(cx)
 
-    if not state.lifecycle_has_secondary(detected):
+    if not lifecycle.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
     src = cx.root_dataset

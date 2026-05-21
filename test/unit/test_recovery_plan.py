@@ -1,22 +1,22 @@
 import unittest
 from unittest.mock import patch
 
-from pilo import state
+from pilo import lifecycle
 from pilo.back import recover
 import pilotest
 
 
 class TestRecoveryPlan(pilotest.TestCase):
 
-    @patch("pilo.state.lifecycle_recoverable", return_value=True)
+    @patch("pilo.lifecycle.lifecycle_recoverable", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-123")
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     @patch("pilo.zfs.dataset_exists")
     def test_build_plan_root(self, exists, detect, *_):
 
-        detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
             secondary="backup/a",
         )
         exists.side_effect = lambda ds: ds == "backup/a"
@@ -45,15 +45,15 @@ class TestRecoveryPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "tank/a")
 
-    @patch("pilo.state.lifecycle_recoverable", return_value=True)
+    @patch("pilo.lifecycle.lifecycle_recoverable", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.latest_snapshot", return_value="backup/a/foo@r-1")
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     @patch("pilo.zfs.dataset_exists")
     def test_build_plan_subdataset(self, exists, detect, *_):
 
-        detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
             secondary="backup/a",
         )
         exists.side_effect = lambda ds: ds == "backup/a/foo"
@@ -218,7 +218,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists")
     @patch("pilo.zfs.latest_snapshot")
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     def test_build_plan_uses_detected_secondary(
         self,
         mock_detect,
@@ -226,8 +226,8 @@ class TestRecoveryPlan(pilotest.TestCase):
         mock_exists,
         *_,
     ):
-        mock_detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        mock_detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
             secondary="backup/a",
         )
 

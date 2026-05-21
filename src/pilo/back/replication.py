@@ -4,7 +4,7 @@ from enum import Enum
 from .. import checks
 from .. import context
 from .. import error
-from .. import state
+from .. import lifecycle
 from .. import util
 from .. import zfs
 from . import continuity
@@ -124,15 +124,15 @@ def build_seed_replication_plan(src, dst, label=None):
 
 
 def build_replica_seed_plan(cx):
-    detected = state.detect_lifecycle(cx)
+    detected = lifecycle.detect_lifecycle(cx)
 
-    if not state.lifecycle_seed_replication_permitted(detected):
+    if not lifecycle.lifecycle_seed_replication_permitted(detected):
         error.fatal(
             detected.message or
             "replica seed not permitted in current lifecycle state"
         )
 
-    if not state.lifecycle_has_secondary(detected):
+    if not lifecycle.lifecycle_has_secondary(detected):
         error.fatal(detected.message or "no secondary available")
 
     label = continuity.label_for_secondary(cx, detected.secondary)

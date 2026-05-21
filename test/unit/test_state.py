@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from pilo import lifecycle
 from pilo import state
 import pilotest
 
@@ -10,10 +11,10 @@ class TestOperationalState(pilotest.TestCase):
     @patch("pilo.back.normalize.validate_dataset_contracts")
     def test_incomplete_state(self, validate):
         validate.return_value = [
-            state.ValidationIssue(
+            lifecycle.ValidationIssue(
                 code="missing.required.dataset",
                 message="missing dataset tank/test",
-                severity=state.ValidationSeverity.ERROR,
+                severity=lifecycle.ValidationSeverity.ERROR,
                 component="datasets",
             )
         ]
@@ -53,10 +54,10 @@ class TestOperationalState(pilotest.TestCase):
     @patch("pilo.back.normalize.validate_dataset_contracts")
     def test_collect_validation_report(self, validate, *_):
         validate.return_value = [
-            state.ValidationIssue(
+            lifecycle.ValidationIssue(
                 code="missing.required.dataset",
                 message=f"missing dataset tank/x",
-                severity=state.ValidationSeverity.ERROR,
+                severity=lifecycle.ValidationSeverity.ERROR,
                 component="datasets",
             )
         ]
@@ -125,7 +126,7 @@ class TestOperationalState(pilotest.TestCase):
             with patch.dict("os.environ", env):
                 report = state.collect_validation_report(cx)
 
-        #self.assertEqual(st.state, state.OperationalState.DEGRADED)
+        #self.assertEqual(st.state, lifecycle.OperationalState.DEGRADED)
         self.assertEqual(len(report.by_code("snapshot.stale")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
@@ -155,7 +156,7 @@ class TestOperationalState(pilotest.TestCase):
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.diverged")
-        self.assertEqual(issues[0].severity, state.ValidationSeverity.ERROR)
+        self.assertEqual(issues[0].severity, lifecycle.ValidationSeverity.ERROR)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -182,7 +183,7 @@ class TestOperationalState(pilotest.TestCase):
         with pilotest.healthy_snapshot_state():
             report = state.collect_validation_report(cx)
 
-        #self.assertEqual(st.state, state.OperationalState.DEGRADED)
+        #self.assertEqual(st.state, lifecycle.OperationalState.DEGRADED)
         self.assertEqual(len(report.by_code("replication.behind")), 1)
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
@@ -211,8 +212,8 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.state.detect_lifecycle")
     def test_collect_replication_validation_uses_classifier(self, detect):
-        detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_BEHIND,
+        detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_BEHIND,
             message="behind",
         )
         cx = pilotest.make_context()
@@ -224,12 +225,12 @@ class TestOperationalState(pilotest.TestCase):
 
     def test_validation_report_error_exit_code(self):
         cx = pilotest.make_context()
-        report = state.ValidationReport()
+        report = lifecycle.ValidationReport()
         report.extend([
-            state.ValidationIssue(
+            lifecycle.ValidationIssue(
                 code="foo.bar",
                 message="bad condition",
-                severity=state.ValidationSeverity.ERROR,
+                severity=lifecycle.ValidationSeverity.ERROR,
                 component="foo",
             )
         ])
@@ -239,12 +240,12 @@ class TestOperationalState(pilotest.TestCase):
 
     def test_validation_report_warning_exit_code(self):
         cx = pilotest.make_context()
-        report = state.ValidationReport()
+        report = lifecycle.ValidationReport()
         report.extend([
-            state.ValidationIssue(
+            lifecycle.ValidationIssue(
                 code="foo.bar",
                 message="less bad",
-                severity=state.ValidationSeverity.WARN,
+                severity=lifecycle.ValidationSeverity.WARN,
                 component="foo",
             )
         ])
@@ -260,11 +261,11 @@ class TestSystemClassifier(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
 
-        st = state.detect_lifecycle(cx)
+        st = lifecycle.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.LifecycleState.REPLICA_MISSING,
+            lifecycle.LifecycleState.REPLICA_MISSING,
         )
 
     @patch("pilo.zfs.latest_snapshot")
@@ -277,11 +278,11 @@ class TestSystemClassifier(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = state.detect_lifecycle(cx)
+        st = lifecycle.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.LifecycleState.NORMAL,
+            lifecycle.LifecycleState.NORMAL,
         )
 
     @patch("pilo.zfs.latest_snapshot")
@@ -297,11 +298,11 @@ class TestSystemClassifier(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = state.detect_lifecycle(cx)
+        st = lifecycle.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.LifecycleState.REPLICATION_BEHIND,
+            lifecycle.LifecycleState.REPLICATION_BEHIND,
         )
 
     @patch("pilo.zfs.latest_snapshot")
@@ -317,11 +318,11 @@ class TestSystemClassifier(pilotest.TestCase):
 
         cx = pilotest.make_context()
 
-        st = state.detect_lifecycle(cx)
+        st = lifecycle.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.LifecycleState.REPLICATION_DIVERGED,
+            lifecycle.LifecycleState.REPLICATION_DIVERGED,
         )
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -330,177 +331,177 @@ class TestSystemClassifier(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="pool1/backup pool2/backup",
         )
 
-        st = state.detect_lifecycle(cx)
+        st = lifecycle.detect_lifecycle(cx)
 
         self.assertEqual(
             st.state,
-            state.LifecycleState.INVALID_TOPOLOGY,
+            lifecycle.LifecycleState.INVALID_TOPOLOGY,
         )
 
     def test_replication_validation_issue_normal(self):
 
-        lifecycle = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
         )
 
-        issue = state.replication_validation_issue(lifecycle)
+        issue = lifecycle.replication_validation_issue(st)
 
         self.assertIsNone(issue)
 
     def test_replication_validation_issue_diverged(self):
 
-        lifecycle = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
             message="diverged",
         )
 
-        issue = state.replication_validation_issue(lifecycle)
+        issue = lifecycle.replication_validation_issue(st)
 
         self.assertEqual(issue.code, "replication.diverged")
         self.assertEqual(
             issue.severity,
-            state.ValidationSeverity.ERROR,
+            lifecycle.ValidationSeverity.ERROR,
         )
 
     def test_lifecycle_recoverable_normal(self):
 
-        lifecycle = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
         )
 
-        self.assertTrue(state.lifecycle_recoverable(lifecycle))
+        self.assertTrue(lifecycle.lifecycle_recoverable(st))
 
     def test_lifecycle_recoverable_missing(self):
 
-        lifecycle = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_MISSING,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_MISSING,
         )
 
-        self.assertFalse(state.lifecycle_recoverable(lifecycle))
+        self.assertFalse(lifecycle.lifecycle_recoverable(st))
 
     def test_lifecycle_replication_degraded(self):
 
-        lifecycle = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_BEHIND,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_BEHIND,
         )
 
-        self.assertTrue(state.lifecycle_replication_degraded(lifecycle))
+        self.assertTrue(lifecycle.lifecycle_replication_degraded(st))
 
 
 class TestLifecyclePredicates(pilotest.TestCase):
 
     def test_replication_permitted_normal(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
         )
 
         self.assertTrue(
-            state.lifecycle_replication_permitted(st)
+            lifecycle.lifecycle_replication_permitted(st)
         )
 
     def test_replication_permitted_behind(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_BEHIND,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_BEHIND,
         )
 
         self.assertTrue(
-            state.lifecycle_replication_permitted(st)
+            lifecycle.lifecycle_replication_permitted(st)
         )
 
     def test_replication_not_permitted_diverged(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
         )
 
         self.assertFalse(
-            state.lifecycle_replication_permitted(st)
+            lifecycle.lifecycle_replication_permitted(st)
         )
 
     def test_recovery_permitted_uninitialized(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
         )
 
         self.assertTrue(
-            state.lifecycle_recovery_permitted(st)
+            lifecycle.lifecycle_recovery_permitted(st)
         )
 
     def test_recovery_not_permitted_invalid_topology(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.INVALID_TOPOLOGY,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.INVALID_TOPOLOGY,
         )
 
         self.assertFalse(
-            state.lifecycle_recovery_permitted(st)
+            lifecycle.lifecycle_recovery_permitted(st)
         )
 
 
 class TestLifecycleLegality(pilotest.TestCase):
 
     def test_seed_replication_permitted(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
         )
 
         self.assertTrue(
-            state.lifecycle_seed_replication_permitted(st)
+            lifecycle.lifecycle_seed_replication_permitted(st)
         )
 
     def test_normal_replication_not_seed_permitted(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.NORMAL,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
         )
 
         self.assertFalse(
-            state.lifecycle_seed_replication_permitted(st)
+            lifecycle.lifecycle_seed_replication_permitted(st)
         )
 
     def test_requires_provisioning(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
         )
 
         self.assertTrue(
-            state.lifecycle_requires_provisioning(st)
+            lifecycle.lifecycle_requires_provisioning(st)
         )
 
     def test_replication_fault(self):
-        st = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        st = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
         )
 
         self.assertTrue(
-            state.lifecycle_has_replication_fault(st)
+            lifecycle.lifecycle_has_replication_fault(st)
         )
 
     def test_lifecycle_replica_seed_permitted(self):
-        ls = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICA_UNINITIALIZED,
+        ls = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
         )
-        self.assertTrue(state.lifecycle_seed_replication_permitted(ls))
+        self.assertTrue(lifecycle.lifecycle_seed_replication_permitted(ls))
 
-        ls = state.LifecycleStatus(state=state.LifecycleState.NORMAL)
-        self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
+        ls = lifecycle.LifecycleStatus(state=lifecycle.LifecycleState.NORMAL)
+        self.assertFalse(lifecycle.lifecycle_seed_replication_permitted(ls))
 
-        ls = state.LifecycleStatus(state=state.LifecycleState.REPLICATION_BEHIND)
-        self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
+        ls = lifecycle.LifecycleStatus(state=lifecycle.LifecycleState.REPLICATION_BEHIND)
+        self.assertFalse(lifecycle.lifecycle_seed_replication_permitted(ls))
 
-        ls = state.LifecycleStatus(
-            state=state.LifecycleState.REPLICATION_DIVERGED,
+        ls = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
         )
-        self.assertFalse(state.lifecycle_seed_replication_permitted(ls))
+        self.assertFalse(lifecycle.lifecycle_seed_replication_permitted(ls))
 
     @patch("pilo.state.detect_lifecycle")
     def test_recovery_permitted_unknown(self, detect):
 
-        detect.return_value = state.LifecycleStatus(
-            state=state.LifecycleState.UNKNOWN,
+        detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.UNKNOWN,
             message="source has no snapshots",
             secondary="backup/a",
         )
 
         self.assertTrue(
-            state.lifecycle_recovery_permitted(
+            lifecycle.lifecycle_recovery_permitted(
                 detect.return_value
             )
         )
