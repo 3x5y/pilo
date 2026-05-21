@@ -4,8 +4,8 @@ from pathlib import Path
 from . import capture
 from .. import checks
 from . import continuity
-from .. import manifest_policy
-from .. import mutation
+from . import manifest
+from . import mutation
 from .execution import (
     ExecutionPlan,
     ManifestStep,
@@ -87,7 +87,7 @@ def build_manifest_mutations(ops, pile_root):
              for op in ops if op.action == "move"]
     checksums = continuity.acquire_generated_checksums(pairs)
     paths = [rel for rel, _ in pairs]
-    return manifest_policy.build_pile_additions(paths, checksums)
+    return manifest.build_pile_additions(paths, checksums)
 
 
 def build_exec_plan(cx, plan):

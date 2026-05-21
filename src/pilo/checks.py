@@ -48,7 +48,7 @@ def require_no_conflict(src, dst):
 
 # unused; kept for reference
 def require_verified(checksum):
-    from pilo.manifest_model import ChecksumProvenance
+    from pilo.front.manifest import ChecksumProvenance
     if checksum.provenance != ChecksumProvenance.VERIFIED:
         error.fatal("checksum continuity not verified")
     return checksum

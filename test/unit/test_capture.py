@@ -3,8 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import manifest_store
-from pilo import manifest_verify
+from pilo.front import manifest
 from pilo.front import capture
 import pilotest
 
@@ -19,7 +18,7 @@ class TestCaptureManifest(pilotest.TestCase):
             f = root / "a.txt"
             f.write_text("hello")
 
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             expected_hash = hashlib.sha256(b"hello").hexdigest()
             expected_lines = [f"{expected_hash}  ./a.txt"]
@@ -34,7 +33,7 @@ class TestCaptureManifest(pilotest.TestCase):
             (root / "a.txt").write_text("aaa")
             out = root / ".manifest"
             cx = pilotest.make_context()
-            manifest_store.write_manifest(
+            manifest.write_manifest(
                 cx,
                 root,
                 out,
@@ -52,10 +51,10 @@ class TestCaptureManifest(pilotest.TestCase):
             root.mkdir()
             path = root / "a.txt"
             path.write_text("hello")
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertTrue(
-                manifest_verify.verify_manifest_lines(
+                manifest.verify_manifest_lines(
                     root,
                     lines,
                 )
@@ -68,12 +67,12 @@ class TestCaptureManifest(pilotest.TestCase):
             root.mkdir()
             path = root / "a.txt"
             path.write_text("hello")
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             path.write_text("corrupt")
 
             self.assertFalse(
-                manifest_verify.verify_manifest_lines(
+                manifest.verify_manifest_lines(
                     root,
                     lines,
                 )
@@ -93,7 +92,7 @@ class TestCaptureManifest(pilotest.TestCase):
             meta.write_text("metadata")
 
             lines = list(
-                manifest_verify.generate_manifest_lines(
+                manifest.generate_manifest_lines(
                     root,
                     exclude=[Path(".manifest")],
                 )

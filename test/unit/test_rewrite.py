@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch, call
 
 from pilo import paths
-from pilo import manifest_model
+from pilo.front import manifest
 from pilo.front import rewrite
 import pilotest
 
@@ -14,8 +14,8 @@ class TestRewriteCommand(pilotest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_reads_stdin_when_no_args(
@@ -40,8 +40,8 @@ class TestRewriteCommand(pilotest.TestCase):
             mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_compat_arg_transport(
@@ -65,8 +65,8 @@ class TestRewriteCommand(pilotest.TestCase):
             ])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_reads_script_file(
@@ -94,8 +94,8 @@ class TestRewriteCommand(pilotest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_prefers_script_file_over_stdin(
@@ -129,8 +129,8 @@ class TestRewriteCommand(pilotest.TestCase):
                 Path(path).unlink(missing_ok=True)
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_preserves_inline_compatibility(
@@ -154,8 +154,8 @@ class TestRewriteCommand(pilotest.TestCase):
             ])
 
     @patch("pilo.front.rewrite.RewriteScript.from_lines")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.rewrite.execute_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
     def test_rewrite_command_uses_script_model(
@@ -205,8 +205,8 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_execute.assert_not_called()
         mock_print.assert_called_once_with("move /tmp/a -> /tmp/b")
 
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("builtins.print")
     @patch("pilo.front.rewrite.preview_rewrite_plan")
     @patch("pilo.front.rewrite.build_rewrite_plan")
@@ -483,7 +483,7 @@ class TestRewriteManifest(pilotest.TestCase):
             dst=dst,
         )
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/old.txt"),
             )
@@ -508,7 +508,7 @@ class TestRewriteManifest(pilotest.TestCase):
     def test_rewrite_manifest_mutations_reuse_checksum(self):
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="existing",
                 path=Path("in/old.txt"),
             )

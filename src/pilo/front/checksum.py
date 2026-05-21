@@ -2,18 +2,17 @@ from pathlib import Path
 
 from .. import error
 from .. import fs
-from .. import manifest_model
+from . import manifest
 
 
 def generate_checksum(path: Path):
     checksum = fs.sha256_file(path)
     return (
-        manifest_model.ProvenancedChecksum(
+        manifest.ProvenancedChecksum(
             path=path,
             checksum=checksum,
             provenance=(
-                manifest_model
-                .ChecksumProvenance
+                manifest.ChecksumProvenance
                 .GENERATED
             ),
         )
@@ -28,12 +27,11 @@ def verify_checksum(path: Path, expected_checksum: str):
             f"{path}"
         )
     return (
-        manifest_model.ProvenancedChecksum(
+        manifest.ProvenancedChecksum(
             path=path,
             checksum=expected_checksum,
             provenance=(
-                manifest_model
-                .ChecksumProvenance
+                manifest.ChecksumProvenance
                 .VERIFIED
             ),
         )
@@ -42,12 +40,11 @@ def verify_checksum(path: Path, expected_checksum: str):
 
 def reuse_manifest_checksum(entry):
     return (
-        manifest_model.ProvenancedChecksum(
+        manifest.ProvenancedChecksum(
             path=entry.path,
             checksum=entry.checksum,
             provenance=(
-                manifest_model
-                .ChecksumProvenance
+                manifest.ChecksumProvenance
                 .MANIFEST
             ),
         )

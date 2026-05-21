@@ -1,12 +1,9 @@
 import unittest
 from pathlib import Path
 
-from pilo import mutation
-from pilo import mutation_events
-from pilo import mutation_exec
-from pilo import mutation_types
-from pilo import mutation_preview
-from pilo import mutation_render
+from pilo.front import mutation
+from pilo.front import mutation
+from pilo.front import mutation
 import pilotest
 
 
@@ -19,7 +16,7 @@ class TestManifestCompat(pilotest.TestCase):
             dataset="tank/pile",
         )
 
-        self.assertIsInstance(mut, mutation_types.MoveMutation)
+        self.assertIsInstance(mut, mutation.MoveMutation)
 
     def test_operation_event_compatibility_alias(self):
         ev = mutation.OperationEvent(
@@ -29,13 +26,13 @@ class TestManifestCompat(pilotest.TestCase):
             dataset="tank/pile",
         )
 
-        self.assertIsInstance(ev, mutation_events.OperationEvent)
+        self.assertIsInstance(ev, mutation.OperationEvent)
 
     def test_execute_semantic_mutations_compatibility(self):
 
         self.assertIs(
             mutation.execute_fs_mutations,
-            mutation_exec.execute_fs_mutations,
+            mutation.execute_fs_mutations,
         )
 
 
@@ -54,7 +51,7 @@ class TestManifestCompat(pilotest.TestCase):
                 dataset="tank/pile",
             )
 
-            class DummyExecutor(mutation_exec.MutationExecutor):
+            class DummyExecutor(mutation.MutationExecutor):
 
                 def __init__(self):
                     self.seen = []
@@ -64,14 +61,14 @@ class TestManifestCompat(pilotest.TestCase):
 
             ex = DummyExecutor()
 
-            mutation_exec.apply_mutations(ex, [mut])
+            mutation.apply_mutations(ex, [mut])
             self.assertEqual(ex.seen, [mut])
 
     def test_preview_execution_compatibility(self):
 
         self.assertIs(
             mutation.get_preview_events,
-            mutation_preview.get_preview_events,
+            mutation.get_preview_events,
         )
 
 
@@ -79,5 +76,5 @@ class TestManifestCompat(pilotest.TestCase):
 
         self.assertIs(
             mutation.render_mutation,
-            mutation_render.render_mutation,
+            mutation.render_mutation,
         )

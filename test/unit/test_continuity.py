@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from pilo.front import continuity
-from pilo import manifest_model
+from pilo.front import manifest
 import pilotest
 
 
@@ -11,12 +11,12 @@ class TestContinuity(pilotest.TestCase):
     def test_build_continuity_transfers(self):
 
         verified = (
-            manifest_model.ChecksumIndex([
-                manifest_model.ProvenancedChecksum(
+            manifest.ChecksumIndex([
+                manifest.ProvenancedChecksum(
                     path=Path("in/a.txt"),
                     checksum="abc123",
                     provenance=(
-                        manifest_model
+                        manifest
                         .ChecksumProvenance
                         .VERIFIED
                     ),
@@ -57,7 +57,7 @@ class TestContinuity(pilotest.TestCase):
                 dst=Path("in/b.txt"),
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),
@@ -82,13 +82,13 @@ class TestContinuity(pilotest.TestCase):
             dst_subset="pile",
         )
         mappings = [mapping]
-        provenance = manifest_model.ChecksumProvenance.VERIFIED
-        checksum = manifest_model.ProvenancedChecksum(
+        provenance = manifest.ChecksumProvenance.VERIFIED
+        checksum = manifest.ProvenancedChecksum(
             path=Path("a.txt"),
             checksum="abc123",
             provenance=provenance,
         )
-        verified = manifest_model.ChecksumIndex([checksum])
+        verified = manifest.ChecksumIndex([checksum])
 
         transfers = continuity.build_transfers(mappings, verified)
 
@@ -108,7 +108,7 @@ class TestContinuity(pilotest.TestCase):
                 dst=Path("b.txt"),
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),
@@ -133,7 +133,7 @@ class TestContinuity(pilotest.TestCase):
                 dst=Path("a.txt"),
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),

@@ -16,8 +16,8 @@ import pilotest
 
 
 class TestExecutionPlan(pilotest.TestCase):
-    @patch("pilo.mutation.execute_fs_mutations")
-    @patch("pilo.manifest_mutation.execute_manifest_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.front.manifest.execute_manifest_mutations")
     def test_execute_plan_skips_empty_sections(self,
                                                mock_manifest,
                                                mock_semantic):
@@ -28,8 +28,8 @@ class TestExecutionPlan(pilotest.TestCase):
         mock_manifest.assert_not_called()
 
 
-    @patch("pilo.mutation_exec.execute_fs_mutations")
-    @patch("pilo.manifest_mutation.execute_manifest_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.front.manifest.execute_manifest_mutations")
     def test_manifest_step_builds_after_mutations(self, mock_man, mock_sem):
 
         order = []
@@ -57,7 +57,7 @@ class TestExecutionPlan(pilotest.TestCase):
 
         self.assertEqual(order, ["semantic", "build"])
 
-    @patch("pilo.manifest_mutation.execute_manifest_mutations")
+    @patch("pilo.front.manifest.execute_manifest_mutations")
     def test_manifest_step_executes_generated_mutations(self, mock_exec):
 
         cx = pilotest.make_context()
@@ -78,7 +78,7 @@ class TestExecutionPlan(pilotest.TestCase):
         )
 
 
-    @patch("pilo.mutation_exec.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     @patch("pilo.front.execution.execute_verify_checksum_step")
     def test_preflight_executes_before_mutations(
         self,
@@ -113,7 +113,7 @@ class TestExecutionPlan(pilotest.TestCase):
         self.assertEqual(order, ["verify", "mutate"])
 
 
-    @patch("pilo.mutation_exec.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     @patch("pilo.front.execution.execute_verify_checksum_step")
     def test_preflight_failure_prevents_mutation(
         self,

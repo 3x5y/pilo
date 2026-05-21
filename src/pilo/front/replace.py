@@ -3,9 +3,8 @@ from pathlib import Path
 
 from .. import checks
 from . import continuity
-from .. import manifest_model
-from .. import manifest_policy
-from .. import mutation
+from . import manifest
+from . import mutation
 from .. import paths
 from .execution import (
     ExecutionPlan,
@@ -54,14 +53,14 @@ def build_fs_mutations(plan):
 def build_manifest_mutations(plan, pile_root):
     index = build_checksum_index(plan.ops, pile_root)
     paths = [op.dst.path.relative_to(pile_root) for op in plan.ops]
-    return manifest_policy.build_pile_additions(paths, index)
+    return manifest.build_pile_additions(paths, index)
 
 
 def build_checksum_index(ops, pile_root):
     pairs = [(op.dst.path.relative_to(pile_root), op.src)
              for op in ops]
     checksums = continuity.acquire_generated_checksums(pairs)
-    return manifest_model.as_checksum_index(checksums)
+    return manifest.as_checksum_index(checksums)
 
 
 def build_exec_plan(cx, plan):

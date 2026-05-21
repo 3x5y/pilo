@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from pilo import checks
-from pilo import manifest_model
+from pilo.front import manifest
 import pilotest
 
 
@@ -162,11 +162,11 @@ class TestChecks(pilotest.TestCase):
     def test_require_verified_accepts_verified(self):
 
         item = (
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=Path("a.txt"),
                 checksum="abc",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),
@@ -178,11 +178,11 @@ class TestChecks(pilotest.TestCase):
     def test_require_verified_rejects_generated(self):
 
         item = (
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=Path("a.txt"),
                 checksum="abc",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .GENERATED
                 ),

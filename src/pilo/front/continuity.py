@@ -2,8 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import checksum
-from .. import manifest_model
-from .. import manifest_policy
+from . import manifest
 
 
 @dataclass(frozen=True)
@@ -21,7 +20,7 @@ class ContinuityTransfer:
     src: Path
     dst: Path
     checksum: str
-    provenance: manifest_model.ChecksumProvenance
+    provenance: manifest.ChecksumProvenance
 
 
 @dataclass(frozen=True)
@@ -39,7 +38,7 @@ def build_removal_mutations(removals):
     muts = []
     for removal in removals:
         muts.append(
-            manifest_policy.build_removal(
+            manifest.build_removal(
                 removal.subset,
                 removal.path,
             )
@@ -49,7 +48,7 @@ def build_removal_mutations(removals):
 
 def build_transfers(mappings, verified):
 
-    verified = manifest_model.as_checksum_index(verified)
+    verified = manifest.as_checksum_index(verified)
     transfers = []
 
     for m in mappings:
@@ -72,13 +71,13 @@ def build_mutations(transfers):
     muts = []
     for transfer in transfers:
         muts.append(
-            manifest_policy.build_removal(
+            manifest.build_removal(
                 transfer.src_subset,
                 transfer.src,
             )
         )
         muts.append(
-            manifest_policy.build_addition(
+            manifest.build_addition(
                 transfer.dst_subset,
                 transfer.dst,
                 transfer.checksum,
@@ -89,20 +88,20 @@ def build_mutations(transfers):
 
 def acquire_verified_checksums(paths, entries):
 
-    index = manifest_model.as_manifest_index(entries)
+    index = manifest.as_manifest_index(entries)
     verified = []
 
     for rel_path, real_path in paths:
         existing = index.require(rel_path)
         verified_item = checksum.verify_checksum(real_path, existing.checksum)
         verified.append(
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=rel_path,
                 checksum=verified_item.checksum,
                 provenance=verified_item.provenance,
             )
         )
-    return manifest_model.ChecksumIndex(verified)
+    return manifest.ChecksumIndex(verified)
 
 
 def acquire_generated_checksums(paths):
@@ -111,10 +110,10 @@ def acquire_generated_checksums(paths):
     for rel_path, real_path in paths:
         item = checksum.generate_checksum(real_path)
         generated.append(
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=rel_path,
                 checksum=item.checksum,
                 provenance=item.provenance,
             )
         )
-    return manifest_model.ChecksumIndex(generated)
+    return manifest.ChecksumIndex(generated)

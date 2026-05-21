@@ -6,9 +6,8 @@ from .. import checks
 from . import continuity
 from .. import error
 from .. import fs
-from .. import mutation
-from .. import manifest_model
-from .. import manifest_policy
+from . import mutation
+from . import manifest
 from .execution import (
     ExecutionPlan,
     ManifestStep,
@@ -142,7 +141,7 @@ def build_manifest_mutations(
 
 def build_preflight_steps(ops, pile_root, entries):
 
-    index = manifest_model.as_manifest_index(entries)
+    index = manifest.as_manifest_index(entries)
     steps = []
 
     for op in ops:
@@ -193,7 +192,7 @@ def build_exec_plan(cx, plan, pile_entries):
 
 
 def build_checksum_index(ops, pile_root, entries):
-    index = manifest_model.as_manifest_index(entries)
+    index = manifest.as_manifest_index(entries)
     pairs = [(op.src.relative_to(pile_root), op.src)
              for op in ops if op.action == "copy"]
     return continuity.acquire_verified_checksums(pairs, entries)
@@ -212,7 +211,7 @@ def promote_continuity_mappings(
         if op.action != "copy":
             continue
         src_rel = op.src.relative_to(pile_root)
-        subset = manifest_policy.dataset_manifest_subset(op.dataset)
+        subset = manifest.dataset_manifest_subset(op.dataset)
         if subset == "collection":
             dst_rel = op.dst.relative_to(collection_root)
         elif subset == "filing":

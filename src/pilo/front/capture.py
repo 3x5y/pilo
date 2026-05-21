@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from .. import manifest_verify
+from . import manifest
 
 
 CAPTURE_MANIFEST = ".manifest"
@@ -17,7 +17,7 @@ class CaptureSession:
 
     def generate_manifest_lines(self):
         exclude = self.manifest_excludes()
-        return list(manifest_verify.generate_manifest_lines(self.root, exclude))
+        return list(manifest.generate_manifest_lines(self.root, exclude))
 
     def write_manifest(self, cx):
         lines = self.generate_manifest_lines()
@@ -30,7 +30,7 @@ class CaptureSession:
 
         lines = self.manifest.read_text().splitlines()
 
-        return manifest_verify.verify_manifest_lines(
+        return manifest.verify_manifest_lines(
             self.root,
             lines,
             exclude=self.manifest_excludes(),

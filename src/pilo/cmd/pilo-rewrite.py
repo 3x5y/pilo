@@ -3,7 +3,7 @@
 from pilo import context
 from pilo import error
 from pilo.front import execution
-from pilo import manifest_codec
+from pilo.front import manifest
 from pilo.front import rewrite
 
 
@@ -30,7 +30,7 @@ def main():
     rewrite.require_delete_permission(cx, plan.ops)
 
     manifest_path = cx.admin_path / "manifest/pile.manifest"
-    entries = manifest_codec.load_manifest_entries(manifest_path)
+    entries = manifest.load_manifest_entries(manifest_path)
     exec_plan = rewrite.build_exec_plan(cx, plan, entries)
     execution.execute_plan(cx, exec_plan)
 

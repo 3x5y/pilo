@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 from pathlib import Path
 
 from pilo.front import execution
-from pilo import manifest_model
-from pilo import mutation
+from pilo.front import manifest
+from pilo.front import mutation
 from pilo import paths
 from pilo.front import promote
 import pilotest
@@ -73,7 +73,7 @@ class TestPromotePlan(pilotest.TestCase):
         self.assertIsInstance(muts[0], mutation.CopyMutation)
         self.assertIsInstance(muts[1], mutation.UnlinkMutation)
 
-    @patch("pilo.mutation.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -130,13 +130,13 @@ class TestPromotePlan(pilotest.TestCase):
             dataset="tank/static/collection",
         )
         verified = (
-            manifest_model.ChecksumIndex(
+            manifest.ChecksumIndex(
                 [
-                    manifest_model.ProvenancedChecksum(
+                    manifest.ProvenancedChecksum(
                         path=Path("out/collection/a.txt"),
                         checksum="abc123",
                         provenance=(
-                            manifest_model
+                            manifest
                             .ChecksumProvenance
                             .VERIFIED
                         ),
@@ -185,13 +185,13 @@ class TestPromotePlan(pilotest.TestCase):
             dataset="tank/static/filing/docs",
         )
         verified = (
-            manifest_model.ChecksumIndex(
+            manifest.ChecksumIndex(
                 [
-                    manifest_model.ProvenancedChecksum(
+                    manifest.ProvenancedChecksum(
                         path=Path("out/filing/docs/x.pdf"),
                         checksum="abc123",
                         provenance=(
-                            manifest_model
+                            manifest
                             .ChecksumProvenance
                             .VERIFIED
                         ),
@@ -239,7 +239,7 @@ class TestPromotePlan(pilotest.TestCase):
             dst=None,
             dataset="tank/pile",
         )
-        verified = manifest_model.ChecksumIndex([])
+        verified = manifest.ChecksumIndex([])
         muts = promote.build_manifest_mutations(
             [op],
             Path("/pile"),
@@ -268,13 +268,13 @@ class TestPromotePlan(pilotest.TestCase):
             ),
         ]
         verified = (
-            manifest_model.ChecksumIndex(
+            manifest.ChecksumIndex(
                 [
-                    manifest_model.ProvenancedChecksum(
+                    manifest.ProvenancedChecksum(
                         path=Path("out/collection/a.txt"),
                         checksum="abc123",
                         provenance=(
-                            manifest_model
+                            manifest
                             .ChecksumProvenance
                             .VERIFIED
                         ),
@@ -291,8 +291,8 @@ class TestPromotePlan(pilotest.TestCase):
         )
 
         self.assertEqual(len(muts), 2)
-        self.assertIsInstance(muts[0], manifest_model.ManifestRemoveEntry)
-        self.assertIsInstance(muts[1], manifest_model.ManifestAddEntry)
+        self.assertIsInstance(muts[0], manifest.ManifestRemoveEntry)
+        self.assertIsInstance(muts[1], manifest.ManifestAddEntry)
 
 
     @patch("pilo.fs.sha256_file", return_value="abc123")
@@ -320,7 +320,7 @@ class TestPromotePlan(pilotest.TestCase):
         )
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("out/collection/a.txt"),
             )
@@ -352,7 +352,7 @@ class TestPromotePlan(pilotest.TestCase):
             ),
         ]
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("out/collection/a.txt"),
             )
@@ -373,7 +373,7 @@ class TestPromotePlan(pilotest.TestCase):
         cx = pilotest.make_context()
         plan = promote.PromotePlan(ops=[])
         entries = []
-        verified = manifest_model.ChecksumIndex([])
+        verified = manifest.ChecksumIndex([])
         steps = promote.build_manifest_steps(
             cx,
             plan,
@@ -402,7 +402,7 @@ class TestPromotePlan(pilotest.TestCase):
             )
         ]
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path(
                     "out/collection/a.txt"
@@ -410,11 +410,11 @@ class TestPromotePlan(pilotest.TestCase):
             )
         ]
         mock_verify.return_value = (
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=src,
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),
@@ -425,7 +425,7 @@ class TestPromotePlan(pilotest.TestCase):
         self.assertEqual(item.checksum, "abc123")
         self.assertEqual(
             item.provenance,
-            manifest_model
+            manifest
             .ChecksumProvenance
             .VERIFIED,
         )
@@ -434,16 +434,16 @@ class TestPromotePlan(pilotest.TestCase):
     def test_promote_manifest_mutations_reuse_verified_checksum(self):
 
         verified = (
-            manifest_model.ChecksumIndex(
+            manifest.ChecksumIndex(
                 [
-                    manifest_model
+                    manifest
                     .ProvenancedChecksum(
                         path=Path(
                             "out/collection/a.txt"
                         ),
                         checksum="abc123",
                         provenance=(
-                            manifest_model
+                            manifest
                             .ChecksumProvenance
                             .VERIFIED
                         ),
@@ -496,16 +496,16 @@ class TestPromotePlan(pilotest.TestCase):
     ):
 
         verified = (
-            manifest_model.ChecksumIndex(
+            manifest.ChecksumIndex(
                 [
-                    manifest_model
+                    manifest
                     .ProvenancedChecksum(
                         path=Path(
                             "out/collection/a.txt"
                         ),
                         checksum="abc123",
                         provenance=(
-                            manifest_model
+                            manifest
                             .ChecksumProvenance
                             .VERIFIED
                         ),
@@ -558,16 +558,16 @@ class TestPromotePlan(pilotest.TestCase):
     ):
 
         verified = (
-            manifest_model.ChecksumIndex(
+            manifest.ChecksumIndex(
                 [
-                    manifest_model
+                    manifest
                     .ProvenancedChecksum(
                         path=Path(
                             "out/collection/a.txt"
                         ),
                         checksum="abc123",
                         provenance=(
-                            manifest_model
+                            manifest
                             .ChecksumProvenance
                             .VERIFIED
                         ),

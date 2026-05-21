@@ -5,9 +5,8 @@ from pathlib import Path
 from .. import checks
 from . import continuity
 from .. import error
-from .. import manifest_model
-from .. import manifest_policy
-from .. import mutation
+from . import manifest
+from . import mutation
 from .. import paths
 from .. import policy
 from .execution import (
@@ -186,7 +185,7 @@ def build_manifest_mutations(ops, pile_root, verified):
             tm = continuity.build_transfer_mutations([mapping], verified)
             muts.extend(tm)
         elif op.op.kind == "rm":
-            muts.append(manifest_policy.build_removal("pile", src_rel))
+            muts.append(manifest.build_removal("pile", src_rel))
         else:
             error.fatal(
                 f"unsupported rewrite op: "
@@ -375,7 +374,7 @@ def build_exec_plan(cx, plan, entries):
 
 def build_preflight_steps(plan, pile_root, entries):
 
-    index = manifest_model.as_manifest_index(entries)
+    index = manifest.as_manifest_index(entries)
     steps = []
 
     for op in plan.ops:
@@ -390,7 +389,7 @@ def build_preflight_steps(plan, pile_root, entries):
 
 
 def build_checksum_index(ops, pile_root, entries):
-    index = manifest_model.as_manifest_index(entries)
+    index = manifest.as_manifest_index(entries)
     pairs = []
     for op in ops:
         pairs.append((op.src.path.relative_to(pile_root), op.src.path))

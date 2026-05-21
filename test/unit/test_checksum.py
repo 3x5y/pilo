@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo.front import checksum
-from pilo import manifest_model
+from pilo.front import manifest
 import pilotest
 
 
@@ -17,7 +17,7 @@ class TestChecksum(pilotest.TestCase):
         self.assertEqual(
             item.provenance,
             (
-                manifest_model
+                manifest
                 .ChecksumProvenance
                 .GENERATED
             ),
@@ -30,7 +30,7 @@ class TestChecksum(pilotest.TestCase):
         self.assertEqual(
             item.provenance,
             (
-                manifest_model
+                manifest
                 .ChecksumProvenance
                 .VERIFIED
             ),

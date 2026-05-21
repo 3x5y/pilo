@@ -6,8 +6,8 @@ from pathlib import Path
 
 from .. import error
 from .. import fs
-from .. import manifest_mutation
-from .. import mutation_exec
+from . import manifest
+from . import mutation
 
 
 @dataclass(frozen=True)
@@ -35,11 +35,11 @@ def execute_plan(cx, plan):
     execute_preflight_steps(plan.preflight_steps)
 
     if plan.filesystem_steps:
-        mutation_exec.execute_fs_mutations(cx, plan.filesystem_steps)
+        mutation.execute_fs_mutations(cx, plan.filesystem_steps)
 
     for step in plan.manifest_steps:
         muts = step.build_mutations()
-        manifest_mutation.execute_manifest_mutations(
+        manifest.execute_manifest_mutations(
             cx,
             step.subset,
             step.manifest_path,

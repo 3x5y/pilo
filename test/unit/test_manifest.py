@@ -8,14 +8,11 @@ from pathlib import Path
 from pilo.front import checksum
 from pilo import context
 from pilo import fs
-from pilo import manifest_codec
-from pilo import manifest_model
-from pilo import manifest_mutation
-from pilo import manifest_policy
-from pilo import manifest_store
-from pilo import manifest_update
-from pilo import manifest_verify
-from pilo import mutation
+from pilo.front import manifest
+from pilo.front import manifest
+from pilo.front import manifest
+from pilo.front import manifest
+from pilo.front import mutation
 from pilo import status
 from pilo.front import ingest
 import pilotest
@@ -47,7 +44,7 @@ class TestManifest(pilotest.TestCase):
             (root / "z.txt").write_text("z")
             (root / "a.txt").write_text("a")
 
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertEqual(
                 [line.split("  ./")[1] for line in lines],
@@ -62,7 +59,7 @@ class TestManifest(pilotest.TestCase):
             f = sub / "x.txt"
             f.write_text("abc")
 
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertEqual(len(lines), 1)
             line = lines[0]
@@ -72,7 +69,7 @@ class TestManifest(pilotest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
 
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             self.assertEqual(lines, [])
 
@@ -81,30 +78,30 @@ class TestManifest(pilotest.TestCase):
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
-            self.assertTrue(manifest_verify.verify_manifest_lines(root, lines))
+            self.assertTrue(manifest.verify_manifest_lines(root, lines))
 
     def test_verify_manifest_lines_detects_mismatch(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
             f.write_text("changed")
 
-            self.assertFalse(manifest_verify.verify_manifest_lines(root, lines))
+            self.assertFalse(manifest.verify_manifest_lines(root, lines))
 
     def test_verify_manifest_lines_detects_missing_file(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             f = root / "a.txt"
             f.write_text("abc")
-            lines = list(manifest_verify.generate_manifest_lines(root))
+            lines = list(manifest.generate_manifest_lines(root))
 
             f.unlink()
 
-            self.assertFalse(manifest_verify.verify_manifest_lines(root, lines))
+            self.assertFalse(manifest.verify_manifest_lines(root, lines))
 
     @patch("sys.exit")
     @patch("pilo.status.render_validation_report")
@@ -138,14 +135,14 @@ class TestManifest(pilotest.TestCase):
         mock_print.assert_called_once_with("OK")
 
     def test_checksum_provenance_values(self):
-        p = manifest_model.ChecksumProvenance
+        p = manifest.ChecksumProvenance
         self.assertEqual(p.MANIFEST.value, "manifest")
         self.assertEqual(p.VERIFIED.value, "verified")
         self.assertEqual(p.GENERATED.value, "generated")
 
     def test_reuse_manifest_checksum_marks_manifest(self):
 
-        entry = manifest_model.ManifestEntry(
+        entry = manifest.ManifestEntry(
             checksum="abc123",
             path=Path("a.txt"),
         )
@@ -155,7 +152,7 @@ class TestManifest(pilotest.TestCase):
         self.assertEqual(
             item.provenance,
             (
-                manifest_model
+                manifest
                 .ChecksumProvenance
                 .MANIFEST
             ),
@@ -165,7 +162,7 @@ class TestManifestEntries(pilotest.TestCase):
 
     def test_manifest_entry_model(self):
 
-        entry = manifest_model.ManifestEntry(
+        entry = manifest.ManifestEntry(
             checksum="abc123",
             path=Path("a.txt"),
         )
@@ -175,12 +172,12 @@ class TestManifestEntries(pilotest.TestCase):
 
     def test_render_manifest_entry(self):
 
-        entry = manifest_model.ManifestEntry(
+        entry = manifest.ManifestEntry(
             checksum="deadbeef",
             path=Path("dir/file.txt"),
         )
 
-        line = manifest_codec.render_manifest_entry(entry)
+        line = manifest.render_manifest_entry(entry)
 
         self.assertEqual(
             line,
@@ -189,7 +186,7 @@ class TestManifestEntries(pilotest.TestCase):
 
     def test_parse_manifest_line(self):
 
-        entry = manifest_codec.parse_manifest_line(
+        entry = manifest.parse_manifest_line(
             "abc123  ./dir/file.txt"
         )
 
@@ -202,7 +199,7 @@ class TestManifestEntries(pilotest.TestCase):
     def test_parse_manifest_line_rejects_invalid(self):
 
         with self.assertRaises(ValueError):
-            manifest_codec.parse_manifest_line(
+            manifest.parse_manifest_line(
                 "invalid line"
             )
 
@@ -216,7 +213,7 @@ class TestManifestEntries(pilotest.TestCase):
             path.write_text("hello")
 
             entries = list(
-                manifest_verify.generate_manifest_entries(root)
+                manifest.generate_manifest_entries(root)
             )
 
             self.assertEqual(len(entries), 1)
@@ -235,7 +232,7 @@ class TestManifestEntries(pilotest.TestCase):
                 "bbb  ./b.txt\n"
             )
 
-            entries = manifest_codec.load_manifest_entries(mf)
+            entries = manifest.load_manifest_entries(mf)
 
             self.assertEqual(len(entries), 2)
 
@@ -252,18 +249,18 @@ class TestManifestEntries(pilotest.TestCase):
     def test_render_manifest_lines(self):
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="aaa",
                 path=Path("a.txt"),
             ),
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="bbb",
                 path=Path("b.txt"),
             ),
         ]
 
         lines = list(
-            manifest_codec.render_manifest_lines(entries)
+            manifest.render_manifest_lines(entries)
         )
 
         self.assertEqual(
@@ -279,9 +276,9 @@ class TestManifestMutation(pilotest.TestCase):
 
     def test_manifest_add_entry_mutation(self):
 
-        mut = manifest_model.ManifestAddEntry(
+        mut = manifest.ManifestAddEntry(
             subset="pile",
-            entry=manifest_model.ManifestEntry(
+            entry=manifest.ManifestEntry(
                 checksum="abc",
                 path=Path("in/a.txt"),
             )
@@ -295,7 +292,7 @@ class TestManifestMutation(pilotest.TestCase):
 
     def test_manifest_remove_entry_mutation(self):
 
-        mut = manifest_model.ManifestRemoveEntry(
+        mut = manifest.ManifestRemoveEntry(
             subset="pile",
             path=Path("in/a.txt"),
         )
@@ -307,15 +304,15 @@ class TestManifestMutation(pilotest.TestCase):
 
         entries = []
 
-        mut = manifest_model.ManifestAddEntry(
+        mut = manifest.ManifestAddEntry(
             subset="pile",
-            entry=manifest_model.ManifestEntry(
+            entry=manifest.ManifestEntry(
                 checksum="abc",
                 path=Path("in/a.txt"),
             )
         )
 
-        out = manifest_mutation.apply_manifest_mutations(
+        out = manifest.apply_manifest_mutations(
             entries,
             [mut],
         )
@@ -326,22 +323,22 @@ class TestManifestMutation(pilotest.TestCase):
     def test_apply_manifest_remove_entry(self):
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc",
                 path=Path("in/a.txt"),
             ),
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="def",
                 path=Path("in/b.txt"),
             ),
         ]
 
-        mut = manifest_model.ManifestRemoveEntry(
+        mut = manifest.ManifestRemoveEntry(
             subset="pile",
             path=Path("in/a.txt"),
         )
 
-        out = manifest_mutation.apply_manifest_mutations(
+        out = manifest.apply_manifest_mutations(
             entries,
             [mut],
         )
@@ -355,21 +352,21 @@ class TestManifestMutation(pilotest.TestCase):
     def test_apply_manifest_add_replaces_existing_path(self):
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="old",
                 path=Path("in/a.txt"),
             )
         ]
 
-        mut = manifest_model.ManifestAddEntry(
+        mut = manifest.ManifestAddEntry(
             subset="pile",
-            entry=manifest_model.ManifestEntry(
+            entry=manifest.ManifestEntry(
                 checksum="new",
                 path=Path("in/a.txt"),
             )
         )
 
-        out = manifest_mutation.apply_manifest_mutations(
+        out = manifest.apply_manifest_mutations(
             entries,
             [mut],
         )
@@ -386,13 +383,13 @@ class TestManifestStore(pilotest.TestCase):
             out = cx.path / "test.manifest"
 
             entries = [
-                manifest_model.ManifestEntry(
+                manifest.ManifestEntry(
                     checksum="abc",
                     path=Path("in/a.txt"),
                 )
             ]
 
-            manifest_store.write_manifest_entries(
+            manifest.write_manifest_entries(
                 cx,
                 out,
                 entries,
@@ -414,7 +411,7 @@ class TestManifestStore(pilotest.TestCase):
 
             mfile = root / "test.manifest"
 
-            manifest_store.write_manifest(cx, root, mfile)
+            manifest.write_manifest(cx, root, mfile)
 
             self.assertTrue(mfile.exists())
 
@@ -428,13 +425,13 @@ class TestManifestStore(pilotest.TestCase):
             out = cx.path / "test.manifest"
             out.write_text("old data\n")
             entries = [
-                manifest_model.ManifestEntry(
+                manifest.ManifestEntry(
                     checksum="abc",
                     path=Path("in/a.txt"),
                 )
             ]
 
-            manifest_store.write_manifest_entries(cx, out, entries)
+            manifest.write_manifest_entries(cx, out, entries)
             text = out.read_text()
             self.assertEqual(text, "abc  ./in/a.txt\n")
 
@@ -445,7 +442,7 @@ class TestManifestPolicy(pilotest.TestCase):
         cx = pilotest.make_context()
 
         self.assertEqual(
-            manifest_policy.manifest_subset_root(
+            manifest.manifest_subset_root(
                 cx,
                 "pile",
             ),
@@ -453,7 +450,7 @@ class TestManifestPolicy(pilotest.TestCase):
         )
 
         self.assertEqual(
-            manifest_policy.manifest_subset_root(
+            manifest.manifest_subset_root(
                 cx,
                 "collection",
             ),
@@ -461,7 +458,7 @@ class TestManifestPolicy(pilotest.TestCase):
         )
 
         self.assertEqual(
-            manifest_policy.manifest_subset_root(
+            manifest.manifest_subset_root(
                 cx,
                 "filing",
             ),
@@ -471,7 +468,7 @@ class TestManifestPolicy(pilotest.TestCase):
     def test_dataset_manifest_subset_pile(self):
 
         result = (
-            manifest_policy.dataset_manifest_subset(
+            manifest.dataset_manifest_subset(
                 "tank/a/pile"
             )
         )
@@ -481,7 +478,7 @@ class TestManifestPolicy(pilotest.TestCase):
     def test_dataset_manifest_subset_collection(self):
 
         result = (
-            manifest_policy.dataset_manifest_subset(
+            manifest.dataset_manifest_subset(
                 "tank/a/static/collection"
             )
         )
@@ -491,7 +488,7 @@ class TestManifestPolicy(pilotest.TestCase):
     def test_dataset_manifest_subset_filing(self):
 
         result = (
-            manifest_policy.dataset_manifest_subset(
+            manifest.dataset_manifest_subset(
                 "tank/a/static/filing/docs"
             )
         )
@@ -501,7 +498,7 @@ class TestManifestPolicy(pilotest.TestCase):
     def test_dataset_manifest_subset_unknown(self):
 
         result = (
-            manifest_policy.dataset_manifest_subset(
+            manifest.dataset_manifest_subset(
                 "tank/a/unknown"
             )
         )
@@ -514,7 +511,7 @@ class TestManifestUpdate(pilotest.TestCase):
     def test_build_manifest_update_plan(self):
         cx = pilotest.make_context()
 
-        plan = manifest_update.build_manifest_update_plan(
+        plan = manifest.build_manifest_update_plan(
             cx,
             ["pile", "collection"],
         )
@@ -524,8 +521,8 @@ class TestManifestUpdate(pilotest.TestCase):
             ["pile", "collection"],
         )
 
-    @patch("pilo.manifest_store.write_manifest")
-    @patch("pilo.manifest_store.commit_manifest_if_changed")
+    @patch("pilo.front.manifest.write_manifest")
+    @patch("pilo.front.manifest.commit_manifest_if_changed")
     @patch("pilo.fs.ensure_parent_dir")
     def test_execute_manifest_update_plan(
         self,
@@ -536,14 +533,14 @@ class TestManifestUpdate(pilotest.TestCase):
         cx = pilotest.make_context()
 
         plan = (
-            manifest_update
+            manifest
             .build_manifest_update_plan(
                 cx,
                 ["pile"],
             )
         )
 
-        manifest_update.execute_manifest_update_plan(
+        manifest.execute_manifest_update_plan(
             cx,
             plan,
         )
@@ -564,7 +561,7 @@ class TestManifestUpdate(pilotest.TestCase):
 
             mfile = root / "test.manifest"
 
-            manifest_store.write_manifest(
+            manifest.write_manifest(
                 cx,
                 root,
                 mfile,
@@ -587,7 +584,7 @@ class TestManifestUpdate(pilotest.TestCase):
 
         mfile = Path("/tmp/test.manifest")
 
-        manifest_store.commit_manifest_if_changed(
+        manifest.commit_manifest_if_changed(
             cx,
             mfile,
             "test update",
@@ -602,44 +599,44 @@ class TestManifestIndex(pilotest.TestCase):
 
     def test_lookup_returns_entry(self):
 
-        entry = manifest_model.ManifestEntry(
+        entry = manifest.ManifestEntry(
             checksum="abc123",
             path=Path("in/a.txt"),
         )
-        index = manifest_model.ManifestIndex([entry])
+        index = manifest.ManifestIndex([entry])
         result = index.lookup(Path("in/a.txt"))
 
         self.assertEqual(result, entry)
 
     def test_lookup_missing_returns_none(self):
-        index = manifest_model.ManifestIndex([])
+        index = manifest.ManifestIndex([])
         result = index.lookup(Path("missing.txt"))
         self.assertIsNone(result)
 
 
     def test_require_returns_entry(self):
-        entry = manifest_model.ManifestEntry(
+        entry = manifest.ManifestEntry(
             checksum="abc123",
             path=Path("in/a.txt"),
         )
-        index = manifest_model.ManifestIndex([entry])
+        index = manifest.ManifestIndex([entry])
         result = index.require(Path("in/a.txt"))
         self.assertEqual(result, entry)
 
     def test_require_missing_fails(self):
-        index = manifest_model.ManifestIndex([])
+        index = manifest.ManifestIndex([])
         with pilotest.assert_fatal(self):
             index.require(Path("missing.txt"))
 
     def test_duplicate_paths_last_entry_wins(self):
-        old = manifest_model.ManifestEntry(
+        old = manifest.ManifestEntry(
             checksum="old",
             path=Path("in/a.txt"),
         )
-        new = manifest_model.ManifestEntry(
+        new = manifest.ManifestEntry(
             checksum="new",
             path=Path("in/a.txt"),
         )
-        index = manifest_model.ManifestIndex([old, new])
+        index = manifest.ManifestIndex([old, new])
         result = index.lookup(Path("in/a.txt"))
         self.assertEqual(result, new)

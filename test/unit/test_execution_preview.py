@@ -2,8 +2,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import mutation
-from pilo import mutation_exec
+from pilo.front import mutation
 from pilo.front import ingest
 from pilo.front import promote
 from pilo.front import prune
@@ -125,7 +124,7 @@ class TestMutationExecutors(pilotest.TestCase):
             dataset="tank/a",
         )
 
-        ex = mutation_exec.LiveExecutor(cx)
+        ex = mutation.LiveExecutor(cx)
 
         ex.apply(mut)
 

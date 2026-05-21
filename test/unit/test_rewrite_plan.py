@@ -4,8 +4,8 @@ from unittest.mock import patch, call
 from pathlib import Path
 
 from pilo.front import execution
-from pilo import manifest_model
-from pilo import mutation
+from pilo.front import manifest
+from pilo.front import mutation
 from pilo import paths
 from pilo.front import rewrite
 import pilotest
@@ -45,7 +45,7 @@ class TestRewritePlan(pilotest.TestCase):
                 root / "in/b.txt"
             )
 
-    @patch("pilo.mutation.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -94,7 +94,7 @@ class TestRewritePlan(pilotest.TestCase):
         self.assertEqual(mut.dst, Path("/tmp/b"))
         self.assertEqual(mut.dataset, "tank/a/pile")
 
-    @patch("pilo.mutation.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     def test_execute_uses_executor2(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -133,7 +133,7 @@ class TestRewritePlan(pilotest.TestCase):
         plan = rewrite.build_rewrite_plan(cx, [op])
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -160,7 +160,7 @@ class TestRewritePlan(pilotest.TestCase):
         plan = rewrite.build_rewrite_plan(cx, [op])
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -187,7 +187,7 @@ class TestRewritePlan(pilotest.TestCase):
         )
         plan = rewrite.build_rewrite_plan(cx, [op])
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -218,11 +218,11 @@ class TestRewritePlan(pilotest.TestCase):
         )
         verified = {
             Path("in/a.txt"):
-                manifest_model.ProvenancedChecksum(
+                manifest.ProvenancedChecksum(
                     path=Path("in/a.txt"),
                     checksum="abc123",
                     provenance=(
-                        manifest_model.ChecksumProvenance.VERIFIED
+                        manifest.ChecksumProvenance.VERIFIED
                     ),
                 )
         }
@@ -243,11 +243,11 @@ class TestRewritePlan(pilotest.TestCase):
 
         cx = pilotest.make_context()
         mock_verify.return_value = (
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=Path("in/a.txt"),
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),
@@ -264,8 +264,8 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        entries = manifest_model.ManifestIndex([
-            manifest_model.ManifestEntry(
+        entries = manifest.ManifestIndex([
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -296,7 +296,7 @@ class TestRewritePlan(pilotest.TestCase):
             src=cx.resolve(Path("in/a.txt")),
             dst=cx.resolve(Path("in/b.txt")),
         )
-        entries = manifest_model.ManifestIndex([])
+        entries = manifest.ManifestIndex([])
 
         with pilotest.assert_fatal(self):
             rewrite.build_checksum_index([op], cx.pile_path, entries)
@@ -321,7 +321,7 @@ class TestRewritePlan(pilotest.TestCase):
         plan = rewrite.build_rewrite_plan(cx, [op])
 
         entries = [
-            manifest_model.ManifestEntry(
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -331,7 +331,7 @@ class TestRewritePlan(pilotest.TestCase):
         exec_plan.manifest_steps[0].build_mutations()
         verified = mock_manifest.call_args[0][2]
 
-        self.assertIsInstance(verified, manifest_model.ChecksumIndex)
+        self.assertIsInstance(verified, manifest.ChecksumIndex)
 
     @patch("pilo.fs.sha256_file")
     def test_rewrite_manifest_mutations_do_not_rehash(
@@ -340,12 +340,12 @@ class TestRewritePlan(pilotest.TestCase):
     ):
 
         verified = (
-            manifest_model.ChecksumIndex([
-                manifest_model.ProvenancedChecksum(
+            manifest.ChecksumIndex([
+                manifest.ProvenancedChecksum(
                     path=Path("in/old.txt"),
                     checksum="existing",
                     provenance=(
-                        manifest_model.ChecksumProvenance.VERIFIED
+                        manifest.ChecksumProvenance.VERIFIED
                     ),
                 )
             ])
@@ -378,11 +378,11 @@ class TestRewritePlan(pilotest.TestCase):
     @patch("pilo.front.checksum.verify_checksum")
     def test_rewrite_verified_checksums_mark_verified(self, mock_verify):
 
-        mock_verify.return_value = manifest_model.ProvenancedChecksum(
+        mock_verify.return_value = manifest.ProvenancedChecksum(
             path=Path("in/a.txt"),
             checksum="abc123",
             provenance=(
-                manifest_model
+                manifest
                 .ChecksumProvenance
                 .VERIFIED
             ),
@@ -400,8 +400,8 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        entries = manifest_model.ManifestIndex([
-            manifest_model.ManifestEntry(
+        entries = manifest.ManifestIndex([
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )
@@ -416,7 +416,7 @@ class TestRewritePlan(pilotest.TestCase):
         item = verified.require(Path("in/a.txt"))
 
         self.assertEqual(item.provenance,
-                         manifest_model.ChecksumProvenance.VERIFIED)
+                         manifest.ChecksumProvenance.VERIFIED)
 
     @patch("pilo.front.checksum.verify_checksum")
     def test_rewrite_verified_checksums_use_acquisition_layer(
@@ -427,11 +427,11 @@ class TestRewritePlan(pilotest.TestCase):
         cx = pilotest.make_context()
 
         mock_verify.return_value = (
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=Path("in/a.txt"),
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .VERIFIED
                 ),
@@ -448,8 +448,8 @@ class TestRewritePlan(pilotest.TestCase):
             dst=cx.resolve(Path("in/b.txt")),
         )
 
-        entries = manifest_model.ManifestIndex([
-            manifest_model.ManifestEntry(
+        entries = manifest.ManifestIndex([
+            manifest.ManifestEntry(
                 checksum="abc123",
                 path=Path("in/a.txt"),
             )

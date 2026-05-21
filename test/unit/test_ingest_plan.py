@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo import manifest_model
-from pilo import mutation_types
+from pilo.front import manifest
+from pilo.front import mutation
 from pilo.front import capture
 from pilo.front import ingest
 from pilo.front.execution import ExecutionPlan
@@ -81,8 +81,8 @@ class TestIngestOps(pilotest.TestCase):
 
         self.assertEqual(len(muts), 2)
 
-        self.assertIsInstance(muts[0], mutation_types.MoveMutation)
-        self.assertIsInstance(muts[1], mutation_types.UnlinkMutation)
+        self.assertIsInstance(muts[0], mutation.MoveMutation)
+        self.assertIsInstance(muts[1], mutation.UnlinkMutation)
 
     def test_build_ingest_ops_new_file(self):
         cx = pilotest.make_context()
@@ -280,10 +280,10 @@ class TestIngestOps(pilotest.TestCase):
 
         self.assertEqual(len(muts), 2)
 
-        self.assertIsInstance(muts[0], mutation_types.MoveMutation)
-        self.assertIsInstance(muts[1], mutation_types.UnlinkMutation)
+        self.assertIsInstance(muts[0], mutation.MoveMutation)
+        self.assertIsInstance(muts[1], mutation.UnlinkMutation)
 
-    @patch("pilo.mutation.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -302,8 +302,8 @@ class TestIngestOps(pilotest.TestCase):
 
         mock_exec.assert_called_once()
 
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -334,8 +334,8 @@ class TestIngestOps(pilotest.TestCase):
         files = list(ingest.ingestible_capture_files([data, meta]))
         self.assertEqual(files, [data])
 
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
-    @patch("pilo.manifest_update.build_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -365,7 +365,7 @@ class TestIngestOps(pilotest.TestCase):
         files = mock_build_ingest.call_args[0][1]
         self.assertEqual(files, [data])
 
-    @patch("pilo.manifest_mutation.execute_manifest_mutations")
+    @patch("pilo.front.manifest.execute_manifest_mutations")
     @patch("pilo.front.ingest.build_manifest_mutations")
     @patch("pilo.front.ingest.execute_ingest_plan")
     @patch("pilo.front.ingest.build_ingest_plan")
@@ -463,11 +463,11 @@ class TestIngestOps(pilotest.TestCase):
         cx = pilotest.make_context()
 
         mock_generate.return_value = (
-            manifest_model.ProvenancedChecksum(
+            manifest.ProvenancedChecksum(
                 path=Path("/tmp/a"),
                 checksum="abc123",
                 provenance=(
-                    manifest_model
+                    manifest
                     .ChecksumProvenance
                     .GENERATED
                 ),

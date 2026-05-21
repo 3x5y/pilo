@@ -3,7 +3,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
-from pilo import mutation
+from pilo.front import mutation
 from pilo import paths
 from pilo.front import replace
 from pilo.front.execution import ExecutionPlan
@@ -99,7 +99,7 @@ class TestReplacePlan(pilotest.TestCase):
 
     @patch("pilo.front.replace.build_replace_plan")
     @patch("pilo.front.replace.execute_replace_plan")
-    @patch("pilo.manifest_update.execute_manifest_update_plan")
+    @patch("pilo.front.manifest.execute_manifest_update_plan")
     def _test_replace_command_uses_plan(
         self,
         mock_upd,
@@ -121,7 +121,7 @@ class TestReplacePlan(pilotest.TestCase):
         mock_build.assert_called_once()
         mock_exec.assert_called_once()
 
-    @patch("pilo.mutation.execute_fs_mutations")
+    @patch("pilo.front.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 

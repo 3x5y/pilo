@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from pilo import mutation
+from pilo.front import mutation
 import pilotest
 
 
