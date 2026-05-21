@@ -1,6 +1,6 @@
-from . import checks
+from .. import checks
 from . import normalize
-from . import zfs
+from .. import zfs
 
 
 def create_namespace(dataset):

@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 
-from . import normalize
+from .back import normalize
 from . import util
 from . import zfs
 from .back import replication

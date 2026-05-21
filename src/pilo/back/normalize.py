@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from . import checks
-from . import fs
-from . import zfs
+from .. import checks
+from .. import fs
+from .. import zfs
 
 
 @dataclass(frozen=True)
@@ -149,7 +149,7 @@ def normalize_system(cx):
 
 
 def validate_dataset_contract(cx, contract):
-    from .state import ValidationIssue,ValidationSeverity
+    from ..state import ValidationIssue,ValidationSeverity
     issues = []
     dataset = contract_dataset(cx, contract)
     if not zfs.dataset_exists(dataset):

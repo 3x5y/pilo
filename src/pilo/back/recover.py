@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .. import checks
 from .. import context
 from .. import error
-from .. import normalize
+from . import normalize
 from .. import state
 from . import restore
 

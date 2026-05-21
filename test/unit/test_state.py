@@ -7,7 +7,7 @@ import pilotest
 
 class TestOperationalState(pilotest.TestCase):
 
-    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.normalize.validate_dataset_contracts")
     def test_incomplete_state(self, validate):
         validate.return_value = [
             state.ValidationIssue(
@@ -23,7 +23,7 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
     def test_diverged_state(self, repl, validate, *_):
         validate.return_value = []
@@ -35,7 +35,7 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
     def test_healthy_state(self, repl, validate, *_):
         from pilo.back.replication import ReplicationStatus
@@ -50,7 +50,7 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.normalize.validate_dataset_contracts")
     def test_collect_validation_report(self, validate, *_):
         validate.return_value = [
             state.ValidationIssue(
@@ -70,7 +70,7 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.normalize.validate_dataset_contracts", return_value=[])
+    @patch("pilo.back.normalize.validate_dataset_contracts", return_value=[])
     def test_collect_validation_report_empty(self, validate, *_):
         with pilotest.healthy_system_state():
             cx = pilotest.make_context()
@@ -112,7 +112,7 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(issues[0].code, "snapshot.missing")
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
     def test_stale_snapshot_degraded_state(self, repl, validate, *_):
         validate.return_value = []
@@ -171,7 +171,7 @@ class TestOperationalState(pilotest.TestCase):
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.normalize.validate_dataset_contracts")
+    @patch("pilo.back.normalize.validate_dataset_contracts")
     @patch("pilo.back.replication.replication_status")
     def test_replication_behind_degraded_state(self, repl, validate, *_):
         from pilo.back.replication import ReplicationStatus
