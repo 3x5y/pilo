@@ -79,3 +79,42 @@ class TestStreamFilepath(pilotest.TestCase):
         self.assertEqual(
             result, Path("/out/20260522/20260522_010203_000000-extra.zfs")
         )
+
+
+class TestExportIncrementalStream(pilotest.TestCase):
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
+    @patch("pilo.back.streams.zfs.send_full_to_file")
+    def test_full_export_no_base(self, mock_send):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+        result = streams.export_incremental_stream("tank/a", snap)
+
+        expected_path = Path(
+            "/out/20260522/20260522_010203_000000-incr.zfs"
+        )
+        self.assertEqual(result, expected_path)
+        mock_send.assert_called_once_with(
+            "tank/a@20260522_010203_000000-incr",
+            expected_path,
+        )
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
+    @patch("pilo.back.streams.zfs.send_incremental_to_file")
+    def test_incremental_export_with_base(self, mock_send):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+        base = SnapshotName(
+            "20260522_010000_000000", SnapshotKind.ANCHOR
+        )
+        result = streams.export_incremental_stream(
+            "tank/a", snap, base=base,
+        )
+
+        expected_path = Path(
+            "/out/20260522/20260522_010203_000000-incr.zfs"
+        )
+        self.assertEqual(result, expected_path)
+        mock_send.assert_called_once_with(
+            "tank/a@20260522_010000_000000-anchor",
+            "tank/a@20260522_010203_000000-incr",
+            expected_path,
+        )
