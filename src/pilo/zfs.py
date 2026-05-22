@@ -52,12 +52,24 @@ def run_get_lines(cmd, **kw):
     return run_get_output(cmd, **kw).strip().splitlines()
 
 
-def simple_pipe(src_cmd, sink_cmd):
+def simple_pipe(src_cmd, sink_cmd, tee_path=None):
+    if tee_path:
+        Path(tee_path).parent.mkdir(parents=True, exist_ok=True)
     source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
-    sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
-    source.stdout.close()
+    if tee_path:
+        tee = subprocess.Popen(["tee", tee_path], stdin=source.stdout,
+                               stdout=subprocess.PIPE)
+        source.stdout.close()
+        sink = subprocess.Popen(sink_cmd, stdin=tee.stdout)
+        tee.stdout.close()
+    else:
+        sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
+        source.stdout.close()
     sink.communicate()
-    if source.wait() != 0 or sink.returncode != 0:
+    if tee_path:
+        tee.wait()
+    if source.wait() != 0 or sink.returncode != 0 \
+            or (tee_path and tee.returncode != 0):
         error.fatal("replication failed")
 
 
