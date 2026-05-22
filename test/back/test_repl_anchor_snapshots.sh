@@ -5,4 +5,4 @@ pilo snapshot-rpo
 pilo snapshot-rpo
 pilo replica-seed
 
-zfs list -t snap $TEST_REPLICA | assert_grep "@r-"
+zfs list -t snap -Ho name $TEST_REPLICA | assert_grep "incr$"

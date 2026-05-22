@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import os
+
 from pilo import error
-from pilo.back import snapshot
+from pilo.back.snapshot import create_incremental_snapshot
 
 
 def main():
-    snapshot.create_prefixed_snapshot("r")
+    create_incremental_snapshot(os.environ["PILO_PRIMARY_ROOT"])
 
 
 if __name__ == "__main__":

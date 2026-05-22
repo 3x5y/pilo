@@ -82,7 +82,7 @@ assert_not_exists() {
 }
 
 assert_grep() {
-    grep -q "$1" || fail "grep did not match '$1'"
+    grep -q -- "$1" || fail "grep did not match '$1'"
 }
 
 assert_not_grep() {

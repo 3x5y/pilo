@@ -11,4 +11,4 @@ pilo snapshot t1
 pilo replicate
 
 # ensure incremental basis was the rpo snapshot (indirectly)
-zfs list -t snap $TEST_REPLICA | assert_grep @r-
+zfs list -t snap -Ho name $TEST_REPLICA | assert_grep "incr$"

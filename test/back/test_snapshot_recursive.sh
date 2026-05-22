@@ -3,5 +3,5 @@ set -e
 
 pilo snapshot-rpo
 
-zfs list -t snapshot | assert_grep "$ADMIN@r-"
-zfs list -t snapshot | assert_grep "$COLLECTION@r-"
+zfs list -t snapshot -Ho name | assert_grep "$ADMIN.*-incr$"
+zfs list -t snapshot -Ho name | assert_grep "$COLLECTION.*-incr$"

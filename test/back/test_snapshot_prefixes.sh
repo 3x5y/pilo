@@ -4,4 +4,4 @@ set -e
 pilo snapshot-rpo
 pilo snapshot-rpo
 
-zfs list -t snapshot | assert_grep "@r-"
+zfs list -t snapshot -Ho name | assert_grep "-incr$"
