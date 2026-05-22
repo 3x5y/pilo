@@ -27,6 +27,7 @@ class ReplicationPlan:
     mode: str
     hold_snapshot: str | None = None
     hold_tag: str | None = None
+    export_path: str | None = None
 
 
 def find_incremental_base(src, dst):
@@ -186,10 +187,12 @@ def execute_replication_plan(plan: ReplicationPlan):
         zfs.hold(plan.hold_tag, plan.hold_snapshot)
 
     if plan.mode == "seed":
-        return zfs.replicate_full(plan.snapshot, plan.dst)
+        return zfs.replicate_full(plan.snapshot, plan.dst,
+                                  tee_path=plan.export_path)
 
     if plan.mode == "incremental":
-        return zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst)
+        return zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst,
+                                         tee_path=plan.export_path)
 
     if plan.mode == "noop":
         return

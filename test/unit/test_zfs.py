@@ -219,6 +219,65 @@ class TestSendIncrementalToFile(pilotest.TestCase):
             zfs.send_incremental_to_file("tank/a@base", "tank/a@snap2", "/out/streams/test.zfs")
 
 
+class TestReplicateFull(pilotest.TestCase):
+
+    @patch("pilo.zfs.simple_pipe")
+    @patch("pilo.zfs.set_prop")
+    def test_forwards_tee_path(self, mock_set, mock_pipe):
+        zfs.replicate_full("tank/a@snap", "tank/b", tee_path="/out/s.zfs")
+
+        mock_pipe.assert_called_once_with(
+            ["zfs", "send", "-h", "-R", "tank/a@snap"],
+            ["zfs", "receive", "-u", "-o", "readonly=on",
+             "-o", "mountpoint=none", "tank/b"],
+            tee_path="/out/s.zfs",
+        )
+
+    @patch("pilo.zfs.simple_pipe")
+    @patch("pilo.zfs.set_prop")
+    def test_tee_path_defaults_to_none(self, mock_set, mock_pipe):
+        zfs.replicate_full("tank/a@snap", "tank/b")
+
+        mock_pipe.assert_called_once_with(
+            ["zfs", "send", "-h", "-R", "tank/a@snap"],
+            ["zfs", "receive", "-u", "-o", "readonly=on",
+             "-o", "mountpoint=none", "tank/b"],
+            tee_path=None,
+        )
+
+
+class TestReplicateIncremental(pilotest.TestCase):
+
+    @patch("pilo.zfs.simple_pipe")
+    @patch("pilo.zfs.set_prop")
+    def test_forwards_tee_path(self, mock_set, mock_pipe):
+        zfs.replicate_incremental(
+            "tank/a@base", "tank/a@snap", "tank/b",
+            tee_path="/out/s.zfs",
+        )
+
+        mock_pipe.assert_called_once_with(
+            ["zfs", "send", "-h", "-R", "-I", "tank/a@base",
+             "tank/a@snap"],
+            ["zfs", "receive", "-u", "-o", "readonly=on",
+             "-o", "mountpoint=none", "tank/b"],
+            tee_path="/out/s.zfs",
+        )
+
+    @patch("pilo.zfs.simple_pipe")
+    @patch("pilo.zfs.set_prop")
+    def test_tee_path_defaults_to_none(self, mock_set, mock_pipe):
+        zfs.replicate_incremental("tank/a@base", "tank/a@snap", "tank/b")
+
+        mock_pipe.assert_called_once_with(
+            ["zfs", "send", "-h", "-R", "-I", "tank/a@base",
+             "tank/a@snap"],
+            ["zfs", "receive", "-u", "-o", "readonly=on",
+             "-o", "mountpoint=none", "tank/b"],
+            tee_path=None,
+        )
+
+
 class TestSimplePipe(pilotest.TestCase):
 
     @patch("subprocess.Popen")

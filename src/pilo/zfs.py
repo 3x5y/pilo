@@ -369,21 +369,21 @@ def create_parent(dataset):
         run(cmd + args, check=False)
 
 
-def replicate_full(snapshot, dst):
+def replicate_full(snapshot, dst, tee_path=None):
     send = "zfs send -h -R".split()
     send_args = [snapshot]
     recv = "zfs receive -u -o readonly=on -o mountpoint=none".split()
     recv_args = [dst]
-    simple_pipe(send + send_args, recv + recv_args)
+    simple_pipe(send + send_args, recv + recv_args, tee_path=tee_path)
     set_prop(dst, "canmount=off", recursive=True)
 
 
-def replicate_incremental(base, snapshot, dst):
+def replicate_incremental(base, snapshot, dst, tee_path=None):
     send = "zfs send -h -R -I".split()
     send_args = [base, snapshot]
     recv = "zfs receive -u -o readonly=on -o mountpoint=none".split()
     recv_args = [dst]
-    simple_pipe(send + send_args, recv + recv_args)
+    simple_pipe(send + send_args, recv + recv_args, tee_path=tee_path)
     set_prop(dst, "canmount=off", recursive=True)
 
 

@@ -70,7 +70,9 @@ class TestReplicationPlan(pilotest.TestCase):
 
         repl.execute_replication_plan(plan)
 
-        mock_full.assert_called_once_with("tank/a@r1", "backup/a")
+        mock_full.assert_called_once_with(
+            "tank/a@r1", "backup/a", tee_path=None,
+        )
 
     @patch("pilo.zfs.replicate_incremental")
     def test_execute_incremental(self, mock_incr):
@@ -88,6 +90,7 @@ class TestReplicationPlan(pilotest.TestCase):
             "tank/a@r1",
             "tank/a@r2",
             "backup/a",
+            tee_path=None,
         )
 
     @patch("pilo.back.replication.execute_replication_plan")
@@ -219,7 +222,9 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
         repl.execute_replication_plan(plan)
 
         mock_hold.assert_called_once_with("pilo:z1", "tank/a@r1")
-        mock_full.assert_called_once_with("tank/a@r1", "backup/a")
+        mock_full.assert_called_once_with(
+            "tank/a@r1", "backup/a", tee_path=None,
+        )
 
     @patch("pilo.zfs.hold")
     @patch("pilo.zfs.replicate_incremental")
@@ -239,7 +244,61 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
         mock_hold.assert_called_once_with("pilo:z1", "tank/a@r2")
         mock_incr.assert_called_once_with(
             "tank/a@r1", "tank/a@r2", "backup/a",
+            tee_path=None,
         )
+
+
+class TestExecuteWithExportPath(pilotest.TestCase):
+
+    @patch("pilo.zfs.replicate_full")
+    def test_seed_forwards_export_path(self, mock_full):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@r1",
+            base=None,
+            mode="seed",
+            export_path="/out/s.zfs",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_full.assert_called_once_with(
+            "tank/a@r1", "backup/a", tee_path="/out/s.zfs",
+        )
+
+    @patch("pilo.zfs.replicate_incremental")
+    def test_incremental_forwards_export_path(self, mock_incr):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@r2",
+            base="tank/a@r1",
+            mode="incremental",
+            export_path="/out/s.zfs",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_incr.assert_called_once_with(
+            "tank/a@r1", "tank/a@r2", "backup/a",
+            tee_path="/out/s.zfs",
+        )
+
+    @patch("pilo.zfs.replicate_full")
+    def test_noop_skips_export(self, mock_full):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@r1",
+            base="tank/a@r1",
+            mode="noop",
+            export_path="/out/s.zfs",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_full.assert_not_called()
 
 
 class TestReplicateCommands(pilotest.TestCase):
