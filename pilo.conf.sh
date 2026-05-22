@@ -1,8 +1,8 @@
-PILO_USER=u
-PILO_PRIMARY_ROOT=z0-att/pri
-PILO_SECONDARY_ROOTS=z1-rem/bak/pri
-PILO_PATH=/z
-PILO_ADMIN_PATH=/z/admin
-PILO_INTAKE_PATH=/z/intake
-PILO_PILE_PATH=/z/pile
-PILO_STATIC_PATH=/z/static
+export PILO_USER=u
+export PILO_PRIMARY_ROOT=z0-att/pri
+export PILO_SECONDARY_ROOTS="z1-rem/bak/pri z2-rem/bak/pri"
+export PILO_PATH=/z
+export PILO_ADMIN_PATH=/z/admin
+export PILO_INTAKE_PATH=/z/intake
+export PILO_PILE_PATH=/z/pile
+export PILO_STATIC_PATH=/z/static

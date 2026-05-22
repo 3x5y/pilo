@@ -15,6 +15,7 @@ init_pool() {
     local name=$1
     local file=$2
     truncate -s 1G "$file"
+    echo \# zpool create -m none -O canmount=off $name "$file"
     zpool create -m none -O canmount=off $name "$file"
 }
 
@@ -66,21 +67,25 @@ init_secondary() {
 }
 
 PRI_DEV=/tmp/z0
-SEC_DEV=/tmp/z1
+SEC_DEV1=/tmp/z1
+SEC_DEV2=/tmp/z2
 
 PRI_POOL=z0-att
-SEC_POOL=z1-rem
+SEC_POOL1=z1-rem
+SEC_POOL2=z2-rem
 
 HERE=$(readlink -f $(dirname -- "$0"))
 . "$HERE"/pilo.conf.sh
 
 destroy_pool $PRI_POOL $PRI_DEV
-destroy_pool $SEC_POOL $SEC_DEV
+destroy_pool $SEC_POOL1 $SEC_DEV1
+destroy_pool $SEC_POOL2 $SEC_DEV2
 
 ! [ -d $PILO_PATH ] || find $PILO_PATH -type d -delete
 
 init_pool $PRI_POOL $PRI_DEV
-init_pool $SEC_POOL $SEC_DEV
+init_pool $SEC_POOL1 $SEC_DEV1
+init_pool $SEC_POOL2 $SEC_DEV2
 
 #init_primary $PILO_PRIMARY_ROOT $PILO_PATH
 #for sec in $PILO_SECONDARY_ROOTS
@@ -89,5 +94,5 @@ init_pool $SEC_POOL $SEC_DEV
 #done
 
 # unused for tests
-#init_secondary $SEC_POOL/sec $PILO_PATH
+#init_secondary $SEC_POOL1/sec $PILO_PATH
 
