@@ -1,9 +1,63 @@
 from dataclasses import dataclass
+from enum import Enum
 import os
 
 from .. import error
 from .. import util
 from .. import zfs
+
+
+class SnapshotKind(Enum):
+    ANCHOR = "anchor"
+    INCR = "incr"
+    EXTRA = "extra"
+
+
+@dataclass(frozen=True)
+class SnapshotName:
+    timestamp: str
+    kind: SnapshotKind
+    label: str | None = None
+
+    def format(self) -> str:
+        base = f"{self.timestamp}-{self.kind.value}"
+        if self.label is not None:
+            base += f"-{self.label}"
+        return base
+
+
+def parse_snapshot_name(name: str) -> SnapshotName | None:
+    parts = name.split("-", 2)
+    if len(parts) < 2:
+        return None
+    ts, kind_str = parts[0], parts[1]
+    try:
+        kind = SnapshotKind(kind_str)
+    except ValueError:
+        return None
+    label = parts[2] if len(parts) > 2 else None
+    if kind is SnapshotKind.EXTRA and label is None:
+        return None
+    if kind is not SnapshotKind.EXTRA and label is not None:
+        return None
+    return SnapshotName(timestamp=ts, kind=kind, label=label)
+
+
+def classify_snapshot(name: str) -> SnapshotKind | None:
+    parsed = parse_snapshot_name(name)
+    return parsed.kind if parsed is not None else None
+
+
+def is_anchor_snapshot(name: str) -> bool:
+    return classify_snapshot(name) is SnapshotKind.ANCHOR
+
+
+def is_incremental_snapshot(name: str) -> bool:
+    return classify_snapshot(name) is SnapshotKind.INCR
+
+
+def is_extra_snapshot(name: str) -> bool:
+    return classify_snapshot(name) is SnapshotKind.EXTRA
 
 
 @dataclass(frozen=True)
