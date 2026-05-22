@@ -61,7 +61,7 @@ def make_environ(root, **kw):
         "PILO_INTAKE_PATH": f"{root}/intake",
         "PILO_PILE_PATH": f"{root}/pile",
         "PILO_STATIC_PATH": f"{root}/static",
-        "PILO_USER": "root",
+        "PILO_USER": "ubuntu",
     }
     env.update(kw)
     return env
