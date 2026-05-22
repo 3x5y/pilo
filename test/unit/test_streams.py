@@ -5,9 +5,10 @@ from unittest.mock import patch
 
 from pilo.back import streams
 from pilo.back.snapshot import SnapshotKind, SnapshotName
+import pilotest
 
 
-class TestStreamOutputPath(unittest.TestCase):
+class TestStreamOutputPath(pilotest.TestCase):
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/some/streams"})
     def test_reads_env(self):
@@ -19,7 +20,7 @@ class TestStreamOutputPath(unittest.TestCase):
             streams.stream_output_path()
 
 
-class TestStreamFilename(unittest.TestCase):
+class TestStreamFilename(pilotest.TestCase):
 
     def test_incremental(self):
         self.assertEqual(
@@ -40,7 +41,7 @@ class TestStreamFilename(unittest.TestCase):
         )
 
 
-class TestStreamDateDir(unittest.TestCase):
+class TestStreamDateDir(pilotest.TestCase):
 
     def test_extracts_first_eight_chars(self):
         self.assertEqual(
@@ -51,7 +52,7 @@ class TestStreamDateDir(unittest.TestCase):
         self.assertEqual(streams.stream_date_dir("abc"), "abc")
 
 
-class TestStreamFilepath(unittest.TestCase):
+class TestStreamFilepath(pilotest.TestCase):
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
     def test_full_path_incremental(self):

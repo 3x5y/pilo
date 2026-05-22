@@ -1,5 +1,6 @@
 from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass
+from pathlib import Path
 import subprocess
 
 from . import error
@@ -372,6 +373,26 @@ def replicate_incremental(base, snapshot, dst):
     recv_args = [dst]
     simple_pipe(send + send_args, recv + recv_args)
     set_prop(dst, "canmount=off", recursive=True)
+
+
+def send_full_to_file(snapshot, filepath):
+    filepath = Path(filepath)
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    cmd = "zfs send -h".split() + [snapshot]
+    with open(filepath, "wb") as f:
+        proc = subprocess.Popen(cmd, stdout=f)
+        if proc.wait() != 0:
+            error.fatal("stream export failed")
+
+
+def send_incremental_to_file(base, snapshot, filepath):
+    filepath = Path(filepath)
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    cmd = "zfs send -h -I".split() + [base, snapshot]
+    with open(filepath, "wb") as f:
+        proc = subprocess.Popen(cmd, stdout=f)
+        if proc.wait() != 0:
+            error.fatal("stream export failed")
 
 
 def send_recv(src_snap, dst, recursive=False):

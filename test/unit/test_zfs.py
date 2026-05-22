@@ -2,6 +2,8 @@ import subprocess
 import unittest
 from unittest.mock import patch, Mock, call
 
+from pathlib import Path
+
 from pilo import zfs
 import pilotest
 
@@ -145,3 +147,73 @@ class TestZfsRun(pilotest.TestCase):
         held = zfs.held_snapshots("tank/a", tag="pilo:z1")
 
         self.assertEqual(held, ["tank/a@snap1"])
+
+
+class TestSendFullToFile(pilotest.TestCase):
+
+    @patch("subprocess.Popen")
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.open")
+    def test_creates_parent_dirs_and_sends_full(self, mock_open, mock_mkdir, mock_popen):
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+        mock_file = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        zfs.send_full_to_file("tank/a@snap1", "/out/streams/test.zfs")
+
+        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+        mock_open.assert_called_once_with(Path("/out/streams/test.zfs"), "wb")
+        mock_popen.assert_called_once_with(
+            ["zfs", "send", "-h", "tank/a@snap1"],
+            stdout=mock_file,
+        )
+
+    @patch("subprocess.Popen")
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.open")
+    def test_full_failure_raises_fatal(self, mock_open, mock_mkdir, mock_popen):
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 1
+        mock_popen.return_value = mock_proc
+        mock_file = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        with self.assert_fatal():
+            zfs.send_full_to_file("tank/a@snap1", "/out/streams/test.zfs")
+
+
+class TestSendIncrementalToFile(pilotest.TestCase):
+
+    @patch("subprocess.Popen")
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.open")
+    def test_creates_parent_dirs_and_sends_incr(self, mock_open, mock_mkdir, mock_popen):
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+        mock_file = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        zfs.send_incremental_to_file("tank/a@base", "tank/a@snap2", "/out/streams/test.zfs")
+
+        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+        mock_open.assert_called_once_with(Path("/out/streams/test.zfs"), "wb")
+        mock_popen.assert_called_once_with(
+            ["zfs", "send", "-h", "-I", "tank/a@base", "tank/a@snap2"],
+            stdout=mock_file,
+        )
+
+    @patch("subprocess.Popen")
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.open")
+    def test_incr_failure_raises_fatal(self, mock_open, mock_mkdir, mock_popen):
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 1
+        mock_popen.return_value = mock_proc
+        mock_file = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        with self.assert_fatal():
+            zfs.send_incremental_to_file("tank/a@base", "tank/a@snap2", "/out/streams/test.zfs")
