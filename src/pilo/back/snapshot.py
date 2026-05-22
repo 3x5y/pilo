@@ -60,6 +60,30 @@ def is_extra_snapshot(name: str) -> bool:
     return classify_snapshot(name) is SnapshotKind.EXTRA
 
 
+def _create_canonical_snapshot(kind: SnapshotKind, dataset: str,
+                                ts: str | None = None, label: str | None = None):
+    if not dataset:
+        error.fatal("dataset required for snapshot")
+    ts = ts or util.snapshot_timestamp()
+    name = SnapshotName(timestamp=ts, kind=kind, label=label).format()
+    zfs.snapshot(name, dataset)
+    return f"{dataset}@{name}"
+
+
+def create_anchor_snapshot(dataset: str, ts: str | None = None) -> str:
+    return _create_canonical_snapshot(SnapshotKind.ANCHOR, dataset, ts=ts)
+
+
+def create_incremental_snapshot(dataset: str, ts: str | None = None) -> str:
+    return _create_canonical_snapshot(SnapshotKind.INCR, dataset, ts=ts)
+
+
+def create_extra_snapshot(dataset: str, label: str,
+                          ts: str | None = None) -> str:
+    return _create_canonical_snapshot(SnapshotKind.EXTRA, dataset,
+                                      ts=ts, label=label)
+
+
 @dataclass(frozen=True)
 class SnapshotPolicy:
     prefix: str
