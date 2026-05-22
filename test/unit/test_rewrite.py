@@ -77,20 +77,18 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_manifest_exec,
         mock_parse,
     ):
-        with tempfile.NamedTemporaryFile("w+", delete=False) as f:
-            f.write("mv\tin/a\tin/b\n")
-            path = f.name
-        with pilotest.make_tmp_context() as cx:
-            cx.args = [path]
-            mod = pilotest.import_command("rewrite")
-            try:
+        mod = pilotest.import_command("rewrite")
+
+        with pilotest.tmpfile() as f:
+            f.write_text("mv\tin/a\tin/b\n")
+            path = str(f)
+            with pilotest.make_tmp_context() as cx:
+                cx.args = [path]
                 with patch("pilo.context.Context", return_value=cx):
                     mod.main()
 
-                mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
-
-            finally:
-                Path(path).unlink(missing_ok=True)
+        mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
+        Path(path).unlink(missing_ok=True)
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.front.rewrite.parse_rewrite_ops")
@@ -109,24 +107,17 @@ class TestRewriteCommand(pilotest.TestCase):
     ):
         stdin.write("mv\tin/stdin\tin/ignored\n")
         stdin.seek(0)
-
-        with tempfile.NamedTemporaryFile("w+", delete=False) as f:
-            f.write("mv\tin/file\tin/dst\n")
-            path = f.name
-
         mod = pilotest.import_command("rewrite")
 
-        with pilotest.make_tmp_context() as cx:
-            cx.args = [path]
-
-            try:
+        with pilotest.tmpfile() as f:
+            f.write_text("mv\tin/file\tin/dst\n")
+            path = str(f)
+            with pilotest.make_tmp_context() as cx:
+                cx.args = [path]
                 with patch("pilo.context.Context", return_value=cx):
                     mod.main()
 
-                mock_parse.assert_called_once_with(["mv\tin/file\tin/dst"])
-
-            finally:
-                Path(path).unlink(missing_ok=True)
+        mock_parse.assert_called_once_with(["mv\tin/file\tin/dst"])
 
     @patch("pilo.front.rewrite.parse_rewrite_ops")
     @patch("pilo.front.manifest.execute_manifest_update_plan")

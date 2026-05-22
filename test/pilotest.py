@@ -85,6 +85,12 @@ def tmpdir():
 
 
 @contextmanager
+def tmpfile():
+    with tempfile.NamedTemporaryFile("w+", prefix="pilo.tmp.") as f:
+        yield Path(f.name)
+
+
+@contextmanager
 def healthy_snapshot_state(snapshot="tank/a/pile@r1", ts=1000, now=1001):
     snap_time = (snapshot, ts)
     p1 = patch("pilo.zfs.latest_snapshot_with_time", return_value=snap_time)
