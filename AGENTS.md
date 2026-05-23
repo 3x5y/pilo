@@ -3,7 +3,7 @@
 ## Entrypoint & dispatch
 
 - `src/pilo.sh` sources config then dispatches `pilo <cmd>` → `src/pilo/cmd/pilo-<cmd>.py`.
-- All commands are single-dispatch, one file per command (24 commands).
+- All commands are single-dispatch, one file per command (27 commands).
 - Every command calls `error.run_main(main)` which catches `FatalError`.
 
 ## Python package
@@ -74,6 +74,9 @@ pilo snapshot                        # ZFS snapshot of all datasets
 pilo replicate / pilo replicate-safe
 pilo restore                         # restore from replica
 pilo rewrite                         # bulk rewrite static paths
+pilo stream-export                   # export snapshot to stream file
+pilo stream-replay                   # apply stream file to dataset
+pilo stream-verify                   # verify stream file checksum
 ```
 
 ## Conventions
