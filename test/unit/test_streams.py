@@ -15,8 +15,13 @@ class TestStreamOutputPath(pilotest.TestCase):
         self.assertEqual(streams.stream_output_path(), Path("/some/streams"))
 
     @patch.dict(os.environ, {}, clear=True)
-    def test_unset_env_raises_keyerror(self):
-        with self.assertRaises(KeyError):
+    def test_unset_env_raises_fatal(self):
+        with self.assert_fatal():
+            streams.stream_output_path()
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": ""}, clear=True)
+    def test_empty_env_raises_fatal(self):
+        with self.assert_fatal():
             streams.stream_output_path()
 
 

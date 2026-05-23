@@ -30,7 +30,6 @@ fi
 : "${PILO_INTAKE_PATH:="$PILO_PATH/active/pile-intake"}"
 : "${PILO_PILE_PATH:="$PILO_PATH/active/pile-readonly"}"
 : "${PILO_STATIC_PATH:="$PILO_PATH/static"}"
-: "${PILO_STREAM_OUTPUT_PATH:="$PILO_PATH/streams"}"
 
 export PILO_PRIMARY_ROOT
 export PILO_SECONDARY_ROOTS

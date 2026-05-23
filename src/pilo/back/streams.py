@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .snapshot import SnapshotName
+from .. import error
 from .. import fs
 from .. import zfs
 
@@ -53,7 +54,10 @@ class StreamManifest:
 
 
 def stream_output_path() -> Path:
-    return Path(os.environ["PILO_STREAM_OUTPUT_PATH"])
+    path = os.environ.get("PILO_STREAM_OUTPUT_PATH")
+    if not path:
+        error.fatal("PILO_STREAM_OUTPUT_PATH is not set")
+    return Path(path)
 
 
 def stream_filename(ts: str, kind: str) -> str:
