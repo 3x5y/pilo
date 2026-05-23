@@ -84,8 +84,10 @@ class TestStreamFilepath(pilotest.TestCase):
 class TestExportIncrementalStream(pilotest.TestCase):
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.back.streams.zfs.get_guid", return_value="guid123")
     @patch("pilo.back.streams.zfs.send_full_to_file")
-    def test_full_export_no_base(self, mock_send):
+    def test_full_export_no_base(self, mock_send, mock_guid, mock_manifest):
         snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
         result = streams.export_incremental_stream("tank/a", snap)
 
@@ -97,10 +99,21 @@ class TestExportIncrementalStream(pilotest.TestCase):
             "tank/a@20260522_010203_000000-incr",
             expected_path,
         )
+        mock_guid.assert_called_once_with(
+            "tank/a@20260522_010203_000000-incr"
+        )
+        mock_manifest.assert_called_once_with(
+            expected_path,
+            "20260522_010203_000000-incr",
+            "tank/a",
+            "guid123",
+        )
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.back.streams.zfs.get_guid", return_value="guid456")
     @patch("pilo.back.streams.zfs.send_incremental_to_file")
-    def test_incremental_export_with_base(self, mock_send):
+    def test_incremental_export_with_base(self, mock_send, mock_guid, mock_manifest):
         snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
         base = SnapshotName(
             "20260522_010000_000000", SnapshotKind.ANCHOR
@@ -117,6 +130,15 @@ class TestExportIncrementalStream(pilotest.TestCase):
             "tank/a@20260522_010000_000000-anchor",
             "tank/a@20260522_010203_000000-incr",
             expected_path,
+        )
+        mock_guid.assert_called_once_with(
+            "tank/a@20260522_010203_000000-incr"
+        )
+        mock_manifest.assert_called_once_with(
+            expected_path,
+            "20260522_010203_000000-incr",
+            "tank/a",
+            "guid456",
         )
 
 

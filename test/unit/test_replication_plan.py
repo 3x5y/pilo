@@ -1,3 +1,4 @@
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -302,8 +303,12 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
 
 class TestExecuteWithExportPath(pilotest.TestCase):
 
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.zfs.get_guid", return_value="g")
     @patch("pilo.zfs.replicate_full")
-    def test_seed_forwards_export_path(self, mock_full):
+    def test_seed_forwards_export_path(
+        self, mock_full, mock_guid, mock_manifest,
+    ):
         plan = repl.ReplicationPlan(
             src="tank/a",
             dst="backup/a",
@@ -319,8 +324,12 @@ class TestExecuteWithExportPath(pilotest.TestCase):
             "tank/a@r1", "backup/a", tee_path="/out/s.zfs",
         )
 
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.zfs.get_guid", return_value="g")
     @patch("pilo.zfs.replicate_incremental")
-    def test_incremental_forwards_export_path(self, mock_incr):
+    def test_incremental_forwards_export_path(
+        self, mock_incr, mock_guid, mock_manifest,
+    ):
         plan = repl.ReplicationPlan(
             src="tank/a",
             dst="backup/a",
@@ -351,6 +360,87 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         repl.execute_replication_plan(plan)
 
         mock_full.assert_not_called()
+
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.zfs.get_guid", return_value="guid_seed")
+    @patch("pilo.zfs.replicate_full")
+    def test_seed_writes_manifest(
+        self, mock_full, mock_guid, mock_manifest,
+    ):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@ts-incr",
+            base=None,
+            mode="seed",
+            export_path="/out/s.zfs",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_guid.assert_called_once_with("tank/a@ts-incr")
+        mock_manifest.assert_called_once_with(
+            Path("/out/s.zfs"), "ts-incr", "tank/a", "guid_seed",
+        )
+
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.zfs.get_guid", return_value="guid_incr")
+    @patch("pilo.zfs.replicate_incremental")
+    def test_incremental_writes_manifest(
+        self, mock_incr, mock_guid, mock_manifest,
+    ):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@ts-incr",
+            base="tank/a@base",
+            mode="incremental",
+            export_path="/out/s.zfs",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_guid.assert_called_once_with("tank/a@ts-incr")
+        mock_manifest.assert_called_once_with(
+            Path("/out/s.zfs"), "ts-incr", "tank/a", "guid_incr",
+        )
+
+    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.zfs.get_guid")
+    @patch("pilo.zfs.replicate_full")
+    def test_noop_skips_manifest(
+        self, mock_full, mock_guid, mock_manifest,
+    ):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@ts-incr",
+            base="tank/a@ts-incr",
+            mode="noop",
+            export_path="/out/s.zfs",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_full.assert_not_called()
+        mock_guid.assert_not_called()
+        mock_manifest.assert_not_called()
+
+    @patch("pilo.zfs.replicate_full")
+    def test_seed_no_export_skips_manifest(self, mock_full):
+        plan = repl.ReplicationPlan(
+            src="tank/a",
+            dst="backup/a",
+            snapshot="tank/a@r1",
+            base=None,
+            mode="seed",
+        )
+
+        repl.execute_replication_plan(plan)
+
+        mock_full.assert_called_once_with(
+            "tank/a@r1", "backup/a", tee_path=None,
+        )
 
 
 class TestReplicateCommands(pilotest.TestCase):

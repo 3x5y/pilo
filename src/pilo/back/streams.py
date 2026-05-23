@@ -120,4 +120,6 @@ def export_incremental_stream(dataset: str, snapshot: SnapshotName,
         zfs.send_incremental_to_file(base_snap, snap, filepath)
     else:
         zfs.send_full_to_file(snap, filepath)
+    guid = zfs.get_guid(snap)
+    write_stream_manifest(filepath, snapshot.format(), dataset, guid)
     return filepath

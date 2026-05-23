@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 from .. import checks
 from .. import context
@@ -200,14 +201,19 @@ def execute_replication_plan(plan: ReplicationPlan):
         zfs.hold(plan.hold_tag, plan.hold_snapshot)
 
     if plan.mode == "seed":
-        return zfs.replicate_full(plan.snapshot, plan.dst,
+        zfs.replicate_full(plan.snapshot, plan.dst,
+                           tee_path=plan.export_path)
+    elif plan.mode == "incremental":
+        zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst,
                                   tee_path=plan.export_path)
-
-    if plan.mode == "incremental":
-        return zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst,
-                                         tee_path=plan.export_path)
-
-    if plan.mode == "noop":
+    elif plan.mode == "noop":
         return
+    else:
+        error.fatal(f"unrecognized plan mode '{plan.mode}'")
 
-    error.fatal(f"unrecognized plan mode '{plan.mode}'")
+    if plan.export_path is not None:
+        dataset, snap_name = plan.snapshot.split("@", 1)
+        guid = zfs.get_guid(plan.snapshot)
+        streams.write_stream_manifest(
+            Path(plan.export_path), snap_name, dataset, guid,
+        )
