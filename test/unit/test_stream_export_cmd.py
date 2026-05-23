@@ -10,8 +10,9 @@ class TestStreamExportCmd(pilotest.TestCase):
     @patch("sys.argv", ["pilo-stream-export"])
     def test_no_args_exits(self):
         mod = pilotest.import_command("stream-export")
-        with self.assertRaises(SystemExit):
-            mod.main()
+        with pilotest.suppress_stderr():
+            with self.assertRaises(SystemExit):
+                mod.main()
 
     @patch("sys.argv", ["pilo-stream-export", "tank/a"])
     def test_missing_at_fatal(self):
@@ -33,7 +34,8 @@ class TestStreamExportCmd(pilotest.TestCase):
     def test_full_export(self, mock_export):
         mock_export.return_value = Path("/out/streams/20260522/test.zfs")
         mod = pilotest.import_command("stream-export")
-        mod.main()
+        with pilotest.suppress_stdout():
+            mod.main()
 
         mock_export.assert_called_once()
         args, kwargs = mock_export.call_args
@@ -51,7 +53,8 @@ class TestStreamExportCmd(pilotest.TestCase):
     def test_incremental_export(self, mock_export):
         mock_export.return_value = Path("/out/streams/20260522/test.zfs")
         mod = pilotest.import_command("stream-export")
-        mod.main()
+        with pilotest.suppress_stdout():
+            mod.main()
 
         mock_export.assert_called_once()
         args, kwargs = mock_export.call_args

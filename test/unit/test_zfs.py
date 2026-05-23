@@ -201,7 +201,7 @@ class TestSendIncrementalToFile(pilotest.TestCase):
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
         mock_open.assert_called_once_with(Path("/out/streams/test.zfs"), "wb")
         mock_popen.assert_called_once_with(
-            ["zfs", "send", "-h", "-I", "tank/a@base", "tank/a@snap2"],
+            ["zfs", "send", "-h", "-R", "-I", "tank/a@base", "tank/a@snap2"],
             stdout=mock_file,
         )
 

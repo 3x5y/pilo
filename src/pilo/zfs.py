@@ -405,7 +405,7 @@ def send_full_to_file(snapshot, filepath):
 def send_incremental_to_file(base, snapshot, filepath):
     filepath = Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
-    cmd = "zfs send -h -I".split() + [base, snapshot]
+    cmd = "zfs send -h -R -I".split() + [base, snapshot]
     with open(filepath, "wb") as f:
         proc = subprocess.Popen(cmd, stdout=f)
         if proc.wait() != 0:
