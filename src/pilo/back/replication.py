@@ -196,6 +196,24 @@ def build_replication_plan(src, dst, label=None, export=False):
     )
 
 
+def _execute_file_backed_incremental(plan: ReplicationPlan):
+    zfs.send_incremental_to_file(plan.base, plan.snapshot, plan.export_path)
+
+    dataset, snap_name = plan.snapshot.split("@", 1)
+    guid = zfs.get_guid(plan.snapshot)
+    streams.write_stream_manifest(
+        Path(plan.export_path), snap_name, dataset, guid,
+    )
+
+    status, msg = streams.verify_one(Path(plan.export_path))
+    if status != "OK":
+        error.fatal(f"stream verification failed: {msg}")
+
+    zfs.recv_file(plan.export_path, plan.dst)
+
+    zfs.set_prop(plan.dst, "canmount=off", recursive=True)
+
+
 def execute_replication_plan(plan: ReplicationPlan):
     if plan.hold_snapshot and plan.hold_tag:
         zfs.hold(plan.hold_tag, plan.hold_snapshot)
@@ -204,14 +222,17 @@ def execute_replication_plan(plan: ReplicationPlan):
         zfs.replicate_full(plan.snapshot, plan.dst,
                            tee_path=plan.export_path)
     elif plan.mode == "incremental":
-        zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst,
-                                  tee_path=plan.export_path)
+        if plan.export_path is not None:
+            _execute_file_backed_incremental(plan)
+        else:
+            zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst,
+                                      tee_path=None)
     elif plan.mode == "noop":
         return
     else:
         error.fatal(f"unrecognized plan mode '{plan.mode}'")
 
-    if plan.export_path is not None:
+    if plan.mode == "seed" and plan.export_path is not None:
         dataset, snap_name = plan.snapshot.split("@", 1)
         guid = zfs.get_guid(plan.snapshot)
         streams.write_stream_manifest(

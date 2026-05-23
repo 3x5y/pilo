@@ -7,3 +7,4 @@ export PILO_INTAKE_PATH=/z/intake
 export PILO_PILE_PATH=/z/pile
 export PILO_STATIC_PATH=/z/static
 export PILO_STREAM_OUTPUT_PATH=/tmp
+export PILO_STREAM_EXPORT=1
