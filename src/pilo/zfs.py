@@ -412,6 +412,15 @@ def send_incremental_to_file(base, snapshot, filepath):
             error.fatal("stream export failed")
 
 
+def recv_file(stream_path: str | Path, dataset: str) -> None:
+    stream_path = Path(stream_path)
+    cmd = "zfs receive -u".split() + [dataset]
+    with open(stream_path, "rb") as f:
+        proc = subprocess.Popen(cmd, stdin=f)
+        if proc.wait() != 0:
+            error.fatal("stream replay failed")
+
+
 def send_recv(src_snap, dst, recursive=False):
     send_cmd = "zfs send".split()
     if recursive:

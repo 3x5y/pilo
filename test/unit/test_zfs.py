@@ -384,6 +384,38 @@ class TestSimplePipe(pilotest.TestCase):
             zfs.simple_pipe(["src"], ["sink"], tee_path="/out/stream.zfs")
 
 
+class TestRecvFile(pilotest.TestCase):
+
+    @patch("subprocess.Popen")
+    @patch("builtins.open")
+    def test_recv_file_calls_zfs_receive(self, mock_open, mock_popen):
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+        mock_file = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        zfs.recv_file("/out/streams/test.zfs", "tank/b")
+
+        mock_open.assert_called_once_with(Path("/out/streams/test.zfs"), "rb")
+        mock_popen.assert_called_once_with(
+            ["zfs", "receive", "-u", "tank/b"],
+            stdin=mock_file,
+        )
+
+    @patch("subprocess.Popen")
+    @patch("builtins.open")
+    def test_recv_file_failure_raises_fatal(self, mock_open, mock_popen):
+        mock_proc = Mock()
+        mock_proc.wait.return_value = 1
+        mock_popen.return_value = mock_proc
+        mock_file = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        with self.assert_fatal():
+            zfs.recv_file("/out/streams/test.zfs", "tank/b")
+
+
 class TestGetGuid(pilotest.TestCase):
 
     @patch("pilo.zfs.run_get_output")
