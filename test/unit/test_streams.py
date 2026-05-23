@@ -357,3 +357,92 @@ class TestLoadStreamManifest(pilotest.TestCase):
     def test_missing_file_raises(self):
         with self.assertRaises(FileNotFoundError):
             streams.load_stream_manifest(Path("/tmp/no_such_file.json"))
+
+
+class TestVerifyOne(pilotest.TestCase):
+
+    def _write_pair(self, td, data=b"hello world",
+                    checksum=None, size=None):
+        import hashlib
+        stream_path = td / "s.zfs"
+        stream_path.write_bytes(data)
+        if checksum is None:
+            checksum = hashlib.sha256(data).hexdigest()
+        if size is None:
+            size = len(data)
+        manifest = {
+            "stream": "s.zfs",
+            "snapshot": "ts-incr",
+            "source": "tank/a",
+            "guid": "g",
+            "checksum": checksum,
+            "size": size,
+            "created": "2026-01-01T00:00:00+00:00",
+        }
+        manifest_path = td / ("s" + streams.MANIFEST_SUFFIX)
+        manifest_path.write_text(__import__("json").dumps(manifest))
+        return stream_path, manifest_path
+
+    def test_ok_manifest(self):
+        with pilotest.tmpdir() as td:
+            _, mpath = self._write_pair(td)
+            status, msg = streams.verify_one(mpath)
+            self.assertEqual(status, "OK")
+            self.assertIn("s.zfs.manifest", msg)
+
+    def test_mismatch_manifest(self):
+        with pilotest.tmpdir() as td:
+            self._write_pair(td, checksum="bad" * 20)
+            mpath = td / ("s" + streams.MANIFEST_SUFFIX)
+            status, msg = streams.verify_one(mpath)
+            self.assertEqual(status, "MISMATCH")
+
+    def test_missing_stream_for_manifest(self):
+        with pilotest.tmpdir() as td:
+            manifest = {
+                "stream": "s.zfs",
+                "snapshot": "ts-incr",
+                "source": "tank/a",
+                "guid": "g",
+                "checksum": "c" * 64,
+                "size": 0,
+                "created": "2026-01-01T00:00:00+00:00",
+            }
+            mpath = td / ("s" + streams.MANIFEST_SUFFIX)
+            mpath.write_text(__import__("json").dumps(manifest))
+            status, msg = streams.verify_one(mpath)
+            self.assertEqual(status, "NOT_FOUND")
+            self.assertIn("s.zfs", msg)
+
+    def test_malformed_manifest(self):
+        with pilotest.tmpdir() as td:
+            spath = td / "s.zfs"
+            spath.write_bytes(b"data")
+            mpath = td / ("s" + streams.MANIFEST_SUFFIX)
+            mpath.write_text("not json")
+            status, msg = streams.verify_one(mpath)
+            self.assertEqual(status, "ERROR")
+
+    def test_ok_zfs_with_manifest(self):
+        with pilotest.tmpdir() as td:
+            spath, _ = self._write_pair(td)
+            status, msg = streams.verify_one(spath)
+            self.assertEqual(status, "OK")
+
+    def test_no_manifest_for_zfs(self):
+        with pilotest.tmpdir() as td:
+            spath = td / "s.zfs"
+            spath.write_bytes(b"hello")
+            status, msg = streams.verify_one(spath)
+            self.assertEqual(status, "NO_MANIFEST")
+
+    def test_not_found(self):
+        status, msg = streams.verify_one(Path("/nonexistent/path"))
+        self.assertEqual(status, "NOT_FOUND")
+
+    def test_not_stream_file(self):
+        with pilotest.tmpdir() as td:
+            f = td / "readme.txt"
+            f.write_text("hello")
+            status, msg = streams.verify_one(f)
+            self.assertEqual(status, "NOT_STREAM")

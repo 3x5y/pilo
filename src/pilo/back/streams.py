@@ -111,6 +111,41 @@ def load_stream_manifest(path: Path) -> StreamManifest:
     return StreamManifest.from_dict(data)
 
 
+def verify_one(path: Path):
+    if not path.exists():
+        return ("NOT_FOUND", str(path))
+
+    if str(path).endswith(MANIFEST_SUFFIX):
+        stream_path = path.with_suffix("")
+        if not stream_path.exists():
+            return ("NOT_FOUND", str(stream_path))
+        try:
+            manifest = load_stream_manifest(path)
+            actual = fs.sha256_file(stream_path)
+            if actual == manifest.checksum:
+                return ("OK", str(path))
+            else:
+                return ("MISMATCH", str(path))
+        except Exception as e:
+            return ("ERROR", f"{path}: {e}")
+
+    if path.suffix == ".zfs":
+        manifest_path = path.with_suffix(MANIFEST_SUFFIX)
+        if not manifest_path.exists():
+            return ("NO_MANIFEST", str(path))
+        try:
+            manifest = load_stream_manifest(manifest_path)
+            actual = fs.sha256_file(path)
+            if actual == manifest.checksum:
+                return ("OK", str(path))
+            else:
+                return ("MISMATCH", str(path))
+        except Exception as e:
+            return ("ERROR", f"{path}: {e}")
+
+    return ("NOT_STREAM", str(path))
+
+
 def export_incremental_stream(dataset: str, snapshot: SnapshotName,
                               base: SnapshotName | None = None) -> Path:
     filepath = stream_filepath(snapshot)
