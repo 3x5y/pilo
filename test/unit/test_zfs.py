@@ -382,3 +382,18 @@ class TestSimplePipe(pilotest.TestCase):
 
         with self.assert_fatal():
             zfs.simple_pipe(["src"], ["sink"], tee_path="/out/stream.zfs")
+
+
+class TestGetGuid(pilotest.TestCase):
+
+    @patch("pilo.zfs.run_get_output")
+    def test_get_guid(self, mock_run):
+        mock_run.return_value = "1234567890abcdef\n"
+
+        result = zfs.get_guid("tank/a@snap")
+
+        self.assertEqual(result, "1234567890abcdef")
+        mock_run.assert_called_once_with(
+            ["zfs", "list", "-Ho", "guid", "-t", "snapshot",
+             "tank/a@snap"]
+        )

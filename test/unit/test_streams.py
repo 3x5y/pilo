@@ -118,3 +118,220 @@ class TestExportIncrementalStream(pilotest.TestCase):
             "tank/a@20260522_010203_000000-incr",
             expected_path,
         )
+
+
+class TestStreamManifest(pilotest.TestCase):
+
+    def test_manifest_fields(self):
+        m = streams.StreamManifest(
+            stream="20260522/20260522_010203_000000-incr.zfs",
+            snapshot="20260522_010203_000000-incr",
+            source="tank/a",
+            guid="1234567890abcdef",
+            checksum="abc" * 20,
+            size=4096,
+            created="2026-05-22T01:02:03.123456+00:00",
+        )
+        self.assertEqual(m.stream, "20260522/20260522_010203_000000-incr.zfs")
+        self.assertEqual(m.size, 4096)
+
+    def test_to_dict(self):
+        m = streams.StreamManifest(
+            stream="20260522/s.zfs",
+            snapshot="ts-incr",
+            source="tank/a",
+            guid="guid",
+            checksum="chk",
+            size=100,
+            created="2026-01-01T00:00:00+00:00",
+        )
+        d = m.to_dict()
+        self.assertEqual(d["stream"], "20260522/s.zfs")
+        self.assertEqual(d["size"], 100)
+        self.assertEqual(d["snapshot"], "ts-incr")
+
+    def test_from_dict(self):
+        d = {
+            "stream": "20260522/s.zfs",
+            "snapshot": "ts-incr",
+            "source": "tank/a",
+            "guid": "guid",
+            "checksum": "chk",
+            "size": 100,
+            "created": "2026-01-01T00:00:00+00:00",
+        }
+        m = streams.StreamManifest.from_dict(d)
+        self.assertEqual(m.stream, "20260522/s.zfs")
+        self.assertEqual(m.size, 100)
+        self.assertIsInstance(m.size, int)
+
+    def test_from_dict_missing_field(self):
+        with self.assertRaises(ValueError):
+            streams.StreamManifest.from_dict({"stream": "s.zfs"})
+
+    def test_from_dict_size_not_int(self):
+        with self.assertRaises(ValueError):
+            streams.StreamManifest.from_dict({
+                "stream": "s.zfs", "snapshot": "s", "source": "t",
+                "guid": "g", "checksum": "c", "size": "not_int",
+                "created": "now",
+            })
+
+    def test_roundtrip(self):
+        m1 = streams.StreamManifest(
+            stream="20260522/s.zfs",
+            snapshot="ts-incr",
+            source="tank/a",
+            guid="abc123",
+            checksum="def456",
+            size=777,
+            created="2026-06-06T06:06:06+00:00",
+        )
+        m2 = streams.StreamManifest.from_dict(m1.to_dict())
+        self.assertEqual(m1, m2)
+
+
+class TestManifestFilename(pilotest.TestCase):
+
+    def test_incremental(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+        self.assertEqual(
+            streams.manifest_filename(snap),
+            "20260522_010203_000000-incr.zfs.manifest",
+        )
+
+    def test_anchor(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.ANCHOR)
+        self.assertEqual(
+            streams.manifest_filename(snap),
+            "20260522_010203_000000-anchor.zfs.manifest",
+        )
+
+
+class TestManifestFilepath(pilotest.TestCase):
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
+    def test_manifest_filepath(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+        result = streams.manifest_filepath(snap)
+        self.assertEqual(
+            result,
+            Path("/out/20260522/20260522_010203_000000-incr.zfs.manifest"),
+        )
+
+
+class TestWriteStreamManifest(pilotest.TestCase):
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/tmp/stream_out"})
+    def test_writes_sidecar(self):
+        out_root = Path("/tmp/stream_out")
+        out_root.mkdir(parents=True, exist_ok=True)
+        date_dir = out_root / "20260522"
+        date_dir.mkdir(parents=True, exist_ok=True)
+        stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+        stream_path.write_bytes(b"hello world")
+
+        result = streams.write_stream_manifest(
+            stream_path,
+            snapshot_name="20260522_010203_000000-incr",
+            source="tank/a",
+            guid="abcdef",
+        )
+
+        expected_manifest = stream_path.with_suffix(
+            ".zfs.manifest"
+        )
+        self.assertEqual(result, expected_manifest)
+        self.assertTrue(expected_manifest.exists())
+
+        m = streams.load_stream_manifest(expected_manifest)
+        self.assertEqual(m.stream, "20260522/20260522_010203_000000-incr.zfs")
+        self.assertEqual(m.snapshot, "20260522_010203_000000-incr")
+        self.assertEqual(m.source, "tank/a")
+        self.assertEqual(m.guid, "abcdef")
+        self.assertIsInstance(m.size, int)
+        self.assertGreater(m.size, 0)
+        self.assertIn("2026", m.created)
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/tmp/stream_out2"})
+    def test_checksum_matches_file_content(self):
+        out_root = Path("/tmp/stream_out2")
+        date_dir = out_root / "20260522"
+        date_dir.mkdir(parents=True, exist_ok=True)
+        stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+        stream_path.write_bytes(b"hello world")
+
+        import hashlib
+        expected = hashlib.sha256(b"hello world").hexdigest()
+
+        result_path = streams.write_stream_manifest(
+            stream_path,
+            snapshot_name="ts-incr",
+            source="tank/a",
+            guid="g",
+        )
+        m = streams.load_stream_manifest(result_path)
+        self.assertEqual(m.checksum, expected)
+
+    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/tmp/stream_out3"})
+    def test_size_matches_file(self):
+        out_root = Path("/tmp/stream_out3")
+        date_dir = out_root / "20260522"
+        date_dir.mkdir(parents=True, exist_ok=True)
+        stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+        data = b"x" * 12345
+        stream_path.write_bytes(data)
+
+        result_path = streams.write_stream_manifest(
+            stream_path,
+            snapshot_name="ts-incr",
+            source="tank/a",
+            guid="g",
+        )
+        m = streams.load_stream_manifest(result_path)
+        self.assertEqual(m.size, 12345)
+
+    def test_nonexistent_file_raises(self):
+        stream_path = Path("/tmp/nonexistent/stream.zfs")
+        with self.assertRaises(FileNotFoundError):
+            streams.write_stream_manifest(
+                stream_path,
+                snapshot_name="ts-incr",
+                source="tank/a",
+                guid="g",
+            )
+
+
+class TestLoadStreamManifest(pilotest.TestCase):
+
+    def test_load_valid(self):
+        d = {
+            "stream": "20260522/s.zfs",
+            "snapshot": "ts-incr",
+            "source": "tank/a",
+            "guid": "abc",
+            "checksum": "def",
+            "size": 100,
+            "created": "2026-01-01T00:00:00+00:00",
+        }
+        path = Path("/tmp/test_stream_manifest.json")
+        try:
+            path.write_text(__import__("json").dumps(d))
+            m = streams.load_stream_manifest(path)
+            self.assertEqual(m.stream, "20260522/s.zfs")
+            self.assertEqual(m.size, 100)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_malformed_json_raises(self):
+        path = Path("/tmp/test_bad_manifest.json")
+        try:
+            path.write_text("not json")
+            with self.assertRaises(Exception):
+                streams.load_stream_manifest(path)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_missing_file_raises(self):
+        with self.assertRaises(FileNotFoundError):
+            streams.load_stream_manifest(Path("/tmp/no_such_file.json"))

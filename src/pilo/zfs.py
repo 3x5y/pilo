@@ -285,6 +285,11 @@ def get_latest_guid(dataset):
     return lines[-1] if lines else None
 
 
+def get_guid(snapshot_ref: str) -> str:
+    cmd = "zfs list -Ho guid -t snapshot".split() + [snapshot_ref]
+    return run_get_output(cmd).strip()
+
+
 def latest_snapshot_with_time(dataset):
     cmd = "zfs list -p -t snapshot -o name,creation -s creation".split()
     args = [dataset]
