@@ -145,6 +145,58 @@ class TestReplicationPlan(pilotest.TestCase):
             repl.build_replica_seed_plan(cx)
 
 
+class TestReplicationPlanExport(pilotest.TestCase):
+
+    @patch("pilo.back.replication._resolve_export_path",
+           return_value="/out/ts-incr.zfs")
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_export_true_sets_export_path(
+        self, mock_latest, mock_base, *_,
+    ):
+        mock_latest.side_effect = ["tank/a@ts-incr", "backup/a@ts-incr"]
+        mock_base.return_value = "tank/a@ts-incr"
+
+        plan = repl.build_replication_plan(
+            "tank/a", "backup/a", export=True,
+        )
+
+        self.assertEqual(plan.export_path, "/out/ts-incr.zfs")
+
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_export_false_leaves_export_path_none(
+        self, mock_latest, mock_base, *_,
+    ):
+        mock_latest.side_effect = ["tank/a@ts-incr", "backup/a@ts-incr"]
+        mock_base.return_value = "tank/a@ts-incr"
+
+        plan = repl.build_replication_plan(
+            "tank/a", "backup/a", export=False,
+        )
+
+        self.assertIsNone(plan.export_path)
+
+    @patch("pilo.back.replication._resolve_export_path",
+           return_value=None)
+    @patch("pilo.checks.require_dataset")
+    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.zfs.latest_snapshot")
+    def test_export_true_non_canonical_returns_none(
+        self, mock_latest, mock_base, *_,
+    ):
+        mock_latest.side_effect = ["tank/a@r-ts", "backup/a@r-ts"]
+        mock_base.return_value = "tank/a@r-ts"
+
+        plan = repl.build_replication_plan(
+            "tank/a", "backup/a", export=True,
+        )
+
+        self.assertIsNone(plan.export_path)
+
+
 class TestReplicationPlanWithLabel(pilotest.TestCase):
 
     @patch("pilo.checks.require_dataset")

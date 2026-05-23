@@ -5,9 +5,11 @@ from .. import checks
 from .. import context
 from .. import error
 from .. import lifecycle
+from . import streams
 from .. import util
 from .. import zfs
 from . import continuity
+from .snapshot import parse_snapshot_name
 
 
 class ReplicationStatus(Enum):
@@ -145,7 +147,15 @@ def build_replica_seed_plan(cx):
     )
 
 
-def build_replication_plan(src, dst, label=None):
+def _resolve_export_path(snapshot_ref: str) -> str | None:
+    name = snapshot_ref.split("@", 1)[1]
+    parsed = parse_snapshot_name(name)
+    if parsed is not None:
+        return str(streams.stream_filepath(parsed))
+    return None
+
+
+def build_replication_plan(src, dst, label=None, export=False):
 
     checks.require_dataset(src)
     checks.require_dataset(dst)
@@ -175,10 +185,13 @@ def build_replication_plan(src, dst, label=None):
             hold_snap = last_src
             hold_t = continuity.hold_tag(label)
 
+    export_path = _resolve_export_path(last_src) if export else None
+
     return ReplicationPlan(
         src, dst, last_src, base, mode,
         hold_snapshot=hold_snap,
         hold_tag=hold_t,
+        export_path=export_path,
     )
 
 
