@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-rpo
-pilo snapshot-rpo
+pilo snapshot-incr
+pilo snapshot-incr
 
 count=$(zfs list -t snapshot -Ho name $TEST_ROOT | grep -- "-incr$" | wc -l)
 

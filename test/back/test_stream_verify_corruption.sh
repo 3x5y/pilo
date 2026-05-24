@@ -3,11 +3,11 @@ set -e
 
 # Same setup as stream_export to produce a clean stream file
 echo "data" > /$ADMIN/file.txt
-pilo snapshot-rpo
+pilo snapshot-incr
 pilo replica-seed
 
 echo "more" > /$ADMIN/file2.txt
-pilo snapshot-rpo
+pilo snapshot-incr
 PILO_STREAM_EXPORT=1 pilo replicate
 
 # Find stream file

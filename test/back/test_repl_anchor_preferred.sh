@@ -4,7 +4,7 @@ set -e
 pilo snapshot t0
 pilo replica-seed
 
-pilo snapshot-rpo
+pilo snapshot-incr
 pilo replicate
 
 pilo snapshot t1

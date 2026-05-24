@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-rpo
+pilo snapshot-incr
 pilo replica-seed
 
 # destroy source snapshot

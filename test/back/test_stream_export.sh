@@ -3,14 +3,14 @@ set -e
 
 # Create content and a canonical snapshot
 echo "content" > /$ADMIN/file.txt
-pilo snapshot-rpo
+pilo snapshot-incr
 
 # Seed the replica
 pilo replica-seed
 
 # More content, another snapshot, then replicate with stream export
 echo "more" > /$ADMIN/file2.txt
-pilo snapshot-rpo
+pilo snapshot-incr
 PILO_STREAM_EXPORT=1 pilo replicate
 
 # Find the latest canonical snapshot

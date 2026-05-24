@@ -6,7 +6,7 @@ pilo snapshot 20260101_000000_000000-anchor
 pilo replica-seed
 
 # Create incremental snapshot
-pilo snapshot-rpo
+pilo snapshot-incr
 latest_snap=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
 INCR1=${latest_snap#*@}

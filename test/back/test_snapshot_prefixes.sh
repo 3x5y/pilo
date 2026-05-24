@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-rpo
-pilo snapshot-rpo
+pilo snapshot-incr
+pilo snapshot-incr
 
 zfs list -t snapshot -Ho name | assert_grep "-incr$"
