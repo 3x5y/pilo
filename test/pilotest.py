@@ -79,14 +79,16 @@ def make_tmp_context(**kw):
 
 
 @contextmanager
-def tmpdir():
-    with tempfile.TemporaryDirectory() as td:
+def tmpdir(**kw):
+    with tempfile.TemporaryDirectory(**kw) as td:
         yield Path(td)
 
 
 @contextmanager
-def tmpfile():
-    with tempfile.NamedTemporaryFile("w+", prefix="pilo.tmp.") as f:
+def tmpfile(mode="w+", prefix="pilo.tmp.", dir=None, **kw):
+    if dir is None:
+        dir = "/tmp"
+    with tempfile.NamedTemporaryFile(mode=mode, prefix=prefix, dir=dir, **kw) as f:
         yield Path(f.name)
 
 

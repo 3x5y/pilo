@@ -28,7 +28,7 @@ class TestBuildReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as f:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as f:
                     stream_path = Path(f.name)
                     manifest_path = stream_path.with_suffix(
                         MANIFEST_SUFFIX)
@@ -44,7 +44,7 @@ class TestBuildReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as f:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as f:
                     stream_path = Path(f.name)
                     manifest_path = stream_path.with_suffix(
                         MANIFEST_SUFFIX)
@@ -56,7 +56,7 @@ class TestBuildReplayPlan(pilotest.TestCase):
                     self.assertEqual(plan.target_dataset, "tank/c")
 
     def test_missing_manifest_raises_fatal(self):
-        with tempfile.NamedTemporaryFile(suffix=".zfs") as f:
+        with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as f:
             stream_path = Path(f.name)
 
             with self.assert_fatal():
@@ -68,7 +68,7 @@ class TestBuildReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("MISMATCH", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as f:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as f:
                     stream_path = Path(f.name)
                     manifest_path = stream_path.with_suffix(
                         MANIFEST_SUFFIX)
@@ -83,7 +83,7 @@ class TestBuildReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as f:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as f:
                     stream_path = Path(f.name)
                     manifest_path = stream_path.with_suffix(
                         MANIFEST_SUFFIX)
@@ -235,7 +235,7 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as f:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as f:
                     Path(f.name).with_suffix(
                         MANIFEST_SUFFIX).write_text("{}")
 
@@ -250,8 +250,8 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                    return_value=_make_manifest(source="tank/a")):
             with patch("pilo.back.replay.verify_one",
                        return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as fa:
-                    with tempfile.NamedTemporaryFile(suffix=".zfs") as fb:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fa:
+                    with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fb:
                         Path(fa.name).with_suffix(
                             MANIFEST_SUFFIX).write_text("{}")
                         Path(fb.name).with_suffix(
@@ -274,8 +274,8 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as fa:
-                    with tempfile.NamedTemporaryFile(suffix=".zfs") as fb:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fa:
+                    with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fb:
                         Path(fa.name).with_suffix(
                             MANIFEST_SUFFIX).write_text("{}")
                         Path(fb.name).with_suffix(
@@ -290,8 +290,8 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                                 plan.target_dataset, "tank/b")
 
     def test_first_failure_stops_batch(self):
-        with tempfile.NamedTemporaryFile(suffix=".zfs") as fa:
-            with tempfile.NamedTemporaryFile(suffix=".zfs") as fb:
+        with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fa:
+            with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fb:
                 # fa has no manifest → fatal on first path
                 with self.assert_fatal():
                     replay.build_batch_replay_plan([fa.name, fb.name])
@@ -302,8 +302,8 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                    return_value=manifest):
             with patch("pilo.back.replay.verify_one",
                        return_value=("MISMATCH", "")):
-                with tempfile.NamedTemporaryFile(suffix=".zfs") as fa:
-                    with tempfile.NamedTemporaryFile(suffix=".zfs") as fb:
+                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fa:
+                    with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fb:
                         Path(fa.name).with_suffix(
                             MANIFEST_SUFFIX).write_text("{}")
                         Path(fb.name).with_suffix(

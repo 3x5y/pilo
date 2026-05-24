@@ -249,29 +249,31 @@ class TestManifestFilepath(pilotest.TestCase):
 
 class TestWriteStreamManifest(pilotest.TestCase):
 
-    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/tmp/stream_out"})
     def test_writes_sidecar(self):
-        out_root = Path("/tmp/stream_out")
-        out_root.mkdir(parents=True, exist_ok=True)
-        date_dir = out_root / "20260522"
-        date_dir.mkdir(parents=True, exist_ok=True)
-        stream_path = date_dir / "20260522_010203_000000-incr.zfs"
-        stream_path.write_bytes(b"hello world")
+        with pilotest.tmpdir() as td:
+            out_root = td / 'streams'
+            env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
+            out_root.mkdir(parents=True, exist_ok=True)
+            date_dir = out_root / "20260522"
+            date_dir.mkdir(parents=True, exist_ok=True)
+            stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+            stream_path.write_bytes(b"hello world")
 
-        result = streams.write_stream_manifest(
-            stream_path,
-            snapshot_name="20260522_010203_000000-incr",
-            source="tank/a",
-            guid="abcdef",
-        )
+            with patch.dict(os.environ, env):
+                result = streams.write_stream_manifest(
+                    stream_path,
+                    snapshot_name="20260522_010203_000000-incr",
+                    source="tank/a",
+                    guid="abcdef",
+                )
 
-        expected_manifest = stream_path.with_suffix(
-            ".zfs.manifest"
-        )
-        self.assertEqual(result, expected_manifest)
-        self.assertTrue(expected_manifest.exists())
+                expected_manifest = stream_path.with_suffix(
+                    ".zfs.manifest"
+                )
+                self.assertEqual(result, expected_manifest)
+                self.assertTrue(expected_manifest.exists())
 
-        m = streams.load_stream_manifest(expected_manifest)
+                m = streams.load_stream_manifest(expected_manifest)
         self.assertEqual(m.stream, "20260522/20260522_010203_000000-incr.zfs")
         self.assertEqual(m.snapshot, "20260522_010203_000000-incr")
         self.assertEqual(m.source, "tank/a")
@@ -280,42 +282,46 @@ class TestWriteStreamManifest(pilotest.TestCase):
         self.assertGreater(m.size, 0)
         self.assertIn("2026", m.created)
 
-    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/tmp/stream_out2"})
     def test_checksum_matches_file_content(self):
-        out_root = Path("/tmp/stream_out2")
-        date_dir = out_root / "20260522"
-        date_dir.mkdir(parents=True, exist_ok=True)
-        stream_path = date_dir / "20260522_010203_000000-incr.zfs"
-        stream_path.write_bytes(b"hello world")
+        with pilotest.tmpdir() as td:
+            out_root = td / 'streams'
+            env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
+            date_dir = out_root / "20260522"
+            date_dir.mkdir(parents=True, exist_ok=True)
+            stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+            stream_path.write_bytes(b"hello world")
 
-        import hashlib
-        expected = hashlib.sha256(b"hello world").hexdigest()
+            import hashlib
+            expected = hashlib.sha256(b"hello world").hexdigest()
 
-        result_path = streams.write_stream_manifest(
-            stream_path,
-            snapshot_name="ts-incr",
-            source="tank/a",
-            guid="g",
-        )
-        m = streams.load_stream_manifest(result_path)
+            with patch.dict(os.environ, env):
+                result_path = streams.write_stream_manifest(
+                    stream_path,
+                    snapshot_name="ts-incr",
+                    source="tank/a",
+                    guid="g",
+                )
+                m = streams.load_stream_manifest(result_path)
         self.assertEqual(m.checksum, expected)
 
-    @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/tmp/stream_out3"})
     def test_size_matches_file(self):
-        out_root = Path("/tmp/stream_out3")
-        date_dir = out_root / "20260522"
-        date_dir.mkdir(parents=True, exist_ok=True)
-        stream_path = date_dir / "20260522_010203_000000-incr.zfs"
-        data = b"x" * 12345
-        stream_path.write_bytes(data)
+        with pilotest.tmpdir() as td:
+            out_root = td / 'streams'
+            env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
+            date_dir = out_root / "20260522"
+            date_dir.mkdir(parents=True, exist_ok=True)
+            stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+            data = b"x" * 12345
+            stream_path.write_bytes(data)
 
-        result_path = streams.write_stream_manifest(
-            stream_path,
-            snapshot_name="ts-incr",
-            source="tank/a",
-            guid="g",
-        )
-        m = streams.load_stream_manifest(result_path)
+            with patch.dict(os.environ, env):
+                result_path = streams.write_stream_manifest(
+                    stream_path,
+                    snapshot_name="ts-incr",
+                    source="tank/a",
+                    guid="g",
+                )
+                m = streams.load_stream_manifest(result_path)
         self.assertEqual(m.size, 12345)
 
     def test_nonexistent_file_raises(self):
