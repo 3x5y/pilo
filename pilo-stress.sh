@@ -4,7 +4,16 @@ set -euo pipefail
 
 SNAPCOLS=name,used,refer,userrefs,creation
 INST=$(dirname $0)/pilo-inst
+PRI_DEV=/tmp/z0
+PRI_POOL=z0-att
 PRI_FS=z0-att/pri
+SEC_DEV1=/tmp/z1
+SEC_DEV2=/tmp/z2
+SEC_POOL1=z1-rem
+SEC_POOL2=z2-rem
+
+STREAMS=$(mktemp -d)
+export PILO_STREAM_OUTPUT_PATH=$STREAMS
 
 
 _pilo() {
@@ -194,53 +203,55 @@ rotate() {
 
 
 postrotate() {
-    _pilo replicate
+    #_pilo replicate
+    show_count_before
+    pause
+    _pilo stream-replay-all $STREAMS/$(date +%Y%m%d) $TARGET_FS
     #show
 
     show_count_before
     _pilo rotate-gc --preview
-    pause
 
     _pilo rotate-gc
     show_count_after
     #show
 }
 
-SERIAL=0
-snapshot() {
-    label=t-$(printf %04d $SERIAL)
-    _pilo snapshot $label
-    ((++SERIAL))
-}
-
-
 cycle() {
     rotate $1
     postrotate
 
-    for day in {1..7}
+    for day in 1 2
     do
         for hour in {0..23}
         do
-            snapshot
+            #snapshot_incr
+            _pilo snapshot-rpo
             _pilo replicate
         done
+        #snapshot_anchor
+        _pilo snapshot-rpo
+        _pilo replicate
     done
-
-    #snapshot
-    #pilo replicate
-
-    #show
 }
 
 
-PRI_DEV=/tmp/z0
-SEC_DEV1=/tmp/z1
-SEC_DEV2=/tmp/z2
+snapshot_ts() {
+    date +%Y%m%d_%H%M%S_%N | cut -c1-22
+}
 
-PRI_POOL=z0-att
-SEC_POOL1=z1-rem
-SEC_POOL2=z2-rem
+
+snapshot_anchor() {
+    local label=$(snapshot_ts)-anchor
+    _pilo snapshot $label
+}
+
+
+snapshot_incr() {
+    local label=$(snapshot_ts)-incr
+    _pilo snapshot $label
+}
+
 
 cleanup() {
     destroy_pool $PRI_POOL $PRI_DEV
@@ -259,7 +270,8 @@ test_main() {
     init_pool $PRI_POOL $PRI_DEV
     _pilo provision-primary
     _pilo init
-    snapshot
+    #snapshot_anchor
+    _pilo snapshot-rpo
 
     TARGET_ID=z1
     init_pool $SEC_POOL1 $SEC_DEV1
@@ -276,25 +288,7 @@ test_main() {
     cycle z2
 
     cycle z1
-    cycle z2
-
-    cycle z1
-    cycle z2
-
-    cycle z1
-    cycle z2
-
-    cycle z1
-    cycle z2
-
-    cycle z1
-    cycle z2
-
-    #cycle z3
-
-    #cycle z1
     #cycle z2
-    #cycle z3
 }
 
 
