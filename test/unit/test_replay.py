@@ -319,7 +319,7 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
     @patch("pilo.zfs.recv_file")
     def test_empty_batch(self, mock_recv):
         batch = replay.BatchReplayPlan(plans=())
-        results = replay.execute_batch_replay_plan(batch)
+        results = list(replay.execute_batch_replay_plan(batch))
         self.assertEqual(results, [])
         mock_recv.assert_not_called()
 
@@ -329,7 +329,7 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
             stream_path=Path("/s.zfs"), manifest=_make_manifest(),
             target_dataset="tank/a")
         batch = replay.BatchReplayPlan(plans=(plan,))
-        results = replay.execute_batch_replay_plan(batch)
+        results = list(replay.execute_batch_replay_plan(batch))
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].status, "APPLIED")
         mock_recv.assert_called_once_with(Path("/s.zfs"), "tank/a")
@@ -343,7 +343,7 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
             stream_path=Path("/b.zfs"), manifest=_make_manifest(),
             target_dataset="tank/a")
         batch = replay.BatchReplayPlan(plans=(plan_a, plan_b))
-        results = replay.execute_batch_replay_plan(batch)
+        results = list(replay.execute_batch_replay_plan(batch))
         self.assertEqual(len(results), 2)
         self.assertEqual(
             results[0].snapshot, plan_a.manifest.snapshot)
@@ -369,7 +369,7 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
 
         # plan_b fails → exception propagates, plan_c never reached
         with self.assertRaises(RuntimeError):
-            replay.execute_batch_replay_plan(batch)
+            list(replay.execute_batch_replay_plan(batch))
 
         self.assertEqual(mock_recv.call_count, 2)
         mock_recv.assert_any_call(Path("/a.zfs"), "tank/a")

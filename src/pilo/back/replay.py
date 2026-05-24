@@ -68,10 +68,8 @@ def build_replay_plan(stream_path, target_dataset=None):
 
 
 def execute_batch_replay_plan(batch_plan):
-    results = []
     for plan in batch_plan.plans:
-        results.append(execute_replay_plan(plan))
-    return results
+        yield execute_replay_plan(plan)
 
 
 def execute_replay_plan(plan):

@@ -23,9 +23,8 @@ def main():
         return
 
     batch = replay.build_batch_replay_plan(paths, target_dataset)
-    results = replay.execute_batch_replay_plan(batch)
 
-    for r in results:
+    for r in replay.execute_batch_replay_plan(batch):
         print(f"{r.status} {r.snapshot} {r.target_dataset}")
 
 
