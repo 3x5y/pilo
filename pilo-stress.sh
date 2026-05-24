@@ -13,6 +13,7 @@ SEC_POOL1=z1-rem
 SEC_POOL2=z2-rem
 
 STREAMS=$(mktemp -d)
+chmod a+rx $STREAMS
 export PILO_STREAM_OUTPUT_PATH=$STREAMS
 
 
@@ -206,7 +207,7 @@ postrotate() {
     #_pilo replicate
     show_count_before
     pause
-    _pilo stream-replay-all $STREAMS/$(date +%Y%m%d) $TARGET_FS
+    _pilo stream-replay-all $STREAMS $TARGET_FS
     #show
 
     show_count_before
@@ -223,7 +224,7 @@ cycle() {
 
     for day in 1 2
     do
-        for hour in {0..23}
+        for hour in {0..1}
         do
             #snapshot_incr
             _pilo snapshot-incr

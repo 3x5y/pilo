@@ -35,7 +35,7 @@ class ReplayResult:
 
 def find_streams(path):
     path = Path(path)
-    streams = sorted(path.glob(f"*{STREAM_SUFFIX}"))
+    streams = sorted(path.rglob(f"*{STREAM_SUFFIX}"))
     return [s for s in streams if not str(s).endswith(MANIFEST_SUFFIX)]
 
 

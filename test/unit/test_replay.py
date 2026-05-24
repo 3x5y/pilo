@@ -240,6 +240,18 @@ class TestFindStreams(pilotest.TestCase):
             names = [p.name for p in result]
             self.assertEqual(names, ["a.zfs", "b.zfs"])
 
+    def test_recursive_discovery(self):
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "root.zfs").touch()
+            sub = Path(d, "20260101")
+            sub.mkdir()
+            Path(sub, "deep.zfs").touch()
+            Path(sub, "deep.zfs.manifest").touch()
+            Path(sub, "other.txt").touch()
+            result = replay.find_streams(d)
+            names = sorted(p.name for p in result)
+            self.assertEqual(names, ["deep.zfs", "root.zfs"])
+
 
 class TestBatchReplayPlan(pilotest.TestCase):
 
