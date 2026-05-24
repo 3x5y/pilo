@@ -11,6 +11,18 @@ from .streams import (
 from .. import error
 from .. import zfs
 
+ROLLUP_SUFFIXES = ("-rollup.zfs", ".rollup.zfs")
+
+
+def is_rollup_stream(path: Path) -> bool:
+    return str(path).endswith(ROLLUP_SUFFIXES)
+
+
+def order_streams(paths: list[Path]) -> list[Path]:
+    rollups = sorted(p for p in paths if is_rollup_stream(p))
+    others = sorted(p for p in paths if not is_rollup_stream(p))
+    return rollups + others
+
 
 @dataclass(frozen=True)
 class ReplayPlan:
@@ -40,8 +52,9 @@ def find_streams(path):
 
 
 def build_batch_replay_plan(paths, target_dataset=None):
+    ordered = order_streams(list(paths))
     plans = []
-    for p in paths:
+    for p in ordered:
         plans.append(build_replay_plan(p, target_dataset))
     return BatchReplayPlan(plans=tuple(plans))
 

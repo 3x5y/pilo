@@ -25,10 +25,11 @@ capture_status pilo stream-replay-all "$STREAM_DIR" "$TEST_REPLICA"
 assert_command_ok
 echo "$OUTPUT" | assert_grep "$INCR1"
 
-# Second replay — same stream, idempotent
+# Second replay — every line must be SKIPPED
 capture_status pilo stream-replay-all "$STREAM_DIR" "$TEST_REPLICA"
 assert_command_ok
-echo "$OUTPUT" | assert_grep "$INCR1"
+echo "$OUTPUT" | assert_not_grep "^APPLIED"
+echo "$OUTPUT" | assert_grep "^SKIPPED"
 
 # Snapshot exists on replica
 zfs list -t snapshot -Ho name "$TEST_REPLICA" | assert_grep "$INCR1"

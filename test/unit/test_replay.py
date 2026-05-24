@@ -189,6 +189,72 @@ class TestExecuteReplayPlan(pilotest.TestCase):
             replay.execute_replay_plan(plan)
 
 
+class TestClassifyStreams(pilotest.TestCase):
+
+    def test_is_rollup_stream_match_rollup_suffix(self):
+        self.assertTrue(replay.is_rollup_stream(Path("a-rollup.zfs")))
+
+    def test_is_rollup_stream_match_a_b_rollup(self):
+        self.assertTrue(
+            replay.is_rollup_stream(Path("a--b.rollup.zfs")))
+
+    def test_is_rollup_stream_no_match_incr(self):
+        self.assertFalse(
+            replay.is_rollup_stream(Path("a-incr.zfs")))
+
+    def test_is_rollup_stream_no_match_anchor(self):
+        self.assertFalse(
+            replay.is_rollup_stream(Path("a-anchor.zfs")))
+
+    def test_is_rollup_stream_no_match_plain(self):
+        self.assertFalse(replay.is_rollup_stream(Path("a.zfs")))
+
+
+class TestOrderStreams(pilotest.TestCase):
+
+    def test_order_empty(self):
+        self.assertEqual(replay.order_streams([]), [])
+
+    def test_order_single_incr(self):
+        p = Path("a-incr.zfs")
+        self.assertEqual(replay.order_streams([p]), [p])
+
+    def test_order_single_rollup(self):
+        p = Path("a-rollup.zfs")
+        self.assertEqual(replay.order_streams([p]), [p])
+
+    def test_order_rollups_first(self):
+        r1 = Path("b-rollup.zfs")
+        r2 = Path("a-rollup.zfs")
+        i1 = Path("d-incr.zfs")
+        i2 = Path("c-incr.zfs")
+        result = replay.order_streams([i1, r1, i2, r2])
+        self.assertEqual(result, [r2, r1, i2, i1])
+
+    def test_order_with_anchor(self):
+        r = Path("r-rollup.zfs")
+        a = Path("a-anchor.zfs")
+        i = Path("i-incr.zfs")
+        result = replay.order_streams([i, r, a])
+        self.assertEqual(result, [r, a, i])
+
+    def test_order_sorted_within_bucket(self):
+        r2 = Path("20260524_000000_000002-rollup.zfs")
+        r1 = Path("20260524_000000_000001-rollup.zfs")
+        i2 = Path("20260524_000000_000004-incr.zfs")
+        i1 = Path("20260524_000000_000003-incr.zfs")
+        result = replay.order_streams([i2, r2, i1, r1])
+        self.assertEqual(result, [r1, r2, i1, i2])
+
+    def test_order_non_canonical_last(self):
+        r = Path("r-rollup.zfs")
+        i = Path("i-incr.zfs")
+        x = Path("x.zfs")
+        y = Path("y.zfs")
+        result = replay.order_streams([x, i, r, y])
+        self.assertEqual(result, [r, i, x, y])
+
+
 class TestFindStreams(pilotest.TestCase):
 
     def test_empty_directory(self):
@@ -301,28 +367,28 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                     self.assertEqual(
                         batch.plans[0].target_dataset, "tank/a")
 
-    def test_multiple_paths_preserves_order(self):
-        with patch("pilo.back.replay.load_stream_manifest",
-                   return_value=_make_manifest(source="tank/a")):
-            with patch("pilo.back.replay.verify_one",
-                       return_value=("OK", "")):
-                with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fa:
-                    with tempfile.NamedTemporaryFile(prefix="pilo.tmp.", suffix=".zfs") as fb:
-                        Path(fa.name).with_suffix(
-                            MANIFEST_SUFFIX).write_text("{}")
-                        Path(fb.name).with_suffix(
-                            MANIFEST_SUFFIX).write_text("{}")
+    def test_multiple_paths_ordered(self):
+        with tempfile.TemporaryDirectory() as d:
+            a_path = Path(d, "b-incr.zfs")
+            b_path = Path(d, "a-incr.zfs")
+            a_path.touch()
+            b_path.touch()
+            Path(d, "b-incr.zfs.manifest").write_text("{}")
+            Path(d, "a-incr.zfs.manifest").write_text("{}")
+            manifest = _make_manifest(source="tank/a")
+            with patch("pilo.back.replay.load_stream_manifest",
+                       return_value=manifest):
+                with patch("pilo.back.replay.verify_one",
+                           return_value=("OK", "")):
+                    batch = replay.build_batch_replay_plan(
+                        [str(a_path), str(b_path)])
 
-                        batch = replay.build_batch_replay_plan(
-                            [fa.name, fb.name])
-
-                        self.assertEqual(len(batch.plans), 2)
-                        self.assertEqual(
-                            batch.plans[0].stream_path,
-                            Path(fa.name))
-                        self.assertEqual(
-                            batch.plans[1].stream_path,
-                            Path(fb.name))
+                    self.assertEqual(len(batch.plans), 2)
+                    # ordered lexically: a-incr.zfs < b-incr.zfs
+                    self.assertEqual(
+                        batch.plans[0].stream_path, b_path)
+                    self.assertEqual(
+                        batch.plans[1].stream_path, a_path)
 
     def test_target_passed_to_all_plans(self):
         manifest = _make_manifest(source="tank/a")
