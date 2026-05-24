@@ -226,11 +226,11 @@ cycle() {
         for hour in {0..23}
         do
             #snapshot_incr
-            _pilo snapshot-rpo
+            _pilo snapshot-incr
             _pilo replicate
         done
         #snapshot_anchor
-        _pilo snapshot-rpo
+        _pilo snapshot-anchor
         _pilo replicate
     done
 }
@@ -271,7 +271,7 @@ test_main() {
     _pilo provision-primary
     _pilo init
     #snapshot_anchor
-    _pilo snapshot-rpo
+    _pilo snapshot-anchor
 
     TARGET_ID=z1
     init_pool $SEC_POOL1 $SEC_DEV1
