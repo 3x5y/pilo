@@ -2,13 +2,17 @@
 set -eu
 
 
-ANCHOR=20260101_000000_000000-anchor
-INCR=20260101_123456_000000-incr
+pilo snapshot-anchor
+ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
+    "$PILO_PRIMARY_ROOT" | grep -- "-anchor$" | tail -1)
+ANCHOR=${ANCHOR#*@}
 
-pilo snapshot $ANCHOR
 pilo replica-seed
 
-pilo snapshot $INCR
+pilo snapshot-incr
+INCR=$(zfs list -t snapshot -r -Ho name -s creation \
+    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+INCR=${INCR#*@}
 
 capture_status pilo stream-export \
         "$TEST_ROOT@$INCR"  \
