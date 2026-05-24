@@ -73,6 +73,22 @@ def execute_batch_replay_plan(batch_plan):
 
 
 def execute_replay_plan(plan):
+    snap_ref = f"{plan.target_dataset}@{plan.manifest.snapshot}"
+    if zfs.snapshot_exists(snap_ref):
+        existing_guid = zfs.get_guid(snap_ref)
+        if existing_guid == plan.manifest.guid:
+            return ReplayResult(
+                status="SKIPPED",
+                snapshot=plan.manifest.snapshot,
+                source=plan.manifest.source,
+                target_dataset=plan.target_dataset,
+                applied_at=datetime.now(timezone.utc).isoformat(),
+            )
+        error.fatal(
+            f"snapshot {plan.manifest.snapshot} exists on "
+            f"{plan.target_dataset} but GUID mismatch: "
+            f"expected {plan.manifest.guid}, got {existing_guid}")
+
     zfs.recv_file(plan.stream_path, plan.target_dataset)
     return ReplayResult(
         status="APPLIED",

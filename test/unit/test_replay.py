@@ -99,8 +99,10 @@ class TestBuildReplayPlan(pilotest.TestCase):
 
 class TestExecuteReplayPlan(pilotest.TestCase):
 
+    @patch("pilo.zfs.get_guid")
+    @patch("pilo.zfs.snapshot_exists", return_value=False)
     @patch("pilo.zfs.recv_file")
-    def test_calls_recv_file(self, mock_recv):
+    def test_calls_recv_file(self, mock_recv, mock_exists, mock_guid):
         manifest = _make_manifest(source="tank/a")
         plan = replay.ReplayPlan(
             stream_path=Path("/out/stream.zfs"),
@@ -112,9 +114,13 @@ class TestExecuteReplayPlan(pilotest.TestCase):
 
         mock_recv.assert_called_once_with(
             Path("/out/stream.zfs"), "tank/b")
+        mock_exists.assert_called_once_with(
+            "tank/b@20260522_010203_000000-incr")
 
+    @patch("pilo.zfs.get_guid")
+    @patch("pilo.zfs.snapshot_exists", return_value=False)
     @patch("pilo.zfs.recv_file")
-    def test_returns_applied_result(self, mock_recv):
+    def test_returns_applied_result(self, mock_recv, mock_exists, mock_guid):
         manifest = _make_manifest(
             snapshot="20260522_010203_000000-incr", source="tank/a")
         plan = replay.ReplayPlan(
@@ -131,8 +137,10 @@ class TestExecuteReplayPlan(pilotest.TestCase):
         self.assertEqual(result.target_dataset, "tank/b")
         self.assertIsNotNone(result.applied_at)
 
+    @patch("pilo.zfs.get_guid")
+    @patch("pilo.zfs.snapshot_exists", return_value=False)
     @patch("pilo.zfs.recv_file")
-    def test_recv_failure_propagates(self, mock_recv):
+    def test_recv_failure_propagates(self, mock_recv, mock_exists, mock_guid):
         mock_recv.side_effect = RuntimeError("zfs receive failed")
         manifest = _make_manifest()
         plan = replay.ReplayPlan(
@@ -142,6 +150,42 @@ class TestExecuteReplayPlan(pilotest.TestCase):
         )
 
         with self.assertRaises(RuntimeError):
+            replay.execute_replay_plan(plan)
+
+    @patch("pilo.zfs.get_guid")
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.recv_file")
+    def test_skipped_when_snapshot_exists(self, mock_recv, mock_exists,
+                                          mock_guid):
+        mock_guid.return_value = "12345"
+        manifest = _make_manifest(guid="12345")
+        plan = replay.ReplayPlan(
+            stream_path=Path("/out/stream.zfs"),
+            manifest=manifest,
+            target_dataset="tank/b",
+        )
+
+        result = replay.execute_replay_plan(plan)
+
+        self.assertEqual(result.status, "SKIPPED")
+        self.assertEqual(result.snapshot, "20260522_010203_000000-incr")
+        self.assertEqual(result.target_dataset, "tank/b")
+        mock_recv.assert_not_called()
+
+    @patch("pilo.zfs.get_guid")
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.recv_file")
+    def test_fatal_on_guid_mismatch(self, mock_recv, mock_exists,
+                                    mock_guid):
+        mock_guid.return_value = "99999"
+        manifest = _make_manifest(guid="12345")
+        plan = replay.ReplayPlan(
+            stream_path=Path("/out/stream.zfs"),
+            manifest=manifest,
+            target_dataset="tank/b",
+        )
+
+        with self.assert_fatal():
             replay.execute_replay_plan(plan)
 
 
@@ -316,6 +360,12 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
 
 class TestExecuteBatchReplayPlan(pilotest.TestCase):
 
+    def _snap_exists_false(self):
+        return patch("pilo.zfs.snapshot_exists", return_value=False)
+
+    def _guid_any(self):
+        return patch("pilo.zfs.get_guid")
+
     @patch("pilo.zfs.recv_file")
     def test_empty_batch(self, mock_recv):
         batch = replay.BatchReplayPlan(plans=())
@@ -329,7 +379,8 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
             stream_path=Path("/s.zfs"), manifest=_make_manifest(),
             target_dataset="tank/a")
         batch = replay.BatchReplayPlan(plans=(plan,))
-        results = list(replay.execute_batch_replay_plan(batch))
+        with self._snap_exists_false(), self._guid_any():
+            results = list(replay.execute_batch_replay_plan(batch))
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].status, "APPLIED")
         mock_recv.assert_called_once_with(Path("/s.zfs"), "tank/a")
@@ -343,7 +394,8 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
             stream_path=Path("/b.zfs"), manifest=_make_manifest(),
             target_dataset="tank/a")
         batch = replay.BatchReplayPlan(plans=(plan_a, plan_b))
-        results = list(replay.execute_batch_replay_plan(batch))
+        with self._snap_exists_false(), self._guid_any():
+            results = list(replay.execute_batch_replay_plan(batch))
         self.assertEqual(len(results), 2)
         self.assertEqual(
             results[0].snapshot, plan_a.manifest.snapshot)
@@ -368,8 +420,9 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
             plans=(plan_a, plan_b, plan_c))
 
         # plan_b fails → exception propagates, plan_c never reached
-        with self.assertRaises(RuntimeError):
-            list(replay.execute_batch_replay_plan(batch))
+        with self._snap_exists_false(), self._guid_any():
+            with self.assertRaises(RuntimeError):
+                list(replay.execute_batch_replay_plan(batch))
 
         self.assertEqual(mock_recv.call_count, 2)
         mock_recv.assert_any_call(Path("/a.zfs"), "tank/a")
