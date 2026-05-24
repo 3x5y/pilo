@@ -217,22 +217,13 @@ def execute_replication_plan(plan: ReplicationPlan):
         zfs.hold(plan.hold_tag, plan.hold_snapshot)
 
     if plan.mode == "seed":
-        zfs.replicate_full(plan.snapshot, plan.dst,
-                           tee_path=plan.export_path)
+        zfs.replicate_full(plan.snapshot, plan.dst)
     elif plan.mode == "incremental":
         if plan.export_path is not None:
             _execute_file_backed_incremental(plan)
         else:
-            zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst,
-                                      tee_path=None)
+            zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst)
     elif plan.mode == "noop":
         return
     else:
         error.fatal(f"unrecognized plan mode '{plan.mode}'")
-
-    if plan.mode == "seed" and plan.export_path is not None:
-        dataset, snap_name = plan.snapshot.split("@", 1)
-        guid = zfs.get_guid(plan.snapshot)
-        streams.write_stream_manifest(
-            Path(plan.export_path), snap_name, dataset, guid,
-        )

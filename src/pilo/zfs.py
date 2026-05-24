@@ -52,24 +52,12 @@ def run_get_lines(cmd, **kw):
     return run_get_output(cmd, **kw).strip().splitlines()
 
 
-def simple_pipe(src_cmd, sink_cmd, tee_path=None):
-    if tee_path:
-        Path(tee_path).parent.mkdir(parents=True, exist_ok=True)
+def simple_pipe(src_cmd, sink_cmd):
     source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
-    if tee_path:
-        tee = subprocess.Popen(["tee", tee_path], stdin=source.stdout,
-                               stdout=subprocess.PIPE)
-        source.stdout.close()
-        sink = subprocess.Popen(sink_cmd, stdin=tee.stdout)
-        tee.stdout.close()
-    else:
-        sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
-        source.stdout.close()
+    sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
+    source.stdout.close()
     sink.communicate()
-    if tee_path:
-        tee.wait()
-    if source.wait() != 0 or sink.returncode != 0 \
-            or (tee_path and tee.returncode != 0):
+    if source.wait() != 0 or sink.returncode != 0:
         error.fatal("replication failed")
 
 
@@ -374,21 +362,21 @@ def create_parent(dataset):
         run(cmd + args, check=False)
 
 
-def replicate_full(snapshot, dst, tee_path=None):
+def replicate_full(snapshot, dst):
     send = "zfs send -h -R".split()
     send_args = [snapshot]
     recv = "zfs receive -u -o readonly=on -o mountpoint=none".split()
     recv_args = [dst]
-    simple_pipe(send + send_args, recv + recv_args, tee_path=tee_path)
+    simple_pipe(send + send_args, recv + recv_args)
     set_prop(dst, "canmount=off", recursive=True)
 
 
-def replicate_incremental(base, snapshot, dst, tee_path=None):
+def replicate_incremental(base, snapshot, dst):
     send = "zfs send -h -R -I".split()
     send_args = [base, snapshot]
     recv = "zfs receive -u -o readonly=on -o mountpoint=none".split()
     recv_args = [dst]
-    simple_pipe(send + send_args, recv + recv_args, tee_path=tee_path)
+    simple_pipe(send + send_args, recv + recv_args)
     set_prop(dst, "canmount=off", recursive=True)
 
 

@@ -223,26 +223,13 @@ class TestReplicateFull(pilotest.TestCase):
 
     @patch("pilo.zfs.simple_pipe")
     @patch("pilo.zfs.set_prop")
-    def test_forwards_tee_path(self, mock_set, mock_pipe):
-        zfs.replicate_full("tank/a@snap", "tank/b", tee_path="/out/s.zfs")
-
-        mock_pipe.assert_called_once_with(
-            ["zfs", "send", "-h", "-R", "tank/a@snap"],
-            ["zfs", "receive", "-u", "-o", "readonly=on",
-             "-o", "mountpoint=none", "tank/b"],
-            tee_path="/out/s.zfs",
-        )
-
-    @patch("pilo.zfs.simple_pipe")
-    @patch("pilo.zfs.set_prop")
-    def test_tee_path_defaults_to_none(self, mock_set, mock_pipe):
+    def test_forwards_args(self, mock_set, mock_pipe):
         zfs.replicate_full("tank/a@snap", "tank/b")
 
         mock_pipe.assert_called_once_with(
             ["zfs", "send", "-h", "-R", "tank/a@snap"],
             ["zfs", "receive", "-u", "-o", "readonly=on",
              "-o", "mountpoint=none", "tank/b"],
-            tee_path=None,
         )
 
 
@@ -250,10 +237,9 @@ class TestReplicateIncremental(pilotest.TestCase):
 
     @patch("pilo.zfs.simple_pipe")
     @patch("pilo.zfs.set_prop")
-    def test_forwards_tee_path(self, mock_set, mock_pipe):
+    def test_forwards_args(self, mock_set, mock_pipe):
         zfs.replicate_incremental(
             "tank/a@base", "tank/a@snap", "tank/b",
-            tee_path="/out/s.zfs",
         )
 
         mock_pipe.assert_called_once_with(
@@ -261,20 +247,6 @@ class TestReplicateIncremental(pilotest.TestCase):
              "tank/a@snap"],
             ["zfs", "receive", "-u", "-o", "readonly=on",
              "-o", "mountpoint=none", "tank/b"],
-            tee_path="/out/s.zfs",
-        )
-
-    @patch("pilo.zfs.simple_pipe")
-    @patch("pilo.zfs.set_prop")
-    def test_tee_path_defaults_to_none(self, mock_set, mock_pipe):
-        zfs.replicate_incremental("tank/a@base", "tank/a@snap", "tank/b")
-
-        mock_pipe.assert_called_once_with(
-            ["zfs", "send", "-h", "-R", "-I", "tank/a@base",
-             "tank/a@snap"],
-            ["zfs", "receive", "-u", "-o", "readonly=on",
-             "-o", "mountpoint=none", "tank/b"],
-            tee_path=None,
         )
 
 
@@ -317,72 +289,6 @@ class TestSimplePipe(pilotest.TestCase):
 
         with self.assert_fatal():
             zfs.simple_pipe(["src"], ["sink"])
-
-    @patch("subprocess.Popen")
-    @patch("pathlib.Path.mkdir")
-    def test_with_tee_creates_three_processes(self, mock_mkdir, mock_popen):
-        src = Mock(stdout=Mock(), wait=Mock(return_value=0))
-        tee = Mock(stdout=Mock(), wait=Mock(return_value=0),
-                   returncode=0)
-        sink = Mock(communicate=Mock(return_value=(None, None)),
-                    returncode=0)
-        mock_popen.side_effect = [src, tee, sink]
-
-        zfs.simple_pipe(["src"], ["sink"], tee_path="/out/stream.zfs")
-
-        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        self.assertEqual(mock_popen.call_count, 3)
-        mock_popen.assert_has_calls([
-            call(["src"], stdout=subprocess.PIPE),
-            call(["tee", "/out/stream.zfs"], stdin=src.stdout,
-                 stdout=subprocess.PIPE),
-            call(["sink"], stdin=tee.stdout),
-        ])
-        src.stdout.close.assert_called_once()
-        tee.stdout.close.assert_called_once()
-        sink.communicate.assert_called_once()
-        tee.wait.assert_called_once()
-        src.wait.assert_called_once()
-
-    @patch("subprocess.Popen")
-    @patch("pathlib.Path.mkdir")
-    def test_with_tee_source_failure_raises_fatal(self, mock_mkdir, mock_popen):
-        src = Mock(stdout=Mock(), wait=Mock(return_value=1))
-        tee = Mock(stdout=Mock(), wait=Mock(return_value=0),
-                   returncode=0)
-        sink = Mock(communicate=Mock(return_value=(None, None)),
-                    returncode=0)
-        mock_popen.side_effect = [src, tee, sink]
-
-        with self.assert_fatal():
-            zfs.simple_pipe(["src"], ["sink"], tee_path="/out/stream.zfs")
-
-    @patch("subprocess.Popen")
-    @patch("pathlib.Path.mkdir")
-    def test_with_tee_tee_failure_raises_fatal(self, mock_mkdir, mock_popen):
-        src = Mock(stdout=Mock(), wait=Mock(return_value=0))
-        tee = Mock(stdout=Mock(), wait=Mock(return_value=1),
-                   returncode=1)
-        sink = Mock(communicate=Mock(return_value=(None, None)),
-                    returncode=0)
-        mock_popen.side_effect = [src, tee, sink]
-
-        with self.assert_fatal():
-            zfs.simple_pipe(["src"], ["sink"], tee_path="/out/stream.zfs")
-
-    @patch("subprocess.Popen")
-    @patch("pathlib.Path.mkdir")
-    def test_with_tee_sink_failure_raises_fatal(self, mock_mkdir, mock_popen):
-        src = Mock(stdout=Mock(), wait=Mock(return_value=0))
-        tee = Mock(stdout=Mock(), wait=Mock(return_value=0),
-                   returncode=0)
-        sink = Mock(communicate=Mock(return_value=(None, None)),
-                    returncode=1)
-        mock_popen.side_effect = [src, tee, sink]
-
-        with self.assert_fatal():
-            zfs.simple_pipe(["src"], ["sink"], tee_path="/out/stream.zfs")
-
 
 class TestRecvFile(pilotest.TestCase):
 

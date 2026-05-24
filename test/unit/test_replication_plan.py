@@ -72,7 +72,7 @@ class TestReplicationPlan(pilotest.TestCase):
         repl.execute_replication_plan(plan)
 
         mock_full.assert_called_once_with(
-            "tank/a@r1", "backup/a", tee_path=None,
+            "tank/a@r1", "backup/a",
         )
 
     @patch("pilo.zfs.replicate_incremental")
@@ -91,7 +91,6 @@ class TestReplicationPlan(pilotest.TestCase):
             "tank/a@r1",
             "tank/a@r2",
             "backup/a",
-            tee_path=None,
         )
 
     @patch("pilo.back.replication.execute_replication_plan")
@@ -276,7 +275,7 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
 
         mock_hold.assert_called_once_with("pilo:z1", "tank/a@r1")
         mock_full.assert_called_once_with(
-            "tank/a@r1", "backup/a", tee_path=None,
+            "tank/a@r1", "backup/a",
         )
 
     @patch("pilo.zfs.hold")
@@ -297,32 +296,10 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
         mock_hold.assert_called_once_with("pilo:z1", "tank/a@r2")
         mock_incr.assert_called_once_with(
             "tank/a@r1", "tank/a@r2", "backup/a",
-            tee_path=None,
         )
 
 
 class TestExecuteWithExportPath(pilotest.TestCase):
-
-    @patch("pilo.back.streams.write_stream_manifest")
-    @patch("pilo.zfs.get_guid", return_value="g")
-    @patch("pilo.zfs.replicate_full")
-    def test_seed_forwards_export_path(
-        self, mock_full, mock_guid, mock_manifest,
-    ):
-        plan = repl.ReplicationPlan(
-            src="tank/a",
-            dst="backup/a",
-            snapshot="tank/a@r1",
-            base=None,
-            mode="seed",
-            export_path="/out/s.zfs",
-        )
-
-        repl.execute_replication_plan(plan)
-
-        mock_full.assert_called_once_with(
-            "tank/a@r1", "backup/a", tee_path="/out/s.zfs",
-        )
 
     @patch("pilo.zfs.recv_file")
     @patch("pilo.back.streams.verify_one", return_value=("OK", ""))
@@ -363,28 +340,6 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         repl.execute_replication_plan(plan)
 
         mock_full.assert_not_called()
-
-    @patch("pilo.back.streams.write_stream_manifest")
-    @patch("pilo.zfs.get_guid", return_value="guid_seed")
-    @patch("pilo.zfs.replicate_full")
-    def test_seed_writes_manifest(
-        self, mock_full, mock_guid, mock_manifest,
-    ):
-        plan = repl.ReplicationPlan(
-            src="tank/a",
-            dst="backup/a",
-            snapshot="tank/a@ts-incr",
-            base=None,
-            mode="seed",
-            export_path="/out/s.zfs",
-        )
-
-        repl.execute_replication_plan(plan)
-
-        mock_guid.assert_called_once_with("tank/a@ts-incr")
-        mock_manifest.assert_called_once_with(
-            Path("/out/s.zfs"), "ts-incr", "tank/a", "guid_seed",
-        )
 
     @patch("pilo.zfs.set_prop")
     @patch("pilo.zfs.recv_file")
@@ -445,7 +400,7 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         repl.execute_replication_plan(plan)
 
         mock_full.assert_called_once_with(
-            "tank/a@r1", "backup/a", tee_path=None,
+            "tank/a@r1", "backup/a",
         )
 
 
