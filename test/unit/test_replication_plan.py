@@ -324,14 +324,13 @@ class TestExecuteWithExportPath(pilotest.TestCase):
             "tank/a@r1", "backup/a", tee_path="/out/s.zfs",
         )
 
-    @patch("pilo.zfs.set_prop")
     @patch("pilo.zfs.recv_file")
     @patch("pilo.back.streams.verify_one", return_value=("OK", ""))
     @patch("pilo.back.streams.write_stream_manifest")
     @patch("pilo.zfs.get_guid", return_value="g")
     @patch("pilo.zfs.send_incremental_to_file")
     def test_incremental_forwards_export_path(
-        self, mock_send, mock_guid, mock_manifest, mock_verify, mock_recv, mock_setprop,
+        self, mock_send, mock_guid, mock_manifest, mock_verify, mock_recv
     ):
         plan = repl.ReplicationPlan(
             src="tank/a",
@@ -349,9 +348,6 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         )
         mock_verify.assert_called_once_with(Path("/out/s.zfs"))
         mock_recv.assert_called_once_with("/out/s.zfs", "backup/a")
-        mock_setprop.assert_called_once_with(
-            "backup/a", "canmount=off", recursive=True,
-        )
 
     @patch("pilo.zfs.replicate_full")
     def test_noop_skips_export(self, mock_full):

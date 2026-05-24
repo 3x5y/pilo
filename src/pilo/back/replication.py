@@ -211,8 +211,6 @@ def _execute_file_backed_incremental(plan: ReplicationPlan):
 
     zfs.recv_file(plan.export_path, plan.dst)
 
-    zfs.set_prop(plan.dst, "canmount=off", recursive=True)
-
 
 def execute_replication_plan(plan: ReplicationPlan):
     if plan.hold_snapshot and plan.hold_tag:

@@ -414,11 +414,13 @@ def send_incremental_to_file(base, snapshot, filepath):
 
 def recv_file(stream_path: str | Path, dataset: str) -> None:
     stream_path = Path(stream_path)
-    cmd = "zfs receive -u".split() + [dataset]
+    cmd = "zfs receive -u -o readonly=on -o mountpoint=none".split()
+    cmd += [dataset]
     with open(stream_path, "rb") as f:
         proc = subprocess.Popen(cmd, stdin=f)
         if proc.wait() != 0:
             error.fatal("stream replay failed")
+    set_prop(dataset, "canmount=off", recursive=True)
 
 
 def send_recv(src_snap, dst, recursive=False):

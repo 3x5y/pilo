@@ -386,9 +386,10 @@ class TestSimplePipe(pilotest.TestCase):
 
 class TestRecvFile(pilotest.TestCase):
 
+    @patch("pilo.zfs.set_prop")
     @patch("subprocess.Popen")
     @patch("builtins.open")
-    def test_recv_file_calls_zfs_receive(self, mock_open, mock_popen):
+    def test_recv_file_calls_zfs_receive(self, mock_open, mock_popen, *_):
         mock_proc = Mock()
         mock_proc.wait.return_value = 0
         mock_popen.return_value = mock_proc
@@ -399,7 +400,9 @@ class TestRecvFile(pilotest.TestCase):
 
         mock_open.assert_called_once_with(Path("/out/streams/test.zfs"), "rb")
         mock_popen.assert_called_once_with(
-            ["zfs", "receive", "-u", "tank/b"],
+            ["zfs", "receive", "-u",
+            '-o', 'readonly=on', '-o', 'mountpoint=none',
+             "tank/b"],
             stdin=mock_file,
         )
 
