@@ -2,7 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .streams import load_stream_manifest, verify_one, MANIFEST_SUFFIX
+from .streams import (
+    load_stream_manifest,
+    verify_one,
+    MANIFEST_SUFFIX,
+    STREAM_SUFFIX,
+)
 from .. import error
 from .. import zfs
 
@@ -15,12 +20,30 @@ class ReplayPlan:
 
 
 @dataclass(frozen=True)
+class BatchReplayPlan:
+    plans: tuple[ReplayPlan, ...]
+
+
+@dataclass(frozen=True)
 class ReplayResult:
     status: str
     snapshot: str
     source: str
     target_dataset: str
     applied_at: str
+
+
+def find_streams(path):
+    path = Path(path)
+    streams = sorted(path.glob(f"*{STREAM_SUFFIX}"))
+    return [s for s in streams if not str(s).endswith(MANIFEST_SUFFIX)]
+
+
+def build_batch_replay_plan(paths, target_dataset=None):
+    plans = []
+    for p in paths:
+        plans.append(build_replay_plan(p, target_dataset))
+    return BatchReplayPlan(plans=tuple(plans))
 
 
 def build_replay_plan(stream_path, target_dataset=None):
@@ -42,6 +65,13 @@ def build_replay_plan(stream_path, target_dataset=None):
         manifest=manifest,
         target_dataset=target,
     )
+
+
+def execute_batch_replay_plan(batch_plan):
+    results = []
+    for plan in batch_plan.plans:
+        results.append(execute_replay_plan(plan))
+    return results
 
 
 def execute_replay_plan(plan):
