@@ -6,7 +6,7 @@ capture_file a.txt
 pilo content-ingest
 
 # NB tabs!!
-capture_status pilo rewrite "
+capture_status pilo content-reorg "
 mv	in/a.txt	sort/a.txt
 mv	in/missing.txt	sort/missing.txt
 "

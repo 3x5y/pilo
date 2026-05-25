@@ -2,17 +2,17 @@
 
 from pilo import context
 from pilo import error
-from pilo.front import rewrite
+from pilo.content import reorg
 
 
 def main():
     cx = context.Context()
-    script = rewrite.load_rewrite_script(cx)
+    script = reorg.load_rewrite_script(cx)
     if not script.lines:
         error.fatal("missing command")
 
     ops = script.parse_ops()
-    rewrite.build_rewrite_plan(cx, ops)
+    reorg.build_rewrite_plan(cx, ops)
 
     print("valid")
 

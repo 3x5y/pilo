@@ -10,7 +10,7 @@ pilo content-ingest
 with_writable $STATIC/$dst \
     cp /$PILE/in/$file /$STATIC/$dst/$file
 printf "mv\tin/$file\tout/$dst/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 
 pilo content-promote
 

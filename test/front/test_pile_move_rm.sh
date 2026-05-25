@@ -9,7 +9,7 @@ capture_file file2.txt
 pilo content-ingest
 
 printf "rm\tin/file1.txt" \
-    | pilo rewrite --delete
+    | pilo content-reorg --delete
 
 assert_not_exists /$PILE/in/file1.txt
 assert_file_exists /$PILE/in/file2.txt

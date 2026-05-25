@@ -6,7 +6,7 @@ mkfile data $file
 capture_file $file
 pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 pilo content-promote
 
 # second promotion attempt (no re-ingest)

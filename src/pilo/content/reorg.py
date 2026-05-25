@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import checks
-from . import continuity
 from .. import error
-from . import manifest
-from . import mutation
 from .. import paths
 from .. import policy
-from .execution import (
+from ..front import continuity
+from ..front import manifest
+from ..front import mutation
+from ..front.execution import (
     ExecutionPlan,
     ManifestStep,
     VerifyChecksumStep,

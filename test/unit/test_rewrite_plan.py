@@ -3,11 +3,11 @@ import unittest
 from unittest.mock import patch, call
 from pathlib import Path
 
+from pilo.content import reorg as rewrite
 from pilo.front import execution
 from pilo.front import manifest
 from pilo.front import mutation
 from pilo import paths
-from pilo.front import rewrite
 import pilotest
 
 
@@ -303,7 +303,7 @@ class TestRewritePlan(pilotest.TestCase):
 
     @patch("pilo.front.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
-    @patch("pilo.front.rewrite.build_manifest_mutations")
+    @patch("pilo.content.reorg.build_manifest_mutations")
     def test_rewrite_execution_plan_uses_verified_checksums(
         self,
         mock_manifest,

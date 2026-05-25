@@ -11,9 +11,9 @@ capture_file $a
 capture_file $b
 pilo content-ingest
 printf "mv\tin/$a\tout/$archive_a/$a" \
-    | pilo rewrite
+    | pilo content-reorg
 printf "mv\tin/$b\tout/$archive_b/$b" \
-    | pilo rewrite
+    | pilo content-reorg
 zfs create -p -o readonly=on $STATIC/$archive_a
 zfs create -p -o readonly=on $STATIC/$archive_b
 

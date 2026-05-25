@@ -16,6 +16,6 @@ with_writable $PILE \
 pilo content-promote
 
 printf "mv\tcollection/file.txt\tcollection/x.txt" \
-    | pilo rewrite
+    | pilo content-reorg
 
 assert_manifest_valid collection "$PILO_STATIC_PATH"/collection

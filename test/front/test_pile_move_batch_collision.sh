@@ -9,7 +9,7 @@ capture_file b.txt
 pilo content-ingest
 
 # NB tabs!!
-capture_status pilo rewrite "
+capture_status pilo content-reorg "
 mv	in/a.txt	sort/x.txt
 mv	in/b.txt	sort/x.txt
 "

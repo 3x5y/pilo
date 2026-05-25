@@ -6,7 +6,7 @@ capture_file file.txt
 pilo content-ingest
 
 printf "mv\tin/file.txt\tout/collection/dirx/file.txt" \
-    | pilo rewrite
+    | pilo content-reorg
 
 pilo content-promote
 

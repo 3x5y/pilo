@@ -7,7 +7,7 @@ capture_file $file
 pilo content-ingest
 
 printf "mv\tin/$file\tsort/$file" \
-    | pilo rewrite >/dev/null || true
+    | pilo content-reorg >/dev/null || true
 
 assert_file_exists /$PILE/sort/$file
 assert_manifest_valid pile /$PILE

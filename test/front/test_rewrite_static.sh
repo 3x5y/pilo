@@ -15,7 +15,7 @@ with_writable $PILE \
 
 pilo content-promote
 
-pilo rewrite "$(printf "mv\tcollection/file.txt\tcollection/renamed.txt\n")"
+pilo content-reorg "$(printf "mv\tcollection/file.txt\tcollection/renamed.txt\n")"
 
 assert_file_exists "$PILO_STATIC_PATH/collection/renamed.txt"
 assert_not_exists "$PILO_STATIC_PATH/collection/file.txt"

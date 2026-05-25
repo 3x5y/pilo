@@ -5,19 +5,19 @@ from pathlib import Path
 from unittest.mock import patch, call
 
 from pilo import paths
+from pilo.content import reorg as rewrite
 from pilo.front import manifest
-from pilo.front import rewrite
 import pilotest
 
 
 class TestRewriteCommand(pilotest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
-    @patch("pilo.front.rewrite.parse_rewrite_ops")
+    @patch("pilo.content.reorg.parse_rewrite_ops")
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_reads_stdin_when_no_args(
         self,
         mock_build,
@@ -32,18 +32,18 @@ class TestRewriteCommand(pilotest.TestCase):
 
             stdin.write("mv\tin/a\tin/b\n")
             stdin.seek(0)
-            mod = pilotest.import_command("rewrite")
+            mod = pilotest.import_command("content-reorg")
 
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
 
             mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
 
-    @patch("pilo.front.rewrite.parse_rewrite_ops")
+    @patch("pilo.content.reorg.parse_rewrite_ops")
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_compat_arg_transport(
         self,
         mock_build,
@@ -54,7 +54,7 @@ class TestRewriteCommand(pilotest.TestCase):
     ):
         with pilotest.make_tmp_context() as cx:
             cx.args = ["mv\tin/a\tin/b\nmv\tin/c\tin/d"]
-            mod = pilotest.import_command("rewrite")
+            mod = pilotest.import_command("content-reorg")
 
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
@@ -64,11 +64,11 @@ class TestRewriteCommand(pilotest.TestCase):
                 "mv\tin/c\tin/d",
             ])
 
-    @patch("pilo.front.rewrite.parse_rewrite_ops")
+    @patch("pilo.content.reorg.parse_rewrite_ops")
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_reads_script_file(
         self,
         mock_build,
@@ -77,7 +77,7 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_manifest_exec,
         mock_parse,
     ):
-        mod = pilotest.import_command("rewrite")
+        mod = pilotest.import_command("content-reorg")
 
         with pilotest.tmpfile() as f:
             f.write_text("mv\tin/a\tin/b\n")
@@ -91,11 +91,11 @@ class TestRewriteCommand(pilotest.TestCase):
         Path(path).unlink(missing_ok=True)
 
     @patch("sys.stdin", new_callable=StringIO)
-    @patch("pilo.front.rewrite.parse_rewrite_ops")
+    @patch("pilo.content.reorg.parse_rewrite_ops")
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_prefers_script_file_over_stdin(
         self,
         mock_build,
@@ -107,7 +107,7 @@ class TestRewriteCommand(pilotest.TestCase):
     ):
         stdin.write("mv\tin/stdin\tin/ignored\n")
         stdin.seek(0)
-        mod = pilotest.import_command("rewrite")
+        mod = pilotest.import_command("content-reorg")
 
         with pilotest.tmpfile() as f:
             f.write_text("mv\tin/file\tin/dst\n")
@@ -119,11 +119,11 @@ class TestRewriteCommand(pilotest.TestCase):
 
         mock_parse.assert_called_once_with(["mv\tin/file\tin/dst"])
 
-    @patch("pilo.front.rewrite.parse_rewrite_ops")
+    @patch("pilo.content.reorg.parse_rewrite_ops")
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_preserves_inline_compatibility(
         self,
         mock_build,
@@ -134,7 +134,7 @@ class TestRewriteCommand(pilotest.TestCase):
     ):
         with pilotest.make_tmp_context() as cx:
             cx.args = ["mv\tin/a\tin/b\nmv\tin/c\tin/d"]
-            mod = pilotest.import_command("rewrite")
+            mod = pilotest.import_command("content-reorg")
 
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
@@ -144,11 +144,11 @@ class TestRewriteCommand(pilotest.TestCase):
                 "mv\tin/c\tin/d",
             ])
 
-    @patch("pilo.front.rewrite.RewriteScript.from_lines")
+    @patch("pilo.content.reorg.RewriteScript.from_lines")
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_uses_script_model(
         self,
         mock_build,
@@ -164,7 +164,7 @@ class TestRewriteCommand(pilotest.TestCase):
             script.parse_ops.return_value = []
             mock_script.return_value = script
 
-            mod = pilotest.import_command("rewrite")
+            mod = pilotest.import_command("content-reorg")
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
 
@@ -173,9 +173,9 @@ class TestRewriteCommand(pilotest.TestCase):
             script.parse_ops.assert_called_once_with()
 
     @patch("builtins.print")
-    @patch("pilo.front.rewrite.preview_rewrite_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.preview_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_preview_mode(
         self,
         mock_build,
@@ -187,7 +187,7 @@ class TestRewriteCommand(pilotest.TestCase):
 
         cx = pilotest.make_context()
         cx.args = ["--preview", "mv\tin/a\tin/b"]
-        mod = pilotest.import_command("rewrite")
+        mod = pilotest.import_command("content-reorg")
         with patch("pilo.context.Context", return_value=cx):
             mod.main()
 
@@ -199,8 +199,8 @@ class TestRewriteCommand(pilotest.TestCase):
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
     @patch("builtins.print")
-    @patch("pilo.front.rewrite.preview_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.preview_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_preview_mode_skips_manifest_updates(
         self,
         mock_build,
@@ -214,7 +214,7 @@ class TestRewriteCommand(pilotest.TestCase):
 
         mock_preview.return_value = []
 
-        mod = pilotest.import_command("rewrite")
+        mod = pilotest.import_command("content-reorg")
         with patch("pilo.context.Context", return_value=cx):
             mod.main()
 
@@ -222,9 +222,9 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_manifest_exec.assert_not_called()
 
     @patch("builtins.print")
-    @patch("pilo.front.rewrite.preview_rewrite_plan")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.preview_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_preview_mode_prints_multiple_lines(
         self,
         mock_build,
@@ -242,7 +242,7 @@ class TestRewriteCommand(pilotest.TestCase):
             "move /tmp/c -> /tmp/d",
         ]
 
-        mod = pilotest.import_command("rewrite")
+        mod = pilotest.import_command("content-reorg")
         with patch("pilo.context.Context", return_value=cx):
             mod.main()
 
@@ -256,7 +256,7 @@ class TestRewriteCommand(pilotest.TestCase):
 class TestRewriteValidateCommand(pilotest.TestCase):
 
     @patch("builtins.print")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_validate_command_builds_plan(
         self,
         mock_build,
@@ -272,8 +272,8 @@ class TestRewriteValidateCommand(pilotest.TestCase):
         mock_build.assert_called_once()
 
     @patch("builtins.print")
-    @patch("pilo.front.rewrite.execute_rewrite_plan")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.execute_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_validate_command_does_not_execute(
         self,
         mock_build,
@@ -290,7 +290,7 @@ class TestRewriteValidateCommand(pilotest.TestCase):
         mock_execute.assert_not_called()
 
     @patch("builtins.print")
-    @patch("pilo.front.rewrite.build_rewrite_plan")
+    @patch("pilo.content.reorg.build_rewrite_plan")
     def test_validate_command_prints_ok(
         self,
         mock_build,

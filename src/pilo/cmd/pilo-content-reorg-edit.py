@@ -10,7 +10,7 @@ from pathlib import Path
 from pilo import context
 from pilo import error
 from pilo import fs
-from pilo.front import rewrite
+from pilo.content import reorg as rewrite
 
 
 @dataclass(frozen=True)
@@ -171,7 +171,7 @@ def write_script_file(path, script):
 
 
 def execute_script(script, args):
-    cmd = "pilo rewrite".split()
+    cmd = "pilo content-reorg".split()
     if "--delete" in args:
         cmd.append("--delete")
     args = [script]

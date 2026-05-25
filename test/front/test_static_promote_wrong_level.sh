@@ -6,7 +6,7 @@ mkfile data $file
 capture_file $file
 pilo content-ingest
 printf "mv\tin/$file\tout/filing/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 
 capture_status pilo content-promote
 

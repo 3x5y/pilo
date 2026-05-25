@@ -8,7 +8,7 @@ pilo content-ingest
 
 # NB tabs!!
 printf "mv\tin/$file\tsort/2025/a/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 
 assert_file_exists /$PILE/sort/2025/a/$file
 assert_not_exists /$PILE/in/$file

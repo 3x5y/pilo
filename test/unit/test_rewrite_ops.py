@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from pilo.front import rewrite
+from pilo.content import reorg as rewrite
 import pilotest
 
 

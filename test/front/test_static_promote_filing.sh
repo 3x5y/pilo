@@ -7,7 +7,7 @@ mkfile data $file
 capture_file $file
 pilo content-ingest
 printf "mv\tin/$file\tout/$archive/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 zfs create -p $STATIC/$archive
 
 pilo content-promote

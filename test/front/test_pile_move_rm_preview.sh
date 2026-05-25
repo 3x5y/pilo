@@ -8,6 +8,6 @@ pilo content-ingest
 
 script=$(printf "rm\tin/a.txt")
 
-OUT=$(pilo rewrite --preview "$script")
+OUT=$(pilo content-reorg --preview "$script")
 
 echo "$OUT" | assert_grep "unlink"

@@ -6,14 +6,14 @@ mkfile good $file
 capture_file $file
 pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 pilo content-promote
 # reintroduce conflicting version
 mkfile bad $file
 capture_file $file
 pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
-    | pilo rewrite
+    | pilo content-reorg
 
 capture_status pilo content-promote
 
