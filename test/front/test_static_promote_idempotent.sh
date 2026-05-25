@@ -5,14 +5,14 @@ file=file.txt
 dst=collection/a
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/$dst/$file" \
     | pilo rewrite
 pilo static-promote
 # reintroduce identical
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/$dst/$file" \
     | pilo rewrite
 

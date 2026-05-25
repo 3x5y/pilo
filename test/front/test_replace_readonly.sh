@@ -3,7 +3,7 @@ set -eu
 
 mkfile old file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 
 echo new > "$TMP/new.txt"
 

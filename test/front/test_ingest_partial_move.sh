@@ -4,12 +4,12 @@ set -eu
 mkintake "A" a.txt
 mkintake "B" b.txt
 
-pilo ingest-pile   # first pass succeeds
+pilo content-ingest   # first pass succeeds
 
 # introduce conflict for second run
 mkintake "DIFF" a.txt
 
-capture_status pilo ingest-pile
+capture_status pilo content-ingest
 assert_command_fail
 
 # ensure conflicting file still in intake

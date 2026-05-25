@@ -3,7 +3,7 @@ set -e
 
 mkfile data file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 
 script=$(printf "mv\tin/$file")
 capture_status pilo rewrite "$script"

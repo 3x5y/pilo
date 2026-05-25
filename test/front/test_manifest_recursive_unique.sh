@@ -4,7 +4,7 @@ set -e
 mkintake data a/file.txt
 mkintake data b/file.txt
 
-pilo ingest-pile
+pilo content-ingest
 
 manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
 count=$(grep -c "file.txt$" $manifest)

@@ -5,7 +5,7 @@ file=stuff.txt
 dir=foo/bar
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/collection/$dir/$file" \
     | pilo rewrite
 

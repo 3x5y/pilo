@@ -6,7 +6,7 @@ exit 0
 archive=filing/2025
 mkfile old file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 
 with_writable $PILE \
     mkdir -p "$PILO_PILE_PATH/out/$archive"

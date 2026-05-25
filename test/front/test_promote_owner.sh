@@ -3,7 +3,7 @@ set -eu
 
 mkfile data file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 
 printf "mv\tin/file.txt\tout/collection/file.txt" \
     | pilo rewrite

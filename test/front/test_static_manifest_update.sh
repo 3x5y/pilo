@@ -4,7 +4,7 @@ set -e
 file=manifest-item.txt
 mkfile important $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
     | pilo rewrite
 

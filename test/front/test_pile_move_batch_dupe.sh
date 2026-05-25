@@ -3,7 +3,7 @@ set -e
 
 mkfile data a.txt
 capture_file a.txt
-pilo ingest-pile
+pilo content-ingest
 
 # NB tabs!!
 capture_status pilo rewrite "

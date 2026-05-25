@@ -9,7 +9,7 @@ capture_file $file
 manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
 rm -f $manifest 2>/dev/null || true
 
-pilo ingest-pile
+pilo content-ingest
 
 assert_file_exists $manifest
 assert_manifest_valid pile /$PILE

@@ -4,7 +4,7 @@ set -e
 file=nice.txt
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
     | pilo rewrite
 

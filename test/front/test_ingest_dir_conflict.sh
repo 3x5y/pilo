@@ -2,11 +2,11 @@
 set -e
 
 mkintake good foo/file.txt
-pilo ingest-pile
+pilo content-ingest
 # conflicting re-upload
 mkintake bad foo/file.txt
 
-capture_status pilo ingest-pile
+capture_status pilo content-ingest
 
 assert_command_fail
 echo "$OUTPUT" | assert_grep ERROR

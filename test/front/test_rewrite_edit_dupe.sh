@@ -5,7 +5,7 @@ mkfile a a.txt
 mkfile b b.txt
 capture_file a.txt
 capture_file b.txt
-pilo ingest-pile
+pilo content-ingest
 
 capture_status pilo rewrite-edit --script <<EOF
 1	in/x.txt

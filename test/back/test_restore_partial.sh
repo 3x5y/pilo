@@ -6,7 +6,7 @@ snap=baseline
 echo admin-data > /$ADMIN/admin.txt
 mkfile pile-data p.txt
 capture_file p.txt
-pilo ingest-pile
+pilo content-ingest
 with_writable $STATIC \
     touch /$STATIC/doc.txt
 pilo snapshot $snap

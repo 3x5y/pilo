@@ -6,7 +6,7 @@ file=file.txt
 archive=filing/2025
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/$archive/$dir/$file" \
     | pilo rewrite
 zfs create -p $STATIC/$archive

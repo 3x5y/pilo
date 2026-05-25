@@ -14,7 +14,7 @@ with_writable $COLLECTION \
     sh -c "echo static-data > /$COLLECTION/$static_file"
 mkfile pile-data file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 pilo snapshot $snap
 pilo replica-seed
 clear_holds $COLLECTION

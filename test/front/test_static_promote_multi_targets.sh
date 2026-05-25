@@ -9,7 +9,7 @@ mkfile a $a
 mkfile b $b
 capture_file $a
 capture_file $b
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$a\tout/$archive_a/$a" \
     | pilo rewrite
 printf "mv\tin/$b\tout/$archive_b/$b" \

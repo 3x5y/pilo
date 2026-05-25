@@ -4,7 +4,7 @@ set -e
 # existing canonical
 mkfile original a.txt
 capture_file a.txt
-pilo ingest-pile
+pilo content-ingest
 
 # batch intake
 mkintake original a.txt     # idempotent
@@ -12,7 +12,7 @@ mkintake new b.txt          # valid
 mkintake conflict a.txt.tmp # conflict via rename
 mv /$INTAKE/a.txt.tmp /$INTAKE/a.txt
 
-capture_status pilo ingest-pile
+capture_status pilo content-ingest
 
 assert_command_fail
 

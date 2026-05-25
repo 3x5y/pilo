@@ -4,7 +4,7 @@ set -e
 file=silly.txt
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 with_writable $PILE \
     mkdir -p /$PILE/out/filing/
 # simulate weird path

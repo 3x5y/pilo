@@ -5,7 +5,7 @@ file=file.txt
 
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 
 pilo snapshot test_snap
 

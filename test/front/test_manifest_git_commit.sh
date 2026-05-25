@@ -3,7 +3,7 @@ set -eu
 
 mkfile data a.txt
 capture_file a.txt
-pilo ingest-pile
+pilo content-ingest
 
 repo="$PILO_ADMIN_PATH/manifest"
 assert_command_ok git -C "$repo" rev-parse HEAD

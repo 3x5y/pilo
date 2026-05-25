@@ -7,7 +7,7 @@ mkfile b b.txt
 capture_file a.txt
 capture_file b.txt
 
-pilo ingest-pile
+pilo content-ingest
 
 SCRIPT=$(pilo rewrite-edit --script <<EOF
 2	in/b.txt

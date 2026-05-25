@@ -4,9 +4,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo.content import capture
+from pilo.content import ingest
 from pilo.front import manifest
 from pilo.front import mutation
-from pilo.front import ingest
 from pilo.front.execution import ExecutionPlan
 import pilotest
 
@@ -304,8 +304,8 @@ class TestIngestOps(pilotest.TestCase):
 
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.ingest.execute_ingest_plan")
-    @patch("pilo.front.ingest.build_ingest_plan")
+    @patch("pilo.content.ingest.execute_ingest_plan")
+    @patch("pilo.content.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def _test_ingest_command_uses_plans(
         self,
@@ -318,7 +318,7 @@ class TestIngestOps(pilotest.TestCase):
         cx = pilotest.make_context()
 
         with patch("pilo.context.Context", return_value=cx):
-            mod = pilotest.import_command("ingest-pile")
+            mod = pilotest.import_command("content-ingest")
             mod.main()
 
         mock_build_ingest.assert_called_once()
@@ -336,8 +336,8 @@ class TestIngestOps(pilotest.TestCase):
 
     @patch("pilo.front.manifest.execute_manifest_update_plan")
     @patch("pilo.front.manifest.build_manifest_update_plan")
-    @patch("pilo.front.ingest.execute_ingest_plan")
-    @patch("pilo.front.ingest.build_ingest_plan")
+    @patch("pilo.content.ingest.execute_ingest_plan")
+    @patch("pilo.content.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_ingest_command_excludes_capture_manifest(
         self,
@@ -347,7 +347,7 @@ class TestIngestOps(pilotest.TestCase):
         mock_build_manifest,
         mock_exec_manifest,
     ):
-        mod = pilotest.import_command("ingest-pile")
+        mod = pilotest.import_command("content-ingest")
 
         with pilotest.make_tmp_context() as cx:
             cx.intake_path.mkdir()
@@ -366,9 +366,9 @@ class TestIngestOps(pilotest.TestCase):
         self.assertEqual(files, [data])
 
     @patch("pilo.front.manifest.execute_manifest_mutations")
-    @patch("pilo.front.ingest.build_manifest_mutations")
-    @patch("pilo.front.ingest.execute_ingest_plan")
-    @patch("pilo.front.ingest.build_ingest_plan")
+    @patch("pilo.content.ingest.build_manifest_mutations")
+    @patch("pilo.content.ingest.execute_ingest_plan")
+    @patch("pilo.content.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_ingest_command_updates_manifest_incrementally(
         self,
@@ -386,7 +386,7 @@ class TestIngestOps(pilotest.TestCase):
         mock_build_muts.return_value = []
 
         with patch("pilo.context.Context", return_value=cx):
-            mod = pilotest.import_command("ingest-pile")
+            mod = pilotest.import_command("content-ingest")
             mod.main()
 
         mock_build_muts.assert_called_once_with(

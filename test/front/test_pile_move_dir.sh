@@ -4,7 +4,7 @@ set -e
 file=file.txt
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 
 # NB tabs!!
 printf "mv\tin/$file\tsort/2025/a/$file" \

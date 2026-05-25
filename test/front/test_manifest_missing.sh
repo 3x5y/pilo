@@ -4,7 +4,7 @@ set -e
 file=test_missing.txt
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 with_writable $PILE \
     rm /$PILE/in/$file
 

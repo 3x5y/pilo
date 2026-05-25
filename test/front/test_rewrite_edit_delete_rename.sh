@@ -9,7 +9,7 @@ capture_file a.txt
 capture_file b.txt
 capture_file c.txt
 
-pilo ingest-pile
+pilo content-ingest
 
 SCRIPT=$(pilo rewrite-edit --script <<EOF
 2	in/x.txt

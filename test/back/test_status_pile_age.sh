@@ -5,7 +5,7 @@ file=old_file.txt
 mkfile data $file
 capture_file $file
 touch -d '2 hours ago' /$INTAKE/$file
-pilo ingest-pile
+pilo content-ingest
 
 export CONFIG_PILE_MAX_AGE=60
 capture_status pilo status pile

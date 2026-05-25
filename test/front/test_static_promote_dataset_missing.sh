@@ -5,7 +5,7 @@ file=bad.txt
 archive=filing/2099
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/$archive/$file" \
     | pilo rewrite
 

@@ -4,14 +4,14 @@ set -e
 file=conflict.txt
 mkfile good $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
     | pilo rewrite
 pilo static-promote
 # reintroduce conflicting version
 mkfile bad $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
     | pilo rewrite
 

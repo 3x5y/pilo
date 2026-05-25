@@ -4,7 +4,7 @@ set -e
 file=test.txt
 mkfile original $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 with_writable $PILE \
     sh -c "echo corruption > /$PILE/in/$file"
 

@@ -2,6 +2,6 @@
 set -e
 
 mkfile valid foo.txt
-pilo ingest-pile
+pilo content-ingest
 
 pilo manifest-verify

@@ -5,7 +5,7 @@ file=file.txt
 dst=collection
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 # simulate interrupted promotion with copy
 with_writable $STATIC/$dst \
     cp /$PILE/in/$file /$STATIC/$dst/$file

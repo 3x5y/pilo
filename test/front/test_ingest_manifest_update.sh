@@ -5,7 +5,7 @@ file=file.txt
 
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 
 assert_file_exists /$PILE/in/$file
 assert_manifest_valid pile /$PILE

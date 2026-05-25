@@ -3,7 +3,7 @@ set -eu
 
 mkfile a a.txt
 capture_file a.txt
-pilo ingest-pile
+pilo content-ingest
 
 export EDITOR="sed -i s/a/b/"
 

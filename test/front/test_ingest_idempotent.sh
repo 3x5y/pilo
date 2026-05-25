@@ -7,10 +7,10 @@ canonical=/$PILE/in/$file
 mkfile data $file
 mtime=$(stat -c%Y $TMP/$file)
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 mkintake data $file
 
-pilo ingest-pile
+pilo content-ingest
 
 # no duplication, no failure
 assert_file_exists $canonical

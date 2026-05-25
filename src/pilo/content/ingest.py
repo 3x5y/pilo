@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..content import capture
+from . import capture
 from .. import checks
-from . import continuity
-from . import manifest
-from . import mutation
-from .execution import (
+from ..front import continuity
+from ..front import manifest
+from ..front import mutation
+from ..front.execution import (
     ExecutionPlan,
     ManifestStep,
 )

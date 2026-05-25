@@ -2,11 +2,11 @@
 set -eu
 
 mkintake "A" file.txt
-pilo ingest-pile
+pilo content-ingest
 # create conflicting file to trigger failure
 mkintake "B" file.txt
 
-capture_status pilo ingest-pile
+capture_status pilo content-ingest
 
 assert_command_fail
 [ "$(zfs get -H -o value readonly "$PILE")" = on ] \

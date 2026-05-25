@@ -4,7 +4,7 @@ set -e
 file=file.txt
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 
 printf "mv\tin/$file\tsort/$file" \
     | pilo rewrite >/dev/null || true

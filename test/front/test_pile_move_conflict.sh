@@ -4,7 +4,7 @@ set -e
 file=file.txt
 mkfile good $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 
 script=$(printf "mv\tin/$file\tsort/$file")
 pilo rewrite "$script"
@@ -12,7 +12,7 @@ pilo rewrite "$script"
 # recreate conflicting source
 mkfile bad $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 
 capture_status pilo rewrite "$script"
 

@@ -6,7 +6,7 @@ canonical=/$PILE/in/$file
 
 mkfile data $file
 capture_file $file
-pilo ingest-pile || fail
+pilo content-ingest || fail
 
 assert_file_exists $canonical
 assert_not_exists /$INTAKE/$file

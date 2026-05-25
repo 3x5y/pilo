@@ -5,7 +5,7 @@ repl=$TEST_REPLICA/active/pile-readonly
 snap=baseline
 mkfile critical file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 pilo snapshot $snap
 pilo replica-seed
 clear_holds $PILE

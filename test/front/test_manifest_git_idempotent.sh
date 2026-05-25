@@ -3,7 +3,7 @@ set -eu
 
 mkfile data a.txt
 capture_file a.txt
-pilo ingest-pile
+pilo content-ingest
 
 with_writable $COLLECTION \
     touch "$PILO_STATIC_PATH"/collection/b.txt

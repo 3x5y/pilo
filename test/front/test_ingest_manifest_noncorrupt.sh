@@ -5,11 +5,11 @@ mkfile good a.txt
 capture_file a.txt
 mkfile good b.txt
 capture_file b.txt
-pilo ingest-pile
+pilo content-ingest
 # introduce conflict for b.txt
 mkintake bad b.txt
 
-capture_status pilo ingest-pile
+capture_status pilo content-ingest
 assert_command_fail
 
 # manifest must still be valid

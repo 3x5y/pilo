@@ -3,7 +3,7 @@ set -e
 
 mkfile data file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 
 capture_status pilo status pile
 

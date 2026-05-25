@@ -5,7 +5,7 @@ echo skipped
 exit 0
 mkfile data file.txt
 capture_file file.txt
-pilo ingest-pile
+pilo content-ingest
 
 with_writable $PILE \
     mkdir -p "$PILO_PILE_PATH/out/collection"

@@ -4,7 +4,7 @@ set -e
 file=bad.txt
 mkfile data $file
 capture_file $file
-pilo ingest-pile
+pilo content-ingest
 printf "mv\tin/$file\tout/filing/$file" \
     | pilo rewrite
 
