@@ -9,13 +9,15 @@ PRI_POOL=z0-att
 PRI_FS=z0-att/pri
 SEC_DEV1=/tmp/z1
 SEC_DEV2=/tmp/z2
+SEC_DEV3=/tmp/z3
 SEC_POOL1=z1-rem
 SEC_POOL2=z2-rem
+SEC_POOL3=z3-rem
 
-#STREAMS=/tmp/streams
-STREAMS=$(mktemp -d)
-chmod a+rx $STREAMS
-export PILO_STREAM_OUTPUT_PATH=$STREAMS
+STREAMS=/tmp/streams
+#STREAMS=$(mktemp -d)
+#chmod a+rx $STREAMS
+#export PILO_STREAM_OUTPUT_PATH=$STREAMS
 
 
 _pilo() {
@@ -227,11 +229,9 @@ cycle() {
     do
         for hour in {0..1}
         do
-            #snapshot_incr
             _pilo snapshot-incr
             _pilo replicate
         done
-        #snapshot_anchor
         _pilo snapshot-anchor
         _pilo replicate
         _pilo rollup
@@ -239,30 +239,14 @@ cycle() {
 }
 
 
-snapshot_ts() {
-    date +%Y%m%d_%H%M%S_%N | cut -c1-22
-}
-
-
-snapshot_anchor() {
-    local label=$(snapshot_ts)-anchor
-    _pilo snapshot $label
-}
-
-
-snapshot_incr() {
-    local label=$(snapshot_ts)-incr
-    _pilo snapshot $label
-}
-
-
 cleanup() {
     destroy_pool $PRI_POOL $PRI_DEV
     destroy_pool $SEC_POOL1 $SEC_DEV1
     destroy_pool $SEC_POOL2 $SEC_DEV2
-
+    destroy_pool $SEC_POOL3 $SEC_DEV3
     ! [ -d /z ] || find /z -type d -delete
 }
+
 
 test_main() {
 
@@ -273,25 +257,34 @@ test_main() {
     init_pool $PRI_POOL $PRI_DEV
     _pilo provision-primary
     _pilo init
-    #snapshot_anchor
     _pilo snapshot-anchor
 
     TARGET_ID=z1
     init_pool $SEC_POOL1 $SEC_DEV1
     _pilo provision-secondary z1-rem/bak
     _pilo replica-seed
-    zpool export z1-rem
 
     TARGET_ID=z2
+    zpool export z1-rem
     init_pool $SEC_POOL2 $SEC_DEV2
     _pilo provision-secondary z2-rem/bak
     _pilo replica-seed
 
-    cycle z1
-    cycle z2
+    #TARGET_ID=z3
+    #zpool export z2-rem
+    #init_pool $SEC_POOL3 $SEC_DEV3
+    #_pilo provision-secondary z3-rem/bak
+    #_pilo replica-seed
 
     cycle z1
-    #cycle z2
+    cycle z2
+    cycle z1
+    cycle z2
+    cycle z1
+    cycle z2
+    cycle z1
+    cycle z2
+    #cycle z3
 }
 
 
