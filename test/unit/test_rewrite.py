@@ -264,7 +264,7 @@ class TestRewriteValidateCommand(pilotest.TestCase):
     ):
         cx = pilotest.make_context()
         cx.args = ["mv\tin/a\tin/b"]
-        mod = pilotest.import_command("rewrite-validate")
+        mod = pilotest.import_command("content-reorg-validate")
 
         with patch("pilo.context.Context", return_value=cx):
             mod.main()
@@ -282,7 +282,7 @@ class TestRewriteValidateCommand(pilotest.TestCase):
     ):
         cx = pilotest.make_context()
         cx.args = ["mv\tin/a\tin/b"]
-        mod = pilotest.import_command("rewrite-validate")
+        mod = pilotest.import_command("content-reorg-validate")
 
         with patch("pilo.context.Context", return_value=cx):
             mod.main()
@@ -298,7 +298,7 @@ class TestRewriteValidateCommand(pilotest.TestCase):
     ):
         cx = pilotest.make_context()
         cx.args = ["mv\tin/a\tin/b"]
-        mod = pilotest.import_command("rewrite-validate")
+        mod = pilotest.import_command("content-reorg-validate")
 
         with patch("pilo.context.Context", return_value=cx):
             mod.main()
@@ -308,7 +308,7 @@ class TestRewriteValidateCommand(pilotest.TestCase):
     def test_validate_command_rejects_invalid_script(self):
         cx = pilotest.make_context()
         cx.args = ["invalid"]
-        mod = pilotest.import_command("rewrite-validate")
+        mod = pilotest.import_command("content-reorg-validate")
 
         with patch("pilo.context.Context", return_value=cx):
             with pilotest.assert_fatal(self):
