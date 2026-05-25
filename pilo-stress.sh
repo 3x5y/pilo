@@ -12,6 +12,7 @@ SEC_DEV2=/tmp/z2
 SEC_POOL1=z1-rem
 SEC_POOL2=z2-rem
 
+#STREAMS=/tmp/streams
 STREAMS=$(mktemp -d)
 chmod a+rx $STREAMS
 export PILO_STREAM_OUTPUT_PATH=$STREAMS
@@ -233,6 +234,7 @@ cycle() {
         #snapshot_anchor
         _pilo snapshot-anchor
         _pilo replicate
+        _pilo rollup
     done
 }
 

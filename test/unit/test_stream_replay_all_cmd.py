@@ -15,6 +15,7 @@ def _make_result(snapshot="20260522_010203_000000-incr",
                  source="tank/a", target="tank/b"):
     return ReplayResult(
         status="APPLIED",
+        stream=snapshot + '.zfs',
         snapshot=snapshot,
         source=source,
         target_dataset=target,
@@ -111,10 +112,10 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertEqual(
             str(calls[0]),
-            "call('APPLIED 20260522_010203_000000-incr tank/b')")
+            "call('APPLIED 20260522_010203_000000-incr.zfs tank/b')")
         self.assertEqual(
             str(calls[1]),
-            "call('APPLIED 20260522_010204_000000-incr tank/b')")
+            "call('APPLIED 20260522_010204_000000-incr.zfs tank/b')")
 
     @patch("pilo.back.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams"])

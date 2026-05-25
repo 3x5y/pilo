@@ -11,6 +11,7 @@ def _make_result(snapshot="20260522_010203_000000-incr",
                  source="tank/a", target="tank/b"):
     return ReplayResult(
         status="APPLIED",
+        stream=snapshot + '.zfs',
         snapshot=snapshot,
         source=source,
         target_dataset=target,
@@ -107,4 +108,4 @@ class TestStreamReplayCmd(pilotest.TestCase):
                 mod.main()
 
         mock_print.assert_called_once_with(
-            "APPLIED 20260522_010203_000000-incr tank/b")
+            "APPLIED 20260522_010203_000000-incr.zfs tank/b")

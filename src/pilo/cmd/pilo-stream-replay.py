@@ -20,7 +20,7 @@ def main():
     plan = replay.build_replay_plan(stream_path, target_dataset)
     result = replay.execute_replay_plan(plan)
 
-    print(f"{result.status} {result.snapshot} {result.target_dataset}")
+    print(f"{result.status} {result.stream} {result.target_dataset}")
 
 
 if __name__ == "__main__":

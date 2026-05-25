@@ -39,6 +39,7 @@ class BatchReplayPlan:
 @dataclass(frozen=True)
 class ReplayResult:
     status: str
+    stream: str
     snapshot: str
     source: str
     target_dataset: str
@@ -92,6 +93,7 @@ def execute_replay_plan(plan):
         if existing_guid == plan.manifest.guid:
             return ReplayResult(
                 status="SKIPPED",
+                stream=plan.manifest.stream,
                 snapshot=plan.manifest.snapshot,
                 source=plan.manifest.source,
                 target_dataset=plan.target_dataset,
@@ -105,6 +107,7 @@ def execute_replay_plan(plan):
     zfs.recv_file(plan.stream_path, plan.target_dataset)
     return ReplayResult(
         status="APPLIED",
+        stream=plan.manifest.stream,
         snapshot=plan.manifest.snapshot,
         source=plan.manifest.source,
         target_dataset=plan.target_dataset,

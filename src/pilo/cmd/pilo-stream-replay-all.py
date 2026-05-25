@@ -25,7 +25,7 @@ def main():
     batch = replay.build_batch_replay_plan(paths, target_dataset)
 
     for r in replay.execute_batch_replay_plan(batch):
-        print(f"{r.status} {r.snapshot} {r.target_dataset}")
+        print(f"{r.status} {r.stream} {r.target_dataset}")
 
 
 if __name__ == "__main__":
