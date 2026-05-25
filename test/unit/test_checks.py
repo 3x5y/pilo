@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from pilo import checks
-from pilo.front import manifest
+from pilo.content import manifest
 import pilotest
 
 

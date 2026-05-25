@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo.content import capture
-from pilo.front import manifest
+from pilo.content import manifest
 import pilotest
 
 

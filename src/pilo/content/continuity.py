@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..content import checksum
-from ..front import manifest
+from . import checksum
+from . import manifest
 
 
 @dataclass(frozen=True)

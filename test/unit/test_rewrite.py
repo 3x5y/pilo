@@ -6,7 +6,7 @@ from unittest.mock import patch, call
 
 from pilo import paths
 from pilo.content import reorg as rewrite
-from pilo.front import manifest
+from pilo.content import manifest
 import pilotest
 
 
@@ -14,8 +14,8 @@ class TestRewriteCommand(pilotest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.content.reorg.parse_rewrite_ops")
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_reads_stdin_when_no_args(
@@ -40,8 +40,8 @@ class TestRewriteCommand(pilotest.TestCase):
             mock_parse.assert_called_once_with(["mv\tin/a\tin/b"])
 
     @patch("pilo.content.reorg.parse_rewrite_ops")
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_compat_arg_transport(
@@ -65,8 +65,8 @@ class TestRewriteCommand(pilotest.TestCase):
             ])
 
     @patch("pilo.content.reorg.parse_rewrite_ops")
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_reads_script_file(
@@ -92,8 +92,8 @@ class TestRewriteCommand(pilotest.TestCase):
 
     @patch("sys.stdin", new_callable=StringIO)
     @patch("pilo.content.reorg.parse_rewrite_ops")
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_prefers_script_file_over_stdin(
@@ -120,8 +120,8 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_parse.assert_called_once_with(["mv\tin/file\tin/dst"])
 
     @patch("pilo.content.reorg.parse_rewrite_ops")
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_preserves_inline_compatibility(
@@ -145,8 +145,8 @@ class TestRewriteCommand(pilotest.TestCase):
             ])
 
     @patch("pilo.content.reorg.RewriteScript.from_lines")
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")
     def test_rewrite_command_uses_script_model(
@@ -196,8 +196,8 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_execute.assert_not_called()
         mock_print.assert_called_once_with("move /tmp/a -> /tmp/b")
 
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("builtins.print")
     @patch("pilo.content.reorg.preview_rewrite_plan")
     @patch("pilo.content.reorg.build_rewrite_plan")

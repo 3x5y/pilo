@@ -6,8 +6,8 @@ from .. import checks
 from .. import error
 from .. import fs
 from . import continuity
+from . import manifest
 from ..front import mutation
-from ..front import manifest
 from .execution import (
     ExecutionPlan,
     ManifestStep,

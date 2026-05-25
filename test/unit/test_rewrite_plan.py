@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pilo.content import reorg as rewrite
 from pilo.content import execution
-from pilo.front import manifest
+from pilo.content import manifest
 from pilo.front import mutation
 from pilo import paths
 import pilotest

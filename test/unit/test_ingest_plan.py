@@ -6,7 +6,7 @@ from unittest.mock import patch
 from pilo.content import capture
 from pilo.content import ingest
 from pilo.content.execution import ExecutionPlan
-from pilo.front import manifest
+from pilo.content import manifest
 from pilo.front import mutation
 import pilotest
 
@@ -302,8 +302,8 @@ class TestIngestOps(pilotest.TestCase):
 
         mock_exec.assert_called_once()
 
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.ingest.execute_ingest_plan")
     @patch("pilo.content.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -334,8 +334,8 @@ class TestIngestOps(pilotest.TestCase):
         files = list(ingest.ingestible_capture_files([data, meta]))
         self.assertEqual(files, [data])
 
-    @patch("pilo.front.manifest.execute_manifest_update_plan")
-    @patch("pilo.front.manifest.build_manifest_update_plan")
+    @patch("pilo.content.manifest.execute_manifest_update_plan")
+    @patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.ingest.execute_ingest_plan")
     @patch("pilo.content.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -365,7 +365,7 @@ class TestIngestOps(pilotest.TestCase):
         files = mock_build_ingest.call_args[0][1]
         self.assertEqual(files, [data])
 
-    @patch("pilo.front.manifest.execute_manifest_mutations")
+    @patch("pilo.content.manifest.execute_manifest_mutations")
     @patch("pilo.content.ingest.build_manifest_mutations")
     @patch("pilo.content.ingest.execute_ingest_plan")
     @patch("pilo.content.ingest.build_ingest_plan")

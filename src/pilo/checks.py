@@ -46,9 +46,9 @@ def require_no_conflict(src, dst):
         error.fatal(f"destination conflict: {dst}")
 
 
-# unused; kept for reference
+# unused (tested only); kept for reference
 def require_verified(checksum):
-    from pilo.front.manifest import ChecksumProvenance
+    from pilo.content.manifest import ChecksumProvenance
     if checksum.provenance != ChecksumProvenance.VERIFIED:
         error.fatal("checksum continuity not verified")
     return checksum

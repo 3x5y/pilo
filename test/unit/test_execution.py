@@ -17,7 +17,7 @@ import pilotest
 
 class TestExecutionPlan(pilotest.TestCase):
     @patch("pilo.front.mutation.execute_fs_mutations")
-    @patch("pilo.front.manifest.execute_manifest_mutations")
+    @patch("pilo.content.manifest.execute_manifest_mutations")
     def test_execute_plan_skips_empty_sections(self,
                                                mock_manifest,
                                                mock_semantic):
@@ -29,7 +29,7 @@ class TestExecutionPlan(pilotest.TestCase):
 
 
     @patch("pilo.front.mutation.execute_fs_mutations")
-    @patch("pilo.front.manifest.execute_manifest_mutations")
+    @patch("pilo.content.manifest.execute_manifest_mutations")
     def test_manifest_step_builds_after_mutations(self, mock_man, mock_sem):
 
         order = []
@@ -57,7 +57,7 @@ class TestExecutionPlan(pilotest.TestCase):
 
         self.assertEqual(order, ["semantic", "build"])
 
-    @patch("pilo.front.manifest.execute_manifest_mutations")
+    @patch("pilo.content.manifest.execute_manifest_mutations")
     def test_manifest_step_executes_generated_mutations(self, mock_exec):
 
         cx = pilotest.make_context()

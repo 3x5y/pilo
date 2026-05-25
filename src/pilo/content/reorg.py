@@ -7,7 +7,7 @@ from .. import error
 from .. import paths
 from .. import policy
 from . import continuity
-from ..front import manifest
+from . import manifest
 from ..front import mutation
 from .execution import (
     ExecutionPlan,

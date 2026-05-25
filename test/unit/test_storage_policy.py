@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from pilo.front import manifest
+from pilo.content import manifest
 from pilo import paths
 from pilo.context import StoragePolicy
 import pilotest

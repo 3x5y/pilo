@@ -9,10 +9,7 @@ from pilo.content import ingest
 from pilo.content import checksum
 from pilo import context
 from pilo import fs
-from pilo.front import manifest
-from pilo.front import manifest
-from pilo.front import manifest
-from pilo.front import manifest
+from pilo.content import manifest
 from pilo.front import mutation
 from pilo import status
 import pilotest
@@ -521,8 +518,8 @@ class TestManifestUpdate(pilotest.TestCase):
             ["pile", "collection"],
         )
 
-    @patch("pilo.front.manifest.write_manifest")
-    @patch("pilo.front.manifest.commit_manifest_if_changed")
+    @patch("pilo.content.manifest.write_manifest")
+    @patch("pilo.content.manifest.commit_manifest_if_changed")
     @patch("pilo.fs.ensure_parent_dir")
     def test_execute_manifest_update_plan(
         self,

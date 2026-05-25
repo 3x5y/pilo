@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo.content import checksum
-from pilo.front import manifest
+from pilo.content import manifest
 import pilotest
 
 

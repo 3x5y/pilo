@@ -4,7 +4,7 @@ from pilo import context
 from pilo import error
 from pilo.content import reorg as rewrite
 from pilo.content import execution
-from pilo.front import manifest
+from pilo.content import manifest
 
 
 def print_preview(lines):

@@ -4,7 +4,7 @@ from pathlib import Path
 from . import capture
 from .. import checks
 from . import continuity
-from ..front import manifest
+from . import manifest
 from ..front import mutation
 from .execution import (
     ExecutionPlan,
