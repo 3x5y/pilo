@@ -19,7 +19,7 @@ pilo static-promote
 
 echo new > "$TMP/new.txt"
 
-pilo replace "$TMP/new.txt" $archive/file.txt
+pilo content-replace "$TMP/new.txt" $archive/file.txt
 
 grep -q new "$PILO_STATIC_PATH/$archive/file.txt" \
     || fail "static replace failed"

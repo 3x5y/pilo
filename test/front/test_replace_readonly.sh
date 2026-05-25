@@ -7,7 +7,7 @@ pilo content-ingest
 
 echo new > "$TMP/new.txt"
 
-pilo replace "$TMP/new.txt" in/file.txt
+pilo content-replace "$TMP/new.txt" in/file.txt
 
 [ "$(zfs get -H -o value readonly $PILE)" = "on" ] \
     || fail "readonly not restored after write"

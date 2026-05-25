@@ -3,9 +3,9 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
+from pilo.content import replace
 from pilo.front import mutation
 from pilo import paths
-from pilo.front import replace
 from pilo.front.execution import ExecutionPlan
 import pilotest
 

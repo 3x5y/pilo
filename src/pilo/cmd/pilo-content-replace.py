@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pilo import context
 from pilo import error
+from pilo.content import replace
 from pilo.front import execution
-from pilo.front import replace
 
 
 def main():

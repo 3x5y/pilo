@@ -7,7 +7,7 @@ pilo content-ingest
 
 echo new > "$TMP/new.txt"
 
-pilo replace "$TMP/new.txt" in/file.txt
+pilo content-replace "$TMP/new.txt" in/file.txt
 
 owner=$(stat -c %U "$PILO_PILE_PATH/in/file.txt")
 

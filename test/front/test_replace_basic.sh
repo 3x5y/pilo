@@ -7,7 +7,7 @@ pilo content-ingest
 
 echo new > "$TMP/new.txt"
 
-pilo replace "$TMP/new.txt" in/file.txt
+pilo content-replace "$TMP/new.txt" in/file.txt
 
 grep -q new "$PILO_PILE_PATH/in/file.txt" \
     || fail "file not replaced"
