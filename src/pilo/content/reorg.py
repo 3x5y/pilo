@@ -5,7 +5,7 @@ from pathlib import Path
 from .. import checks
 from .. import error
 from .. import paths
-from .. import policy
+from .. import checks
 from . import continuity
 from . import manifest
 from . import mutation
@@ -60,8 +60,8 @@ def parse_rewrite_ops(lines):
             src_p = Path(src)
             dst_p = Path(dst)
 
-            policy.require_relative_path(src_p)
-            policy.require_relative_path(dst_p)
+            checks.require_relative_path(src_p)
+            checks.require_relative_path(dst_p)
 
             op = RewriteOp(kind="mv", src=src_p, dst=dst_p)
             ops.append(op)
@@ -74,7 +74,7 @@ def parse_rewrite_ops(lines):
             _, src = parts
 
             src_p = Path(src)
-            policy.require_relative_path(src_p)
+            checks.require_relative_path(src_p)
             op = RewriteOp(kind="rm", src=src_p)
             ops.append(op)
 
@@ -91,7 +91,7 @@ def resolve_rewrite_op(cx, op: RewriteOp):
 
 
 def validate_move_op(cx, op):
-    policy.require_same_domain(op.op.src, op.op.dst)
+    checks.require_same_domain(op.op.src, op.op.dst)
     checks.require_file(op.src.path)
     checks.require_no_conflict(op.src.path, op.dst.path)
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from pilo import policy
+from pilo import checks as policy
 import pilotest
 
 

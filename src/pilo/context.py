@@ -5,7 +5,7 @@ import pwd
 import sys
 
 from . import paths
-from . import policy
+from . import checks
 from . import topology
 
 
@@ -15,7 +15,7 @@ class DatasetMapping:
     dst_root: str
 
     def _suffix(self, dataset: str, root: str) -> str:
-        policy.require_child_dataset(dataset, root)
+        checks.require_child_dataset(dataset, root)
         return dataset[len(root):].lstrip("/")
 
     def map(self, dataset: str) -> str:
@@ -27,11 +27,11 @@ class DatasetMapping:
         return f"{self.src_root}/{suffix}" if suffix else self.src_root
 
     def validate_within_src(self, dataset: str):
-        policy.require_child_dataset(dataset, self.src_root)
+        checks.require_child_dataset(dataset, self.src_root)
 
     # unused; kept for symmetry with above
     def validate_within_dst(self, dataset: str):
-        policy.require_child_dataset(dataset, self.dst_root)
+        checks.require_child_dataset(dataset, self.dst_root)
 
 
 @dataclass(frozen=True)
