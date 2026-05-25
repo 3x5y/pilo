@@ -3,8 +3,8 @@
 from pilo import context
 from pilo import error
 from pilo.content import promote
-from pilo.front import execution
-from pilo.front import manifest
+from pilo.content import execution
+from pilo.content import manifest
 
 
 def main():

@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo.front import manifest
+from pilo.content import manifest
 
 
 def main():
