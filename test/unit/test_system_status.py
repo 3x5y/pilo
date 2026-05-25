@@ -28,7 +28,7 @@ class TestSystemStatusModel(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertIn('uncommitted', issues[0].message)
 
-    @patch("pilo.state.collect_validation_report")
+    @patch("pilo.lifecycle.collect_validation_report")
     @patch("pilo.status.collect_transient_validation")
     def test_collect_system_status_uses_validation_report(self,
         transient,
@@ -102,7 +102,7 @@ class TestSystemStatusModel(pilotest.TestCase):
             self.assertEqual(len(issues), 1)
             self.assertEqual(issues[0].message, "pile verification failed")
 
-    @patch("pilo.state.collect_validation_report")
+    @patch("pilo.lifecycle.collect_validation_report")
     @patch("pilo.status.check_manifest")
     def test_collect_calls_manifest(self, mock_manifest, *_):
         cx = pilotest.make_context()
@@ -113,7 +113,7 @@ class TestSystemStatusModel(pilotest.TestCase):
         mock_manifest.assert_any_call(cx, "collection")
         mock_manifest.assert_any_call(cx, "filing")
 
-    @patch("pilo.state.collect_validation_report")
+    @patch("pilo.lifecycle.collect_validation_report")
     @patch("pilo.status.check_manifest")
     def test_collect_manifest_only(self, mock_manifest, *_):
         cx = pilotest.make_context()

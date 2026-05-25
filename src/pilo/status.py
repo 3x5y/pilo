@@ -4,7 +4,6 @@ import subprocess
 from . import fs
 from . import git
 from . import lifecycle
-from . import state
 from . import util
 
 
@@ -103,7 +102,7 @@ def collect_report(cx, check=None):
     if check is not None:
         include = {check}
 
-    report = state.collect_validation_report(cx, include=include)
+    report = lifecycle.collect_validation_report(cx, include=include)
 
     if check in (None, "transient"):
         report.extend(collect_transient_validation(cx))

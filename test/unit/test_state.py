@@ -2,8 +2,10 @@ import unittest
 from unittest.mock import patch
 
 from pilo import lifecycle
-from pilo import state
 import pilotest
+
+
+state = lifecycle
 
 
 class TestOperationalState(pilotest.TestCase):
@@ -210,7 +212,7 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.secondary_missing")
 
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     def test_collect_replication_validation_uses_classifier(self, detect):
         detect.return_value = lifecycle.LifecycleStatus(
             state=lifecycle.LifecycleState.REPLICATION_BEHIND,
@@ -491,7 +493,7 @@ class TestLifecycleLegality(pilotest.TestCase):
         )
         self.assertFalse(lifecycle.lifecycle_seed_replication_permitted(ls))
 
-    @patch("pilo.state.detect_lifecycle")
+    @patch("pilo.lifecycle.detect_lifecycle")
     def test_recovery_permitted_unknown(self, detect):
 
         detect.return_value = lifecycle.LifecycleStatus(
