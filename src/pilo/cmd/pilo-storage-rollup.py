@@ -3,7 +3,7 @@
 import os
 
 from pilo import error
-from pilo.back import rollups
+from pilo.storage import rollups
 
 
 def main():

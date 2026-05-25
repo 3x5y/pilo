@@ -4,12 +4,12 @@ set -e
 echo "content1" > /$ADMIN/file1.txt
 
 # Create a mark and seed (places hold on the mark)
-pilo snapshot-mark
+pilo storage-snapshot-mark
 MARK=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 MARK=${MARK#*@}
 
-pilo replica-seed
+pilo storage-replica-seed
 
 # Determine cutoff boundary from the mark's timestamp
 CUTOFF_TS=${MARK%%-*}
@@ -40,7 +40,7 @@ assert_file_exists "$NEW_STREAM.manifest"
 # Run stream-gc with GC path
 GC_TRASH="$TMP/gc_trash"
 export PILO_STREAM_GC_PATH="$GC_TRASH"
-capture_status pilo stream-gc
+capture_status pilo storage-stream-gc
 assert_command_ok
 echo "$OUTPUT" | assert_grep "PRUNE $OLD_STREAM"
 

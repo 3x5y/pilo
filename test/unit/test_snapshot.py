@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import patch
 
 from pilo import util
-from pilo.back import snapshot
-from pilo.back.snapshot import (
+from pilo.storage import snapshot
+from pilo.storage.snapshot import (
     SnapshotKind,
     SnapshotName,
     parse_snapshot_name,
@@ -51,7 +51,7 @@ class TestSnapshotPolicy(pilotest.TestCase):
         mock_snap.assert_called_once_with("r-TS", "tank/a")
         self.assertEqual(snap, "tank/a@r-TS")
 
-    @patch("pilo.back.snapshot.create_snapshot_with_policy")
+    @patch("pilo.storage.snapshot.create_snapshot_with_policy")
     def test_prefixed_uses_policy(self, mock_create):
         mock_create.return_value = "tank/a@r-TS"
 
@@ -60,7 +60,7 @@ class TestSnapshotPolicy(pilotest.TestCase):
         self.assertEqual(snap, "tank/a@r-TS")
         mock_create.assert_called_once()
 
-    @patch("pilo.back.snapshot.create_snapshot_with_policy")
+    @patch("pilo.storage.snapshot.create_snapshot_with_policy")
     def test_create_snapshot_uses_policy(self, mock_create):
         mock_create.return_value = "tank/a@foo"
 

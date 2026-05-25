@@ -103,10 +103,10 @@ def healthy_snapshot_state(snapshot="tank/a/pile@r1", ts=1000, now=1001):
 
 @contextmanager
 def healthy_system_state():
-    from pilo.back.replication import ReplicationStatus
+    from pilo.storage.replication import ReplicationStatus
     p1 = patch("pilo.state.collect_snapshot_validation",
                return_value=[])
-    p2 = patch("pilo.back.replication.replication_status",
+    p2 = patch("pilo.storage.replication.replication_status",
                return_value=(ReplicationStatus.OK, None))
     with ExitStack() as stack:
         stack.enter_context(p1)

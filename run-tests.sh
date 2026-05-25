@@ -112,7 +112,7 @@ init_system() {
     zfs create -p $PILE
     zfs create -p $COLLECTION
     zfs create -p $FILING
-    pilo init
+    pilo storage-init
 }
 
 init_replica() {

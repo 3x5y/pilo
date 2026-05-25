@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from pilo.back import restore
+from pilo.storage import restore
 import pilotest
 
 
@@ -52,7 +52,7 @@ class TestRestorePlan(pilotest.TestCase):
                 "tank/a", "tank/b", "r-1", False
             )
 
-    @patch("pilo.back.restore.restore_dataset")
+    @patch("pilo.storage.restore.restore_dataset")
     def test_execute_restore_plan(self, mock_restore):
         plan = restore.RestorePlan(
             src_snapshot="tank/a@r-1",
@@ -68,14 +68,14 @@ class TestRestorePlan(pilotest.TestCase):
             recursive=True,
         )
 
-    @patch("pilo.back.restore.execute_restore_plan")
-    @patch("pilo.back.restore.build_restore_plan")
+    @patch("pilo.storage.restore.execute_restore_plan")
+    @patch("pilo.storage.restore.build_restore_plan")
     def test_restore_command(self, mock_build, mock_exec):
         cx = pilotest.make_context()
 
         with patch("pilo.context.Context", return_value=cx):
             with patch.object(cx, "args", ["tank/a", "tank/b", "r-1"]):
-                mod = pilotest.import_command('restore')
+                mod = pilotest.import_command('storage-restore')
                 mod.main()
 
         mock_build.assert_called_once_with("tank/a", "tank/b", "r-1", False)

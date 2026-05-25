@@ -3,7 +3,7 @@ set -e
 
 zfs destroy -r $REPLICA_ROOT
 
-capture_status pilo provision-secondary $REPLICA_ROOT
+capture_status pilo storage-provision-secondary $REPLICA_ROOT
 
 assert_command_ok
 

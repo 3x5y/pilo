@@ -3,7 +3,7 @@
 import sys
 
 from pilo import error
-from pilo.back import snapshot
+from pilo.storage import snapshot
 
 
 def main():

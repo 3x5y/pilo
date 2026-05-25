@@ -7,8 +7,8 @@ reset_system tank/test/alt-data
 init_replica $replica_root
 
 snap=baseline
-pilo snapshot $snap
-pilo replica-seed
+pilo storage-snapshot $snap
+pilo storage-replica-seed
 
 zfs list -t snapshot | assert_not_grep $TEST_REPLICA@$snap
 zfs list -t snapshot | assert_not_grep $TEST_REPLICA/active@$snap

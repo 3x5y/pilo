@@ -1,12 +1,12 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo.back.replay import (
+from pilo.storage.replay import (
     BatchReplayPlan,
     ReplayPlan,
     ReplayResult,
 )
-from pilo.back.streams import StreamManifest
+from pilo.storage.streams import StreamManifest
 from pilo import error
 import pilotest
 
@@ -37,24 +37,24 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
 
     @patch("sys.argv", ["pilo-stream-replay-all"])
     def test_no_args_exits(self):
-        mod = pilotest.import_command("stream-replay-all")
+        mod = pilotest.import_command("storage-stream-replay-all")
         with pilotest.suppress_stderr():
             with self.assertRaises(SystemExit):
                 mod.main()
 
-    @patch("pilo.back.replay.find_streams")
+    @patch("pilo.storage.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams"])
     def test_empty_directory_returns_silently(self, mock_find):
         mock_find.return_value = []
 
-        mod = pilotest.import_command("stream-replay-all")
-        with patch("pilo.back.replay.build_batch_replay_plan") as mock_build:
+        mod = pilotest.import_command("storage-stream-replay-all")
+        with patch("pilo.storage.replay.build_batch_replay_plan") as mock_build:
             mod.main()
             mock_build.assert_not_called()
 
         mock_find.assert_called_once_with("/streams")
 
-    @patch("pilo.back.replay.find_streams")
+    @patch("pilo.storage.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams", "tank/c"])
     def test_target_passed_to_batch(self, mock_find):
         mock_find.return_value = [Path("/streams/a.zfs")]
@@ -66,17 +66,17 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
         )
         batch = BatchReplayPlan(plans=(plan,))
 
-        mod = pilotest.import_command("stream-replay-all")
-        with patch("pilo.back.replay.build_batch_replay_plan",
+        mod = pilotest.import_command("storage-stream-replay-all")
+        with patch("pilo.storage.replay.build_batch_replay_plan",
                    return_value=batch):
-            with patch("pilo.back.replay.execute_batch_replay_plan",
+            with patch("pilo.storage.replay.execute_batch_replay_plan",
                        return_value=[_make_result(target="tank/c")]):
                 with pilotest.suppress_stdout():
                     mod.main()
 
         mock_find.assert_called_once_with("/streams")
 
-    @patch("pilo.back.replay.find_streams")
+    @patch("pilo.storage.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams"])
     def test_prints_result_per_stream(self, mock_find):
         mock_find.return_value = [
@@ -93,10 +93,10 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
         )
         batch = BatchReplayPlan(plans=(plan_a, plan_b))
 
-        mod = pilotest.import_command("stream-replay-all")
-        with patch("pilo.back.replay.build_batch_replay_plan",
+        mod = pilotest.import_command("storage-stream-replay-all")
+        with patch("pilo.storage.replay.build_batch_replay_plan",
                    return_value=batch):
-            with patch("pilo.back.replay.execute_batch_replay_plan",
+            with patch("pilo.storage.replay.execute_batch_replay_plan",
                        return_value=[
                            _make_result(
                                snapshot="20260522_010203_000000-reg",
@@ -117,20 +117,20 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
             str(calls[1]),
             "call('APPLIED 20260522_010204_000000-reg.zfs tank/b')")
 
-    @patch("pilo.back.replay.find_streams")
+    @patch("pilo.storage.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams"])
     def test_build_failure_propagates(self, mock_find):
         mock_find.return_value = [Path("/streams/bad.zfs")]
 
-        mod = pilotest.import_command("stream-replay-all")
-        with patch("pilo.back.replay.build_batch_replay_plan") as mock_build:
+        mod = pilotest.import_command("storage-stream-replay-all")
+        with patch("pilo.storage.replay.build_batch_replay_plan") as mock_build:
             mock_build.side_effect = error.FatalError(
                 "stream verification failed")
 
             with self.assert_fatal():
                 mod.main()
 
-    @patch("pilo.back.replay.find_streams")
+    @patch("pilo.storage.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams"])
     def test_execute_failure_propagates(self, mock_find):
         mock_find.return_value = [Path("/streams/bad.zfs")]
@@ -141,11 +141,11 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
         )
         batch = BatchReplayPlan(plans=(plan,))
 
-        mod = pilotest.import_command("stream-replay-all")
-        with patch("pilo.back.replay.build_batch_replay_plan",
+        mod = pilotest.import_command("storage-stream-replay-all")
+        with patch("pilo.storage.replay.build_batch_replay_plan",
                    return_value=batch):
             with patch(
-                "pilo.back.replay.execute_batch_replay_plan"
+                "pilo.storage.replay.execute_batch_replay_plan"
             ) as mock_exec:
                 mock_exec.side_effect = RuntimeError(
                     "zfs receive failed")

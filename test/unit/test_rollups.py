@@ -3,8 +3,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from pilo.back import rollups
-from pilo.back.rollups import RollupOp, RollupPlan
+from pilo.storage import rollups
+from pilo.storage.rollups import RollupOp, RollupPlan
 import pilotest
 
 
@@ -204,7 +204,7 @@ class TestBuildRollupPlan(pilotest.TestCase):
         ("tank@20260102_000000_000000-mark", 1),
     ])
     def test_builds_one_op(self, mock_userrefs):
-        with patch("pilo.back.rollups.verify_one",
+        with patch("pilo.storage.rollups.verify_one",
                    return_value=("NOT_FOUND", "")):
             with patch.dict(os.environ,
                             {"PILO_STREAM_OUTPUT_PATH": "/out"}):
@@ -229,9 +229,9 @@ class TestBuildRollupPlan(pilotest.TestCase):
         ("tank@b-mark", 1),
     ])
     def test_skip_existing_verified(self, mock_userrefs):
-        with patch("pilo.back.rollups.verify_one",
+        with patch("pilo.storage.rollups.verify_one",
                    return_value=("OK", "")):
-            with patch("pilo.back.rollups.stream_output_path",
+            with patch("pilo.storage.rollups.stream_output_path",
                        return_value=Path("/out")):
                 with patch.object(Path, "exists",
                                   return_value=True):
@@ -243,7 +243,7 @@ class TestBuildRollupPlan(pilotest.TestCase):
         ("tank@b-mark", 1),
     ])
     def test_skip_existing_corrupt_regenerates(self, mock_userrefs):
-        with patch("pilo.back.rollups.verify_one",
+        with patch("pilo.storage.rollups.verify_one",
                    return_value=("MISMATCH", "")):
             with patch.dict(os.environ,
                             {"PILO_STREAM_OUTPUT_PATH": "/out"}):
@@ -260,7 +260,7 @@ class TestExecuteRollupPlan(pilotest.TestCase):
         results = list(rollups.execute_rollup_plan(plan))
         self.assertEqual(results, [])
 
-    @patch("pilo.back.rollups.write_rollup_manifest")
+    @patch("pilo.storage.rollups.write_rollup_manifest")
     @patch("pilo.zfs.get_guid", return_value="guid123")
     @patch("pilo.zfs.send_incremental_to_file")
     def test_single_op(self, mock_send, mock_guid, mock_manifest):
@@ -287,7 +287,7 @@ class TestExecuteRollupPlan(pilotest.TestCase):
             base_snapshot="base-mark",
         )
 
-    @patch("pilo.back.rollups.write_rollup_manifest")
+    @patch("pilo.storage.rollups.write_rollup_manifest")
     @patch("pilo.zfs.get_guid", return_value="g")
     @patch("pilo.zfs.send_incremental_to_file")
     def test_multiple_ops(self, mock_send, mock_guid, mock_manifest):

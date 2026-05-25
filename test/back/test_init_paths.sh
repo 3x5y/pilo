@@ -6,7 +6,7 @@ unset PILO_INTAKE_PATH
 unset PILO_PILE_PATH
 unset PILO_STATIC_PATH
 
-capture_status pilo init
+capture_status pilo storage-init
 
 assert_command_ok "init should succeed with valid layout"
 

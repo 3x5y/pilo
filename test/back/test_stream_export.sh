@@ -3,15 +3,15 @@ set -e
 
 # Create content and a canonical snapshot
 echo "content" > /$ADMIN/file.txt
-pilo snapshot-reg
+pilo storage-snapshot-reg
 
 # Seed the replica
-pilo replica-seed
+pilo storage-replica-seed
 
 # More content, another snapshot, then replicate with stream export
 echo "more" > /$ADMIN/file2.txt
-pilo snapshot-reg
-PILO_STREAM_EXPORT=1 pilo replicate
+pilo storage-snapshot-reg
+PILO_STREAM_EXPORT=1 pilo storage-replicate
 
 # Find the latest canonical snapshot
 latest_snap=$(zfs list -t snapshot -r -Ho name -s creation \
@@ -26,11 +26,11 @@ manifest_file=${stream_file}.manifest
 assert_file_exists "$stream_file"
 assert_file_exists "$manifest_file"
 
-# Verify via stream-verify
-capture_status pilo stream-verify "$stream_file"
+# Verify via storage-stream-verify
+capture_status pilo storage-stream-verify "$stream_file"
 assert_command_ok
 
-capture_status pilo stream-verify "$manifest_file"
+capture_status pilo storage-stream-verify "$manifest_file"
 assert_command_ok
 
 # Assert manifest has correct kind and base_snapshot

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from pilo.back import provision
+from pilo.storage import provision
 import pilotest
 
 class TestProvision(pilotest.TestCase):
@@ -13,7 +13,7 @@ class TestProvision(pilotest.TestCase):
         with self.assert_fatal():
             provision.provision_primary(cx)
 
-    @patch("pilo.back.normalize.normalize_system")
+    @patch("pilo.storage.normalize.normalize_system")
     @patch("pilo.zfs.dataset_exists", return_value=False)
     @patch("pilo.zfs.create_dataset")
     def test_provision_primary_creates_contract_tree(self, create, *_):
@@ -38,7 +38,7 @@ class TestProvision(pilotest.TestCase):
         with self.assert_fatal():
             provision.provision_secondary(cx)
 
-    @patch("pilo.back.normalize.normalize_system")
+    @patch("pilo.storage.normalize.normalize_system")
     @patch("pilo.zfs.dataset_exists", return_value=False)
     @patch("pilo.zfs.create_dataset")
     def test_provision_secondary_creates_contract_tree(self, create, *_):

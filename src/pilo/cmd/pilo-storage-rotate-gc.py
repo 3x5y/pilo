@@ -5,7 +5,7 @@ import os
 from pilo import context
 from pilo import error
 from pilo import lifecycle
-from pilo.back import continuity
+from pilo.storage import continuity
 
 
 def main():

@@ -4,16 +4,16 @@ set -e
 repl_admin=$TEST_REPLICA/active/admin
 
 echo v1 > $ADMIN_PATH/file.txt
-pilo snapshot-reg
-pilo replica-seed
+pilo storage-snapshot-reg
+pilo storage-replica-seed
 
 echo v2 > $ADMIN_PATH/file.txt
-pilo snapshot-reg
-pilo replicate
+pilo storage-snapshot-reg
+pilo storage-replicate
 
 echo v3 > $ADMIN_PATH/file.txt
-pilo snapshot-reg
-pilo replicate
+pilo storage-snapshot-reg
+pilo storage-replicate
 
 snap=$(zfs list -t snap -s creation -Ho name "$repl_admin" \
         | tail -n1 | cut -d@ -f2)

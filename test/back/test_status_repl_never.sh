@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
+pilo storage-snapshot t0
 
 capture_status pilo status replication
 

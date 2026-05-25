@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from pilo import lifecycle
-from pilo.back import replication as repl
+from pilo.storage import replication as repl
 import pilotest
 
 
@@ -36,7 +36,7 @@ class TestReplicationPlan(pilotest.TestCase):
             repl.build_seed_replication_plan("tank/a", "backup/a")
 
     @patch('pilo.checks.require_dataset')
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_incremental(self, mock_latest, mock_base, *_):
         mock_latest.side_effect = ["tank/a@r2", "backup/a@r1"]
@@ -49,7 +49,7 @@ class TestReplicationPlan(pilotest.TestCase):
         self.assertEqual(plan.snapshot, "tank/a@r2")
 
     @patch('pilo.checks.require_dataset')
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_noop_when_up_to_date(self, mock_latest, mock_base, *_):
         mock_latest.side_effect = ["tank/a@r1", "backup/a@r1"]
@@ -93,8 +93,8 @@ class TestReplicationPlan(pilotest.TestCase):
             "backup/a",
         )
 
-    @patch("pilo.back.replication.execute_replication_plan")
-    @patch("pilo.back.replication.build_replication_plan")
+    @patch("pilo.storage.replication.execute_replication_plan")
+    @patch("pilo.storage.replication.build_replication_plan")
     def test_replicate_uses_plan(self, mock_build, mock_exec):
         mock_build.return_value = repl.ReplicationPlan(
             src="tank/a",
@@ -115,7 +115,7 @@ class TestReplicationPlan(pilotest.TestCase):
             repl.build_replication_plan("tank/a", "backup/a")
 
     @patch("pilo.lifecycle.detect_lifecycle")
-    @patch("pilo.back.replication.build_seed_replication_plan")
+    @patch("pilo.storage.replication.build_seed_replication_plan")
     def test_build_replica_seed_plan(self, mock_build, mock_detect):
         cx = pilotest.make_context()
 
@@ -147,10 +147,10 @@ class TestReplicationPlan(pilotest.TestCase):
 
 class TestReplicationPlanExport(pilotest.TestCase):
 
-    @patch("pilo.back.replication._resolve_export_path",
+    @patch("pilo.storage.replication._resolve_export_path",
            return_value="/out/ts-reg.zfs")
     @patch("pilo.checks.require_dataset")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_export_true_sets_export_path(
         self, mock_latest, mock_base, *_,
@@ -165,7 +165,7 @@ class TestReplicationPlanExport(pilotest.TestCase):
         self.assertEqual(plan.export_path, "/out/ts-reg.zfs")
 
     @patch("pilo.checks.require_dataset")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_export_false_leaves_export_path_none(
         self, mock_latest, mock_base, *_,
@@ -179,10 +179,10 @@ class TestReplicationPlanExport(pilotest.TestCase):
 
         self.assertIsNone(plan.export_path)
 
-    @patch("pilo.back.replication._resolve_export_path",
+    @patch("pilo.storage.replication._resolve_export_path",
            return_value=None)
     @patch("pilo.checks.require_dataset")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_export_true_non_canonical_returns_none(
         self, mock_latest, mock_base, *_,
@@ -200,7 +200,7 @@ class TestReplicationPlanExport(pilotest.TestCase):
 class TestReplicationPlanWithLabel(pilotest.TestCase):
 
     @patch("pilo.checks.require_dataset")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_incremental_with_label(self, mock_latest, mock_base, *_):
         mock_latest.side_effect = ["tank/a@r2", "backup/a@r1"]
@@ -227,9 +227,9 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
         self.assertEqual(plan.hold_snapshot, "tank/a@r1")
         self.assertEqual(plan.hold_tag, "pilo:mylabel")
 
-    @patch("pilo.back.replication._has_continuity_hold", return_value=True)
+    @patch("pilo.storage.replication._has_continuity_hold", return_value=True)
     @patch("pilo.checks.require_dataset")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_noop_with_label_hold_ok(
         self, mock_latest, mock_base, *_
@@ -243,9 +243,9 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
 
         self.assertEqual(plan.mode, "noop")
 
-    @patch("pilo.back.replication._has_continuity_hold", return_value=False)
+    @patch("pilo.storage.replication._has_continuity_hold", return_value=False)
     @patch("pilo.checks.require_dataset")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_plan_noop_with_label_hold_missing_fatal(
         self, mock_latest, mock_base, *_
@@ -302,8 +302,8 @@ class TestReplicationPlanWithLabel(pilotest.TestCase):
 class TestExecuteWithExportPath(pilotest.TestCase):
 
     @patch("pilo.zfs.recv_file")
-    @patch("pilo.back.streams.verify_one", return_value=("OK", ""))
-    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.storage.streams.verify_one", return_value=("OK", ""))
+    @patch("pilo.storage.streams.write_stream_manifest")
     @patch("pilo.zfs.get_guid", return_value="g")
     @patch("pilo.zfs.send_incremental_to_file")
     def test_incremental_forwards_export_path(
@@ -343,8 +343,8 @@ class TestExecuteWithExportPath(pilotest.TestCase):
 
     @patch("pilo.zfs.set_prop")
     @patch("pilo.zfs.recv_file")
-    @patch("pilo.back.streams.verify_one", return_value=("OK", ""))
-    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.storage.streams.verify_one", return_value=("OK", ""))
+    @patch("pilo.storage.streams.write_stream_manifest")
     @patch("pilo.zfs.get_guid", return_value="guid_incr")
     @patch("pilo.zfs.send_incremental_to_file")
     def test_incremental_writes_manifest(
@@ -367,7 +367,7 @@ class TestExecuteWithExportPath(pilotest.TestCase):
             kind="incremental", base_snapshot="base",
         )
 
-    @patch("pilo.back.streams.write_stream_manifest")
+    @patch("pilo.storage.streams.write_stream_manifest")
     @patch("pilo.zfs.get_guid")
     @patch("pilo.zfs.replicate_full")
     def test_noop_skips_manifest(
@@ -408,7 +408,7 @@ class TestExecuteWithExportPath(pilotest.TestCase):
 class TestReplicateCommands(pilotest.TestCase):
 
     def test_replicate_requires_secondary(self):
-        mod = pilotest.import_command("replicate")
+        mod = pilotest.import_command("storage-replicate")
 
         cx = pilotest.make_context(
             PILO_SECONDARY_ROOTS="",
@@ -420,7 +420,7 @@ class TestReplicateCommands(pilotest.TestCase):
                 mod.main()
 
     def test_replicate_requires_attached_secondary(self):
-        mod = pilotest.import_command("replicate")
+        mod = pilotest.import_command("storage-replicate")
         cx = pilotest.make_context(
             PILO_SECONDARY_ROOTS="backup/a",
         )
@@ -437,7 +437,7 @@ class TestReplicateCommands(pilotest.TestCase):
             mod.main()
 
     def test_replicate_safe_requires_secondary(self):
-        mod = pilotest.import_command("replicate-safe")
+        mod = pilotest.import_command("storage-replicate-safe")
 
         cx = pilotest.make_context(
             PILO_SECONDARY_ROOTS="",
@@ -447,11 +447,11 @@ class TestReplicateCommands(pilotest.TestCase):
             with pilotest.assert_fatal(self):
                 mod.main()
 
-    @patch("pilo.back.replication.replicate")
-    @patch("pilo.back.replication.build_replication_plan")
-    @patch("pilo.back.replication.execute_replication_plan")
+    @patch("pilo.storage.replication.replicate")
+    @patch("pilo.storage.replication.build_replication_plan")
+    @patch("pilo.storage.replication.execute_replication_plan")
     def test_replicate_safe_uses_classifier_secondary(self, *_):
-        mod = pilotest.import_command("replicate-safe")
+        mod = pilotest.import_command("storage-replicate-safe")
         cx = pilotest.make_context()
         detected = lifecycle.LifecycleStatus(
             state=lifecycle.LifecycleState.REPLICATION_BEHIND,
@@ -460,7 +460,7 @@ class TestReplicateCommands(pilotest.TestCase):
         )
         p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
-        p3 = patch("pilo.back.replication.replication_status",
+        p3 = patch("pilo.storage.replication.replication_status",
                    side_effect=[
                        (repl.ReplicationStatus.BEHIND, "behind"),
                        (repl.ReplicationStatus.OK, None),
@@ -470,7 +470,7 @@ class TestReplicateCommands(pilotest.TestCase):
             mod.main()
 
     def test_replicate_safe_blocks_diverged_topology(self):
-        mod = pilotest.import_command("replicate-safe")
+        mod = pilotest.import_command("storage-replicate-safe")
         cx = pilotest.make_context()
         detected = lifecycle.LifecycleStatus(
             state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
@@ -484,7 +484,7 @@ class TestReplicateCommands(pilotest.TestCase):
             mod.main()
 
     def test_replicate_verify_requires_secondary(self):
-        mod = pilotest.import_command("replication-verify")
+        mod = pilotest.import_command("storage-replication-verify")
 
         cx = pilotest.make_context(
             PILO_SECONDARY_ROOTS="",
@@ -494,10 +494,10 @@ class TestReplicateCommands(pilotest.TestCase):
             with pilotest.assert_fatal(self):
                 mod.main()
 
-    @patch("pilo.back.replication.execute_replication_plan")
-    @patch("pilo.back.replication.build_seed_replication_plan")
+    @patch("pilo.storage.replication.execute_replication_plan")
+    @patch("pilo.storage.replication.build_seed_replication_plan")
     def test_replica_seed_uses_seed_plan(self, mock_build, mock_exec):
-        mod = pilotest.import_command("replica-seed")
+        mod = pilotest.import_command("storage-replica-seed")
 
         cx = pilotest.make_context()
 
@@ -517,7 +517,7 @@ class TestReplicateCommands(pilotest.TestCase):
         mock_exec.assert_called_once()
 
     def test_replicate_rejects_uninitialized_secondary(self):
-        mod = pilotest.import_command("replicate")
+        mod = pilotest.import_command("storage-replicate")
 
         cx = pilotest.make_context(
             PILO_SECONDARY_ROOTS="backup/a",
@@ -544,7 +544,7 @@ class TestReplicateCommands(pilotest.TestCase):
         )
         cx = pilotest.make_context()
         p1 = patch("pilo.context.Context", return_value=cx)
-        mod = pilotest.import_command("replicate-safe")
+        mod = pilotest.import_command("storage-replicate-safe")
 
         with (p1, pilotest.assert_fatal(self)):
             mod.main()
@@ -557,7 +557,7 @@ class TestReplicateCommands(pilotest.TestCase):
         )
         cx = pilotest.make_context()
         p1 = patch("pilo.context.Context", return_value=cx)
-        mod = pilotest.import_command("replicate")
+        mod = pilotest.import_command("storage-replicate")
 
         with (p1, pilotest.assert_fatal(self)):
             mod.main()
@@ -617,7 +617,7 @@ class TestReplicationState(pilotest.TestCase):
 
     @patch("pilo.zfs.list_filesystems",
            return_value=["backup/a"])
-    @patch("pilo.back.replication.find_incremental_base",
+    @patch("pilo.storage.replication.find_incremental_base",
            return_value="tank/a@t0")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.get_latest_guid", side_effect=[1, 2, 1, 2])
@@ -633,7 +633,7 @@ class TestReplicationState(pilotest.TestCase):
 
     @patch("pilo.zfs.list_filesystems",
            return_value=["backup/a"])
-    @patch("pilo.back.replication.find_incremental_base",
+    @patch("pilo.storage.replication.find_incremental_base",
            return_value=None)
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.get_latest_guid", side_effect=[1, 1])
@@ -649,7 +649,7 @@ class TestReplicationState(pilotest.TestCase):
 
     @patch("pilo.zfs.list_filesystems",
            return_value=["backup/a"])
-    @patch("pilo.back.replication.find_incremental_base",
+    @patch("pilo.storage.replication.find_incremental_base",
            return_value=None)
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.get_latest_guid", side_effect=[1, 1])
@@ -663,7 +663,7 @@ class TestReplicationState(pilotest.TestCase):
         self.assertEqual(status, repl.ReplicationStatus.DIVERGED)
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
-    @patch("pilo.back.replication.find_incremental_base",
+    @patch("pilo.storage.replication.find_incremental_base",
            return_value="tank/a@t0")
     @patch("pilo.zfs.get_latest_guid")
     @patch("pilo.zfs.list_filesystems")
@@ -699,7 +699,7 @@ class TestReplicationState(pilotest.TestCase):
     @patch("pilo.zfs.dataset_exists")
     @patch("pilo.zfs.list_filesystems")
     @patch("pilo.zfs.get_latest_guid")
-    @patch("pilo.back.replication.find_incremental_base",
+    @patch("pilo.storage.replication.find_incremental_base",
            return_value="tank/a@t0")
     def test_missing_replica_child_is_behind(
         self,
@@ -744,7 +744,7 @@ class TestReplicationState(pilotest.TestCase):
     @patch("pilo.context.DatasetMapping")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.list_filesystems")
-    @patch("pilo.back.replication.find_incremental_base",
+    @patch("pilo.storage.replication.find_incremental_base",
            return_value="tank/a@t0")
     @patch("pilo.zfs.get_latest_guid")
     def test_synchronized(
@@ -800,7 +800,7 @@ class TestReplicationState(pilotest.TestCase):
     @patch("pilo.context.DatasetMapping")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.list_filesystems")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.get_latest_guid")
     def test_ok_after_full_traversal(
         self,
@@ -849,7 +849,7 @@ class TestReplicationState(pilotest.TestCase):
     @patch("pilo.context.DatasetMapping")
     @patch("pilo.zfs.dataset_exists", return_value=True)
     @patch("pilo.zfs.list_filesystems")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     @patch("pilo.zfs.get_latest_guid")
     def test_replica_old_history_allowed(
         self,
@@ -890,7 +890,7 @@ class TestReplicationState(pilotest.TestCase):
     @patch("pilo.zfs.dataset_exists")
     @patch("pilo.zfs.get_latest_guid")
     @patch("pilo.context.DatasetMapping")
-    @patch("pilo.back.replication.find_incremental_base")
+    @patch("pilo.storage.replication.find_incremental_base")
     def test_replica_only_dataset_is_ignored(
         self,
         base,

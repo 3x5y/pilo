@@ -7,11 +7,11 @@ import pilotest
 class TestRotateGcCommand(pilotest.TestCase):
 
     def test_command_exists(self):
-        mod = pilotest.import_command("rotate-gc")
+        mod = pilotest.import_command("storage-rotate-gc")
         self.assertIsNotNone(mod)
 
     def test_requires_secondary(self):
-        mod = pilotest.import_command("rotate-gc")
+        mod = pilotest.import_command("storage-rotate-gc")
         cx = pilotest.make_context()
 
         p1 = patch(
@@ -27,7 +27,7 @@ class TestRotateGcCommand(pilotest.TestCase):
             mod.main()
 
     def test_requires_provisioning(self):
-        mod = pilotest.import_command("rotate-gc")
+        mod = pilotest.import_command("storage-rotate-gc")
         cx = pilotest.make_context()
 
         p1 = patch(
@@ -43,8 +43,8 @@ class TestRotateGcCommand(pilotest.TestCase):
             mod.main()
 
     @patch("builtins.print")
-    @patch("pilo.back.continuity.ageing_plan")
-    @patch("pilo.back.continuity.execute_ageing_plan")
+    @patch("pilo.storage.continuity.ageing_plan")
+    @patch("pilo.storage.continuity.execute_ageing_plan")
     def test_preview_builds_plan(self, mock_execute, mock_plan, mock_print):
         mock_plan.return_value = Mock(
             secondary_to_prune=[],
@@ -52,7 +52,7 @@ class TestRotateGcCommand(pilotest.TestCase):
             primary_to_prune=[],
             primary_to_release=[],
         )
-        mod = pilotest.import_command("rotate-gc")
+        mod = pilotest.import_command("storage-rotate-gc")
         cx = pilotest.make_context()
         cx.args = ["--preview"]
 
@@ -72,9 +72,9 @@ class TestRotateGcCommand(pilotest.TestCase):
         mock_execute.assert_not_called()
 
     @patch("builtins.print")
-    @patch("pilo.back.continuity.preview_ageing_plan")
-    @patch("pilo.back.continuity.ageing_plan")
-    @patch("pilo.back.continuity.execute_ageing_plan")
+    @patch("pilo.storage.continuity.preview_ageing_plan")
+    @patch("pilo.storage.continuity.ageing_plan")
+    @patch("pilo.storage.continuity.execute_ageing_plan")
     def test_preview_prints_output(
             self, mock_execute, mock_plan, mock_preview, mock_print,
     ):
@@ -82,7 +82,7 @@ class TestRotateGcCommand(pilotest.TestCase):
             "destroy sec@a",
             "release pilo:pool1 sec@b",
         ]
-        mod = pilotest.import_command("rotate-gc")
+        mod = pilotest.import_command("storage-rotate-gc")
         cx = pilotest.make_context()
         cx.args = ["--preview"]
 

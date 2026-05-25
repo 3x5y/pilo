@@ -3,7 +3,7 @@
 from pilo import checks
 from pilo import context
 from pilo import error
-from pilo.back import normalize
+from pilo.storage import normalize
 
 
 def main():

@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-replica-seed
 
-pilo snapshot-reg
-pilo replicate
+pilo storage-snapshot-reg
+pilo storage-replicate
 
-pilo snapshot t1
-pilo replicate
+pilo storage-snapshot t1
+pilo storage-replicate
 
 # ensure incremental basis was the rpo snapshot (indirectly)
 zfs list -t snap -Ho name $TEST_REPLICA | assert_grep "reg$"

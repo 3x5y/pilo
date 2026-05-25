@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 
-from pilo.back import continuity
+from pilo.storage import continuity
 from pilo.topology import SecondaryConfig
 import pilotest
 
@@ -449,9 +449,9 @@ class TestPrimaryHoldsToRelease(TestContinuityAnchor):
 
 class TestAgeingPlan(TestContinuityAnchor):
 
-    @patch("pilo.back.continuity.primary_holds_to_release")
-    @patch("pilo.back.continuity.expired_secondary_anchors")
-    @patch("pilo.back.continuity.unheld_snapshots")
+    @patch("pilo.storage.continuity.primary_holds_to_release")
+    @patch("pilo.storage.continuity.expired_secondary_anchors")
+    @patch("pilo.storage.continuity.unheld_snapshots")
     def test_composes_correctly(self, mock_unheld, mock_expired, mock_primary):
         mock_unheld.side_effect = [
             ["sec@a", "sec@b"],
@@ -478,9 +478,9 @@ class TestAgeingPlan(TestContinuityAnchor):
         self.assertEqual(len(plan.primary_to_release), 1)
         self.assertEqual(plan.primary_to_release[0].snapshot, "pri@a")
 
-    @patch("pilo.back.continuity.primary_holds_to_release")
-    @patch("pilo.back.continuity.expired_secondary_anchors")
-    @patch("pilo.back.continuity.unheld_snapshots")
+    @patch("pilo.storage.continuity.primary_holds_to_release")
+    @patch("pilo.storage.continuity.expired_secondary_anchors")
+    @patch("pilo.storage.continuity.unheld_snapshots")
     def test_empty_plan(self, mock_unheld, mock_expired, mock_primary):
         mock_unheld.return_value = []
         mock_expired.return_value = []
@@ -493,9 +493,9 @@ class TestAgeingPlan(TestContinuityAnchor):
         self.assertEqual(plan.primary_to_prune, [])
         self.assertEqual(plan.primary_to_release, [])
 
-    @patch("pilo.back.continuity.primary_holds_to_release")
-    @patch("pilo.back.continuity.expired_secondary_anchors")
-    @patch("pilo.back.continuity.unheld_snapshots")
+    @patch("pilo.storage.continuity.primary_holds_to_release")
+    @patch("pilo.storage.continuity.expired_secondary_anchors")
+    @patch("pilo.storage.continuity.unheld_snapshots")
     def test_keep_forwarded(self, mock_unheld, mock_expired, mock_primary):
         mock_unheld.return_value = []
         mock_expired.return_value = []
@@ -627,24 +627,24 @@ class TestExecuteAgeingPlan(TestContinuityAnchor):
             ],
         )
 
-    @patch("pilo.back.continuity.zfs.release")
-    @patch("pilo.back.continuity.zfs.destroy_snapshots")
+    @patch("pilo.storage.continuity.zfs.release")
+    @patch("pilo.storage.continuity.zfs.destroy_snapshots")
     def test_execute_secondary_prune_first(self, mock_destroy, mock_release):
         continuity.execute_ageing_plan(self.cx, "pool1/backup", self.plan)
 
         self.assertEqual(mock_destroy.call_args_list[0][0][0],
                          ["pool1/backup@sec_a"])
 
-    @patch("pilo.back.continuity.zfs.release")
-    @patch("pilo.back.continuity.zfs.destroy_snapshots")
+    @patch("pilo.storage.continuity.zfs.release")
+    @patch("pilo.storage.continuity.zfs.destroy_snapshots")
     def test_execute_releases_secondary_holds(self, mock_destroy, mock_release):
         continuity.execute_ageing_plan(self.cx, "pool1/backup", self.plan)
 
         mock_release.assert_any_call("pilo:pool1", "pool1/backup@sec_b")
         mock_release.assert_any_call("pilo:pool1", "tank/a@pri_b")
 
-    @patch("pilo.back.continuity.zfs.release")
-    @patch("pilo.back.continuity.zfs.destroy_snapshots")
+    @patch("pilo.storage.continuity.zfs.release")
+    @patch("pilo.storage.continuity.zfs.destroy_snapshots")
     def test_execute_full_order(self, mock_destroy, mock_release):
         continuity.execute_ageing_plan(self.cx, "pool1/backup", self.plan)
 
@@ -657,8 +657,8 @@ class TestExecuteAgeingPlan(TestContinuityAnchor):
         self.assertEqual(mock_release.call_args_list[1][0],
                          ("pilo:pool1", "tank/a@pri_b"))
 
-    @patch("pilo.back.continuity.zfs.release")
-    @patch("pilo.back.continuity.zfs.run")
+    @patch("pilo.storage.continuity.zfs.release")
+    @patch("pilo.storage.continuity.zfs.run")
     def test_execute_empty_plan(self, mock_run, mock_release):
         empty = continuity.AgeingPlan(
             secondary_to_prune=[],

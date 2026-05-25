@@ -4,7 +4,7 @@ import os
 import sys
 
 from pilo import error
-from pilo.back.snapshot import create_extra_snapshot
+from pilo.storage.snapshot import create_extra_snapshot
 
 
 def main():

@@ -4,8 +4,8 @@ set -e
 repl=$TEST_REPLICA/active/admin
 
 echo hello > /$ADMIN/file.txt
-pilo snapshot t0
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-replica-seed
 
 zfs list -t snapshot | assert_grep $repl@t0
 zfs set canmount=on $repl

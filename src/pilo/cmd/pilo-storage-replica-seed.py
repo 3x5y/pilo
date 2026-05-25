@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo.back import replication as repl
+from pilo.storage import replication as repl
 
 
 def main():

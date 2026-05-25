@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from pilo import lifecycle
-from pilo.back import recover
+from pilo.storage import recover
 import pilotest
 
 
@@ -78,11 +78,11 @@ class TestRecoveryPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "tank/a")
 
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.storage.normalize.ensure_runtime_dirs")
+    @patch("pilo.storage.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contracts")
-    @patch("pilo.back.restore.restore_dataset")
+    @patch("pilo.storage.normalize.apply_dataset_contracts")
+    @patch("pilo.storage.restore.restore_dataset")
     def test_execute_plan(self, mock_restore, mock_contract, mock_run,
                           mock_owner, mock_dirs):
         plan = recover.RecoveryPlan(
@@ -101,11 +101,11 @@ class TestRecoveryPlan(pilotest.TestCase):
             recursive=True,
         )
 
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.storage.normalize.ensure_runtime_dirs")
+    @patch("pilo.storage.normalize.apply_ownership")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contracts")
-    @patch("pilo.back.restore.restore_dataset")
+    @patch("pilo.storage.normalize.apply_dataset_contracts")
+    @patch("pilo.storage.restore.restore_dataset")
     def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
                                            mock_owner, mock_run, mock_dirs):
         cx = pilotest.make_context()
@@ -122,11 +122,11 @@ class TestRecoveryPlan(pilotest.TestCase):
         mock_restore.assert_called_once()
         mock_contract.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
-    @patch("pilo.back.normalize.apply_ownership")
+    @patch("pilo.storage.normalize.ensure_runtime_dirs")
+    @patch("pilo.storage.normalize.apply_ownership")
     @patch("pilo.zfs.run")
-    @patch("pilo.back.normalize.apply_dataset_contracts")
-    @patch("pilo.back.restore.restore_dataset")
+    @patch("pilo.storage.normalize.apply_dataset_contracts")
+    @patch("pilo.storage.restore.restore_dataset")
     def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
                                           mock_run, mock_owner, mock_dirs):
         cx = pilotest.make_context()
@@ -142,11 +142,11 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         mock_run.assert_called_with(["zfs", "mount", "-a"])
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.storage.normalize.apply_ownership")
+    @patch("pilo.storage.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contracts")
-    @patch("pilo.back.restore.restore_dataset")
+    @patch("pilo.storage.normalize.apply_dataset_contracts")
+    @patch("pilo.storage.restore.restore_dataset")
     def test_execute_plan_ensures_runtime_dirs(
         self, mock_restore, mock_contract, mock_run, mock_dirs,
         mock_owner,
@@ -164,11 +164,11 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         mock_dirs.assert_called_once_with(cx)
 
-    @patch("pilo.back.normalize.apply_ownership")
-    @patch("pilo.back.normalize.ensure_runtime_dirs")
+    @patch("pilo.storage.normalize.apply_ownership")
+    @patch("pilo.storage.normalize.ensure_runtime_dirs")
     @patch("subprocess.run")
-    @patch("pilo.back.normalize.apply_dataset_contracts")
-    @patch("pilo.back.restore.restore_dataset")
+    @patch("pilo.storage.normalize.apply_dataset_contracts")
+    @patch("pilo.storage.restore.restore_dataset")
     def test_execute_plan_applies_ownership(
         self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner
     ):
@@ -185,8 +185,8 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         mock_owner.assert_called_once_with(cx)
 
-    @patch("pilo.back.recover.execute_recovery_plan")
-    @patch("pilo.back.recover.build_recovery_plan")
+    @patch("pilo.storage.recover.execute_recovery_plan")
+    @patch("pilo.storage.recover.build_recovery_plan")
     def test_recover_uses_plan(self, mock_build, mock_exec):
         cx = pilotest.make_context()
         cx.args = ["tank/a"]
@@ -197,7 +197,7 @@ class TestRecoveryPlan(pilotest.TestCase):
             recursive=True,
         )
 
-        mod = pilotest.import_command('recover')
+        mod = pilotest.import_command('storage-recover')
 
         with pilotest.suppress_stdout():
             with patch("pilo.context.Context", return_value=cx):

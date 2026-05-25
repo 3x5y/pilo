@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 from pilo import error
-from pilo.back import stream_gc
-from pilo.back.streams import stream_output_path
+from pilo.storage import stream_gc
+from pilo.storage.streams import stream_output_path
 
 
 def main():

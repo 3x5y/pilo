@@ -3,7 +3,7 @@
 import sys
 
 from pilo import error
-from pilo.back import replay
+from pilo.storage import replay
 
 
 def main():

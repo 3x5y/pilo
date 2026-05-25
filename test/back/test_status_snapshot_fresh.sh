@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-pilo snapshot fresh
-pilo replica-seed
+pilo storage-snapshot fresh
+pilo storage-replica-seed
 
 export CONFIG_SNAPSHOT_MAX_AGE=60 # redundant but explicit
 capture_status pilo status snapshot

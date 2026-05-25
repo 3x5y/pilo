@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo.back import provision
+from pilo.storage import provision
 
 
 def main():

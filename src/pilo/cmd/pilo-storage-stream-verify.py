@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from pilo import error
-from pilo.back import streams
+from pilo.storage import streams
 
 
 def main():

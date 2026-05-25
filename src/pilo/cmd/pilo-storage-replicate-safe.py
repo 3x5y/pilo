@@ -3,8 +3,8 @@
 from pilo import context
 from pilo import error
 from pilo import lifecycle
-from pilo.back import continuity
-from pilo.back import replication as repl
+from pilo.storage import continuity
+from pilo.storage import replication as repl
 
 
 def main():

@@ -1,6 +1,6 @@
 from . import util
 from . import zfs
-from .back import normalize
+from .storage import normalize
 from .lifecycle import (
     ValidationIssue,
     ValidationSeverity,

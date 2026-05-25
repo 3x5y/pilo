@@ -1,13 +1,13 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-replica-seed
 
 clear_holds
 zfs destroy -r $TEST_ROOT
 
-pilo recover >/dev/null
+pilo storage-recover >/dev/null
 
 capture_status pilo status
 

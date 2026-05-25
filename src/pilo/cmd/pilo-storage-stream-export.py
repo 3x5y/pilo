@@ -3,8 +3,8 @@
 import sys
 
 from pilo import error
-from pilo.back.snapshot import parse_snapshot_name
-from pilo.back.streams import export_incremental_stream
+from pilo.storage.snapshot import parse_snapshot_name
+from pilo.storage.streams import export_incremental_stream
 
 
 def main():

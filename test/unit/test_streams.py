@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo.back import streams
-from pilo.back.snapshot import SnapshotKind, SnapshotName
+from pilo.storage import streams
+from pilo.storage.snapshot import SnapshotKind, SnapshotName
 import pilotest
 
 
@@ -89,9 +89,9 @@ class TestStreamFilepath(pilotest.TestCase):
 class TestExportIncrementalStream(pilotest.TestCase):
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
-    @patch("pilo.back.streams.write_stream_manifest")
-    @patch("pilo.back.streams.zfs.get_guid", return_value="guid123")
-    @patch("pilo.back.streams.zfs.send_full_to_file")
+    @patch("pilo.storage.streams.write_stream_manifest")
+    @patch("pilo.storage.streams.zfs.get_guid", return_value="guid123")
+    @patch("pilo.storage.streams.zfs.send_full_to_file")
     def test_full_export_no_base(self, mock_send, mock_guid, mock_manifest):
         snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         result = streams.export_incremental_stream("tank/a", snap)
@@ -116,9 +116,9 @@ class TestExportIncrementalStream(pilotest.TestCase):
         )
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
-    @patch("pilo.back.streams.write_stream_manifest")
-    @patch("pilo.back.streams.zfs.get_guid", return_value="guid456")
-    @patch("pilo.back.streams.zfs.send_incremental_to_file")
+    @patch("pilo.storage.streams.write_stream_manifest")
+    @patch("pilo.storage.streams.zfs.get_guid", return_value="guid456")
+    @patch("pilo.storage.streams.zfs.send_incremental_to_file")
     def test_reg_export_with_base(self, mock_send, mock_guid, mock_manifest):
         snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         base = SnapshotName(

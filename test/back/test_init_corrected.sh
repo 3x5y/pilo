@@ -5,7 +5,7 @@ set -e
 zfs set readonly=off $PILE
 #zfs set mountpoint=/wrong $PILE
 
-pilo init
+pilo storage-init
 
 [ "$(zfs get -H -o value readonly $PILE)" = on ] \
     || fail "init did not restore readonly"

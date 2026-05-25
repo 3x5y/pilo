@@ -4,48 +4,48 @@ set -e
 echo "content1" > /$ADMIN/file1.txt
 
 # First anchor + seed replica (replica now has A_ANCHOR)
-pilo snapshot-mark
+pilo storage-snapshot-mark
 A_ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 A_ANCHOR=${A_ANCHOR#*@}
-pilo replica-seed
+pilo storage-replica-seed
 
 # First incremental
 echo "content2" > /$ADMIN/file2.txt
-pilo snapshot-reg
+pilo storage-snapshot-reg
 INCR1=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR1=${INCR1#*@}
 
 # Second anchor
 echo "content3" > /$ADMIN/file3.txt
-pilo snapshot-mark
+pilo storage-snapshot-mark
 B_ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 B_ANCHOR=${B_ANCHOR#*@}
 
 # Second and third incrementals
 echo "content4" > /$ADMIN/file4.txt
-pilo snapshot-reg
+pilo storage-snapshot-reg
 INCR2=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR2=${INCR2#*@}
 
 echo "content5" > /$ADMIN/file5.txt
-pilo snapshot-reg
+pilo storage-snapshot-reg
 INCR3=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR3=${INCR3#*@}
 
 # Third anchor
 echo "content6" > /$ADMIN/file6.txt
-pilo snapshot-mark
+pilo storage-snapshot-mark
 C_ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
     "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 C_ANCHOR=${C_ANCHOR#*@}
 
 # Build rollup plans and execute
-capture_status pilo rollup
+capture_status pilo storage-rollup
 assert_command_ok
 
 # Determine rollup filenames
@@ -61,13 +61,13 @@ ROLLUP2="$PILO_STREAM_OUTPUT_PATH/${C_DATE}/${B_TS}--${C_TS}.rollup.zfs"
 assert_file_exists "$ROLLUP1"
 assert_file_exists "$ROLLUP2"
 
-capture_status pilo stream-verify "$ROLLUP1"
+capture_status pilo storage-stream-verify "$ROLLUP1"
 assert_command_ok
-capture_status pilo stream-verify "$ROLLUP2"
+capture_status pilo storage-stream-verify "$ROLLUP2"
 assert_command_ok
 
 # Replay rollups into seeded replica
-capture_status pilo stream-replay-all "$PILO_STREAM_OUTPUT_PATH" "$TEST_REPLICA"
+capture_status pilo storage-stream-replay-all "$PILO_STREAM_OUTPUT_PATH" "$TEST_REPLICA"
 assert_command_ok
 
 # Assert all snapshots exist on replica (rollups should reconstruct

@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
-pilo snapshot t1
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-snapshot t1
+pilo storage-replica-seed
 
-OUT=$(pilo rotate-gc --preview 2>&1)
+OUT=$(pilo storage-rotate-gc --preview 2>&1)
 echo "$OUT" | assert_grep "destroy.*@t0"
 echo "$OUT" | assert_not_grep "destroy.*@t1"
 

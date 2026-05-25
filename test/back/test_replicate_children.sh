@@ -6,14 +6,14 @@ repl_static=$TEST_REPLICA/static
 echo a0 > /$ADMIN/admin.txt
 with_writable $STATIC \
     sh -c "echo s0 > /$STATIC/doc.txt"
-pilo snapshot t0
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-replica-seed
 
 echo a1 > /$ADMIN/admin.txt
 with_writable $COLLECTION \
     sh -c "echo s1 > /$COLLECTION/doc.txt"
-pilo snapshot t1
-pilo replicate
+pilo storage-snapshot t1
+pilo storage-replicate
 
 zfs set canmount=on $TEST_REPLICA/active/admin
 zfs set canmount=on $TEST_REPLICA/static/collection

@@ -3,7 +3,7 @@ set -e
 
 zfs destroy -r $TEST_ROOT
 
-capture_status pilo provision-primary
+capture_status pilo storage-provision-primary
 
 assert_command_ok
 

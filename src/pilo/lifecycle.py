@@ -94,7 +94,7 @@ class ValidationReport:
 
 
 def detect_lifecycle(cx):
-    from .back import replication as _replication
+    from .storage import replication as _replication
 
     try:
         secondary = cx.current_secondary_state

@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-reg
-pilo replica-seed
+pilo storage-snapshot-reg
+pilo storage-replica-seed
 
-pilo snapshot t1
-pilo replicate
+pilo storage-snapshot t1
+pilo storage-replicate
 
-pilo snapshot-reg
-pilo replicate
+pilo storage-snapshot-reg
+pilo storage-replicate
 
-capture_status pilo replication-verify
+capture_status pilo storage-replication-verify
 assert_command_ok expected valid chain after new anchor

@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
-pilo replica-seed
-pilo replicate
+pilo storage-snapshot t0
+pilo storage-replica-seed
+pilo storage-replicate
 
 capture_status pilo status
 

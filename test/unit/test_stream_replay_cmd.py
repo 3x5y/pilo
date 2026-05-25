@@ -1,8 +1,8 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from pilo.back.replay import ReplayPlan, ReplayResult
-from pilo.back.streams import StreamManifest
+from pilo.storage.replay import ReplayPlan, ReplayResult
+from pilo.storage.streams import StreamManifest
 from pilo import error
 import pilotest
 
@@ -23,12 +23,12 @@ class TestStreamReplayCmd(pilotest.TestCase):
 
     @patch("sys.argv", ["pilo-stream-replay"])
     def test_no_args_exits(self):
-        mod = pilotest.import_command("stream-replay")
+        mod = pilotest.import_command("storage-stream-replay")
         with pilotest.suppress_stderr():
             with self.assertRaises(SystemExit):
                 mod.main()
 
-    @patch("pilo.back.replay.build_replay_plan")
+    @patch("pilo.storage.replay.build_replay_plan")
     @patch("sys.argv", ["pilo-stream-replay", "stream.zfs"])
     def test_defaults_target_to_source(self, mock_build):
         manifest = StreamManifest(
@@ -44,15 +44,15 @@ class TestStreamReplayCmd(pilotest.TestCase):
         )
         mock_build.return_value = plan
 
-        mod = pilotest.import_command("stream-replay")
-        with patch("pilo.back.replay.execute_replay_plan",
+        mod = pilotest.import_command("storage-stream-replay")
+        with patch("pilo.storage.replay.execute_replay_plan",
                    return_value=_make_result()):
             with pilotest.suppress_stdout():
                 mod.main()
 
         mock_build.assert_called_once_with("stream.zfs", None)
 
-    @patch("pilo.back.replay.build_replay_plan")
+    @patch("pilo.storage.replay.build_replay_plan")
     @patch("sys.argv", ["pilo-stream-replay", "stream.zfs", "tank/c"])
     def test_explicit_target(self, mock_build):
         manifest = StreamManifest(
@@ -68,8 +68,8 @@ class TestStreamReplayCmd(pilotest.TestCase):
         )
         mock_build.return_value = plan
 
-        mod = pilotest.import_command("stream-replay")
-        with patch("pilo.back.replay.execute_replay_plan",
+        mod = pilotest.import_command("storage-stream-replay")
+        with patch("pilo.storage.replay.execute_replay_plan",
                    return_value=_make_result(target="tank/c")):
             with pilotest.suppress_stdout():
                 mod.main()
@@ -78,14 +78,14 @@ class TestStreamReplayCmd(pilotest.TestCase):
 
     @patch("sys.argv", ["pilo-stream-replay", "stream.zfs"])
     def test_build_failure_propagates(self):
-        mod = pilotest.import_command("stream-replay")
-        with patch("pilo.back.replay.build_replay_plan") as mock_build:
+        mod = pilotest.import_command("storage-stream-replay")
+        with patch("pilo.storage.replay.build_replay_plan") as mock_build:
             mock_build.side_effect = error.FatalError("manifest not found")
 
             with self.assert_fatal():
                 mod.main()
 
-    @patch("pilo.back.replay.build_replay_plan")
+    @patch("pilo.storage.replay.build_replay_plan")
     @patch("sys.argv", ["pilo-stream-replay", "stream.zfs"])
     def test_prints_result_line(self, mock_build):
         manifest = StreamManifest(
@@ -101,10 +101,10 @@ class TestStreamReplayCmd(pilotest.TestCase):
         )
         mock_build.return_value = plan
 
-        with patch("pilo.back.replay.execute_replay_plan",
+        with patch("pilo.storage.replay.execute_replay_plan",
                    return_value=_make_result()):
             with patch("builtins.print") as mock_print:
-                mod = pilotest.import_command("stream-replay")
+                mod = pilotest.import_command("storage-stream-replay")
                 mod.main()
 
         mock_print.assert_called_once_with(

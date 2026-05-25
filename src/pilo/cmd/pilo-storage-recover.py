@@ -3,7 +3,7 @@
 from pilo import context
 from pilo import error
 from pilo import status
-from pilo.back import recover
+from pilo.storage import recover
 
 
 def main():

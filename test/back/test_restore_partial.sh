@@ -9,15 +9,15 @@ capture_file p.txt
 pilo content-ingest
 with_writable $STATIC \
     touch /$STATIC/doc.txt
-pilo snapshot $snap
-pilo replica-seed
+pilo storage-snapshot $snap
+pilo storage-replica-seed
 
 clear_holds
 zfs destroy -r $TEST_ROOT
 zfs create -p $TEST_ROOT/active
 
 # --- recover ONLY pile ---
-pilo restore $repl_pile $PILE $snap
+pilo storage-restore $repl_pile $PILE $snap
 
 # --- system should now be inconsistent ---
 capture_status pilo status

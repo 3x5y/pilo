@@ -4,9 +4,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
 
-from pilo.back import stream_gc
-from pilo.back.stream_gc import StreamGcOp, StreamGcPlan
-from pilo.back.streams import MANIFEST_SUFFIX
+from pilo.storage import stream_gc
+from pilo.storage.stream_gc import StreamGcOp, StreamGcPlan
+from pilo.storage.streams import MANIFEST_SUFFIX
 import pilotest
 
 
@@ -284,7 +284,7 @@ class TestExecuteGcPlan(pilotest.TestCase):
                 expected_m = Path(gc) / "20260531" / "s.zfs.manifest"
                 self.assertTrue(expected_m.exists())
 
-    @patch("pilo.back.stream_gc.shutil.move")
+    @patch("pilo.storage.stream_gc.shutil.move")
     def test_move_preserves_rel(self, mock_move):
         output_path = Path("/out")
         stream_path = output_path / "20260531" / "s.zfs"
@@ -294,7 +294,7 @@ class TestExecuteGcPlan(pilotest.TestCase):
         plan = StreamGcPlan(ops=(op,))
         with patch.object(Path, "mkdir"):
             with patch.object(Path, "exists", return_value=False):
-                with patch("pilo.back.stream_gc.open"):
+                with patch("pilo.storage.stream_gc.open"):
                     list(stream_gc.execute_gc_plan(
                         plan, output_path, gc_path="/gc"))
         move_calls = [c.args for c in mock_move.call_args_list]

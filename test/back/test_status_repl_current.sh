@@ -3,8 +3,8 @@ set -e
 
 snap=t0
 
-pilo snapshot t0
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-replica-seed
 
 capture_status pilo status replication
 

@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-replica-seed
 
-pilo snapshot t1
-pilo replicate
+pilo storage-snapshot t1
+pilo storage-replicate
 
 for ds in \
     $TEST_REPLICA/active/admin \

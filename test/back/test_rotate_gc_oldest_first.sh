@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-pilo snapshot t0
-pilo snapshot t1
-pilo snapshot t2
-pilo replica-seed
+pilo storage-snapshot t0
+pilo storage-snapshot t1
+pilo storage-snapshot t2
+pilo storage-replica-seed
 
-OUT=$(pilo rotate-gc --preview 2>&1)
+OUT=$(pilo storage-rotate-gc --preview 2>&1)
 echo "$OUT" | assert_grep "destroy"
 
 pri=$(echo "$OUT" | grep "$TEST_ROOT")

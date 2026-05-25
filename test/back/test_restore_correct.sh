@@ -6,12 +6,12 @@ snap=baseline
 mkfile critical file.txt
 capture_file file.txt
 pilo content-ingest
-pilo snapshot $snap
-pilo replica-seed
+pilo storage-snapshot $snap
+pilo storage-replica-seed
 clear_holds $PILE
 zfs destroy -r $PILE
 
-pilo restore $repl $PILE $snap
+pilo storage-restore $repl $PILE $snap
 
 capture_status pilo manifest-verify
 assert_command_ok manifest verification failed after recovery
