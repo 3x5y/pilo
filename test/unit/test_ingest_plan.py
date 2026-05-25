@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from pilo.content import capture
 from pilo.front import manifest
 from pilo.front import mutation
-from pilo.front import capture
 from pilo.front import ingest
 from pilo.front.execution import ExecutionPlan
 import pilotest

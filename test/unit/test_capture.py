@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from pilo.content import capture
 from pilo.front import manifest
-from pilo.front import capture
 import pilotest
 
 
@@ -128,9 +128,9 @@ class TestCaptureManifest(pilotest.TestCase):
 class TestCaptureCommand(pilotest.TestCase):
 
     @patch("pilo.checks.require_dataset", return_value=True)
-    @patch("pilo.front.capture.capture_session")
+    @patch("pilo.content.capture.capture_session")
     def test_capture_writes_manifest(self, mock_session, *_):
-        mod = pilotest.import_command("capture")
+        mod = pilotest.import_command("content-capture")
         ses = unittest.mock.Mock()
         mock_session.return_value = ses
 
@@ -144,9 +144,9 @@ class TestCaptureCommand(pilotest.TestCase):
         ses.write_manifest.assert_called_once()
 
     @patch("pilo.checks.require_dataset", return_value=True)
-    @patch("pilo.front.capture.capture_session")
+    @patch("pilo.content.capture.capture_session")
     def test_manifest_written_inside_root(self, mock_session, *_):
-        mod = pilotest.import_command("capture")
+        mod = pilotest.import_command("content-capture")
 
         with pilotest.make_tmp_context() as cx:
             cx.intake_path.mkdir()

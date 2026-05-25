@@ -6,7 +6,7 @@ from pathlib import Path
 from pilo import checks
 from pilo import context
 from pilo import error
-from pilo.front import capture
+from pilo.content import capture
 
 
 def main():

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import manifest
+from ..front import manifest
 
 
 CAPTURE_MANIFEST = ".manifest"

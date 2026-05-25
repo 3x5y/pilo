@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import capture
+from ..content import capture
 from .. import checks
 from . import continuity
 from . import manifest

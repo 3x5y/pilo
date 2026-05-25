@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
+from pilo.content import capture
 from pilo import checks
 from pilo import context
 from pilo import error
 from pilo.front import execution
 from pilo import fs
-from pilo.front import capture
 from pilo.front import ingest
 
 
