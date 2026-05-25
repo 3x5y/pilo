@@ -8,6 +8,6 @@ pilo content-ingest
 printf "mv\tin/file.txt\tout/collection/dirx/file.txt" \
     | pilo rewrite
 
-pilo static-promote
+pilo content-promote
 
 assert_owner $PILO_USER "$PILO_STATIC_PATH"/collection/dirx

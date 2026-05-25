@@ -8,7 +8,7 @@ pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
     | pilo rewrite
 
-pilo static-promote
+pilo content-promote
 
 manifest=$PILO_ADMIN_PATH/manifest/pile.manifest
 cat $manifest

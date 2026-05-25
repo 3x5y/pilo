@@ -8,7 +8,7 @@ pilo content-ingest
 printf "mv\tin/$file\tout/filing/$file" \
     | pilo rewrite
 
-capture_status pilo static-promote
+capture_status pilo content-promote
 
 assert_command_fail accepted invalid structure
 echo "$OUTPUT" | assert_grep "invalid filing structure"

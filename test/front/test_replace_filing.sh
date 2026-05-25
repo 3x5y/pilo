@@ -15,7 +15,7 @@ with_writable $PILE \
        "$PILO_PILE_PATH/out/$archive/file.txt"
 
 zfs create -p $STATIC/$archive
-pilo static-promote
+pilo content-promote
 
 echo new > "$TMP/new.txt"
 

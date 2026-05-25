@@ -12,6 +12,6 @@ printf "mv\tin/$file\tout/$archive/$dir/$file" \
 zfs create -p $STATIC/$archive
 chown $PILO_USER:$PILO_USER /$STATIC/$archive
 
-pilo static-promote
+pilo content-promote
 
 assert_file_exists /$STATIC/$archive/$dir/$file

@@ -12,7 +12,7 @@ with_writable $STATIC/$dst \
 printf "mv\tin/$file\tout/$dst/$file" \
     | pilo rewrite
 
-pilo static-promote
+pilo content-promote
 
 # invariant: only exists in static
 assert_not_exists /$PILE/out/$dst/$file

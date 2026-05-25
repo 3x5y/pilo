@@ -11,6 +11,6 @@ with_writable $PILE \
 with_writable $PILE \
     sh -c "mv /$PILE/in/$file /$PILE/out/filing//$file"
 # FIXME this test is pointless
-capture_status pilo static-promote
+capture_status pilo content-promote
 
 assert_command_fail

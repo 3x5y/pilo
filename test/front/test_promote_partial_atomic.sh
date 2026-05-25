@@ -10,7 +10,7 @@ with_writable $PILE \
 with_writable $COLLECTION \
     sh -c 'echo X > "$PILO_STATIC_PATH/collection/a.txt"'
 
-capture_status pilo static-promote
+capture_status pilo content-promote
 assert_command_fail
 
 # neither should be moved

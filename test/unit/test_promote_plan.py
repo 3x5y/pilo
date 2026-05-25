@@ -3,11 +3,11 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
+from pilo import paths
+from pilo.content import promote
 from pilo.front import execution
 from pilo.front import manifest
 from pilo.front import mutation
-from pilo import paths
-from pilo.front import promote
 import pilotest
 
 

@@ -8,7 +8,7 @@ pilo content-ingest
 printf "mv\tin/$file\tout/collection/$file" \
     | pilo rewrite
 
-pilo static-promote
+pilo content-promote
 
 # static manifest valid
 assert_manifest_valid collection /$COLLECTION

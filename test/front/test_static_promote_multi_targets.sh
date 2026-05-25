@@ -17,7 +17,7 @@ printf "mv\tin/$b\tout/$archive_b/$b" \
 zfs create -p -o readonly=on $STATIC/$archive_a
 zfs create -p -o readonly=on $STATIC/$archive_b
 
-pilo static-promote
+pilo content-promote
 
 assert_file_exists /$STATIC/$archive_a/$a
 assert_file_exists /$STATIC/$archive_b/$b

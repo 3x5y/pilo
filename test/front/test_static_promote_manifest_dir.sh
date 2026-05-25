@@ -9,6 +9,6 @@ pilo content-ingest
 printf "mv\tin/$file\tout/collection/$dir/$file" \
     | pilo rewrite
 
-pilo static-promote
+pilo content-promote
 
 assert_manifest_entry collection " \./$dir/$file$"

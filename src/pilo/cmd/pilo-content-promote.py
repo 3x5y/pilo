@@ -2,9 +2,9 @@
 
 from pilo import context
 from pilo import error
+from pilo.content import promote
 from pilo.front import execution
 from pilo.front import manifest
-from pilo.front import promote
 
 
 def main():

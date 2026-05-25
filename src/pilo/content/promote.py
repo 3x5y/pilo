@@ -3,12 +3,12 @@ from pathlib import Path
 
 
 from .. import checks
-from . import continuity
 from .. import error
 from .. import fs
-from . import mutation
-from . import manifest
-from .execution import (
+from ..front import continuity
+from ..front import mutation
+from ..front import manifest
+from ..front.execution import (
     ExecutionPlan,
     ManifestStep,
     VerifyChecksumStep,

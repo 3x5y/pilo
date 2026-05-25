@@ -13,7 +13,7 @@ with_writable $PILE \
     mv "$PILO_PILE_PATH/in/file.txt" \
        "$PILO_PILE_PATH/out/collection/file.txt"
 
-pilo static-promote
+pilo content-promote
 
 printf "mv\tcollection/file.txt\tcollection/x.txt" \
     | pilo rewrite

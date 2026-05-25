@@ -10,7 +10,7 @@ with_writable $COLLECTION \
 with_writable $PILE \
     sh -c "echo B > '$PILO_PILE_PATH/out/collection/x.txt'"
 
-capture_status pilo static-promote
+capture_status pilo content-promote
 
 assert_command_fail "promote should fail on conflict"
 
