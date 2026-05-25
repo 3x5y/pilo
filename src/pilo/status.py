@@ -3,8 +3,9 @@ import subprocess
 
 from . import fs
 from . import git
-from . import lifecycle
 from . import util
+from . import state
+from .storage import lifecycle
 
 
 def render_validation_issue(issue):
@@ -24,10 +25,10 @@ def collect_transient_validation(cx):
     for git_dir in cx.admin_path.rglob(".git"):
         repo = git_dir.parent
         if git.is_dirty(repo):
-            i = lifecycle.ValidationIssue(
+            i = state.ValidationIssue(
                 code="transient.state",
                 message=f"repo {repo} has uncommitted changes",
-                severity=lifecycle.ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.WARN,
                 component="transient",
             )
             issues.append(i)
@@ -46,10 +47,10 @@ def collect_pile_validation(cx):
     for f in fs.iter_files(pile):
         age = now - int(f.stat().st_mtime)
         if age > max_age:
-            i = lifecycle.ValidationIssue(
+            i = state.ValidationIssue(
                 code="pile.state",
                 message=f"{f} is older than threshold",
-                severity=lifecycle.ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.WARN,
                 component="pile",
             )
             issues.append(i)
@@ -81,17 +82,17 @@ def check_manifest(cx, subset):
     try:
         cmd = ["sha256sum", "--quiet", "--strict", "-c", manifest]
         subprocess.run(cmd, cwd=str(base_dir), check=True)
-        return lifecycle.ValidationIssue(
+        return state.ValidationIssue(
                 code="manifest.state",
                 message=f"{subset} verified",
-                severity=lifecycle.ValidationSeverity.INFO,
+                severity=state.ValidationSeverity.INFO,
                 component="manifest",
             )
     except subprocess.CalledProcessError:
-        return lifecycle.ValidationIssue(
+        return state.ValidationIssue(
                 code="manifest.state",
                 message=f"{subset} verification failed",
-                severity=lifecycle.ValidationSeverity.ERROR,
+                severity=state.ValidationSeverity.ERROR,
                 component="manifest",
             )
 

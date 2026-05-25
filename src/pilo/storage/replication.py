@@ -5,11 +5,11 @@ from pathlib import Path
 from .. import checks
 from .. import context
 from .. import error
-from .. import lifecycle
-from . import streams
 from .. import util
 from .. import zfs
 from . import continuity
+from . import lifecycle
+from . import streams
 from .snapshot import parse_snapshot_name
 
 

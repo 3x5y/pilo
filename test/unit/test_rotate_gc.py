@@ -1,6 +1,6 @@
 from unittest.mock import call, patch, Mock
 
-from pilo import lifecycle
+from pilo.storage import lifecycle
 import pilotest
 
 
@@ -15,7 +15,7 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx = pilotest.make_context()
 
         p1 = patch(
-            "pilo.lifecycle.detect_lifecycle",
+            "pilo.storage.lifecycle.detect_lifecycle",
             return_value=lifecycle.LifecycleStatus(
                 state=lifecycle.LifecycleState.REPLICA_MISSING,
                 message="no secondary",
@@ -31,7 +31,7 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx = pilotest.make_context()
 
         p1 = patch(
-            "pilo.lifecycle.detect_lifecycle",
+            "pilo.storage.lifecycle.detect_lifecycle",
             return_value=lifecycle.LifecycleStatus(
                 state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,
                 message="requires provisioning",
@@ -57,7 +57,7 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx.args = ["--preview"]
 
         p1 = patch(
-            "pilo.lifecycle.detect_lifecycle",
+            "pilo.storage.lifecycle.detect_lifecycle",
             return_value=lifecycle.LifecycleStatus(
                 state=lifecycle.LifecycleState.NORMAL,
                 message="ok",
@@ -87,7 +87,7 @@ class TestRotateGcCommand(pilotest.TestCase):
         cx.args = ["--preview"]
 
         p1 = patch(
-            "pilo.lifecycle.detect_lifecycle",
+            "pilo.storage.lifecycle.detect_lifecycle",
             return_value=lifecycle.LifecycleStatus(
                 state=lifecycle.LifecycleState.NORMAL,
                 message="ok",

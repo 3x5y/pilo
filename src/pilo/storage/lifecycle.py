@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from . import util
-from . import zfs
-from .storage import normalize
+from .. import state
+from .. import util
+from .. import zfs
+from . import normalize
+from . import replication
 
 
 class LifecycleState(Enum):
@@ -23,82 +25,7 @@ class LifecycleStatus:
     secondary: str | None = None
 
 
-class ValidationSeverity(Enum):
-    INFO = "INFO"
-    WARN = "WARN"
-    ERROR = "ERROR"
-
-
-@dataclass(frozen=True)
-class ValidationIssue:
-    code: str
-    message: str
-    severity: ValidationSeverity = ValidationSeverity.ERROR
-    component: str | None = None
-
-
-@dataclass
-class ValidationReport:
-    issues: list[ValidationIssue] = field(default_factory=list)
-    lifecycle: LifecycleStatus | None = None
-
-    def extend(self, issues):
-        self.issues.extend(issues)
-
-    def by_code(self, code):
-        return [
-            i for i in self.issues
-            if i.code == code
-        ]
-
-    def by_component(self, component):
-        return [
-            i for i in self.issues
-            if i.component == component
-        ]
-
-    @property
-    def exit_code(self):
-        return 1 if not self.is_healthy else 0
-
-    @property
-    def has_errors(self):
-        return any(
-            i.severity == ValidationSeverity.ERROR
-            for i in self.issues
-        )
-
-    @property
-    def warnings(self):
-        return [
-            i for i in self.issues
-            if i.severity == ValidationSeverity.WARN
-        ]
-
-    @property
-    def errors(self):
-        return [
-            i for i in self.issues
-            if i.severity == ValidationSeverity.ERROR
-        ]
-
-    @property
-    def is_healthy(self):
-        return not self.errors and not self.warnings
-
-    @property
-    def highest_severity(self):
-        if self.errors:
-            return ValidationSeverity.ERROR
-
-        if self.warnings:
-            return ValidationSeverity.WARN
-
-        return ValidationSeverity.INFO
-
-
 def detect_lifecycle(cx):
-    from .storage import replication as _replication
 
     try:
         secondary = cx.current_secondary_state
@@ -135,25 +62,25 @@ def detect_lifecycle(cx):
             secondary=secondary.root,
         )
 
-    repl_state, repl_msg = _replication.replication_status(
+    repl_state, repl_msg = replication.replication_status(
         cx.root_dataset,
         secondary.root,
     )
 
-    if repl_state == _replication.ReplicationStatus.OK:
+    if repl_state == replication.ReplicationStatus.OK:
         return LifecycleStatus(
             state=LifecycleState.NORMAL,
             secondary=secondary.root,
         )
 
-    if repl_state == _replication.ReplicationStatus.BEHIND:
+    if repl_state == replication.ReplicationStatus.BEHIND:
         return LifecycleStatus(
             state=LifecycleState.REPLICATION_BEHIND,
             message=repl_msg,
             secondary=secondary.root,
         )
 
-    if repl_state == _replication.ReplicationStatus.DIVERGED:
+    if repl_state == replication.ReplicationStatus.DIVERGED:
         return LifecycleStatus(
             state=LifecycleState.REPLICATION_DIVERGED,
             message=repl_msg,
@@ -168,10 +95,10 @@ def detect_lifecycle(cx):
 
 
 def lifecycle_validation_issue(lifecycle):
-    return ValidationIssue(
+    return state.ValidationIssue(
         code="lifecycle.state",
         message=lifecycle.state.value,
-        severity=ValidationSeverity.INFO,
+        severity=state.ValidationSeverity.INFO,
         component="lifecycle",
     )
 
@@ -182,49 +109,49 @@ def replication_validation_issue(lifecycle):
         return None
 
     if lifecycle.state == LifecycleState.REPLICA_MISSING:
-        return ValidationIssue(
+        return state.ValidationIssue(
             code="replication.secondary_missing",
             message=lifecycle.message or "secondary missing",
-            severity=ValidationSeverity.WARN,
+            severity=state.ValidationSeverity.WARN,
             component="replication",
         )
 
     if lifecycle.state == LifecycleState.REPLICA_UNINITIALIZED:
-        return ValidationIssue(
+        return state.ValidationIssue(
             code="replication.uninitialized",
             message=lifecycle.message or "secondary uninitialized",
-            severity=ValidationSeverity.WARN,
+            severity=state.ValidationSeverity.WARN,
             component="replication",
         )
 
     if lifecycle.state == LifecycleState.REPLICATION_BEHIND:
-        return ValidationIssue(
+        return state.ValidationIssue(
             code="replication.behind",
             message=lifecycle.message or "replication behind",
-            severity=ValidationSeverity.WARN,
+            severity=state.ValidationSeverity.WARN,
             component="replication",
         )
 
     if lifecycle.state == LifecycleState.REPLICATION_DIVERGED:
-        return ValidationIssue(
+        return state.ValidationIssue(
             code="replication.diverged",
             message=lifecycle.message or "replication diverged",
-            severity=ValidationSeverity.ERROR,
+            severity=state.ValidationSeverity.ERROR,
             component="replication",
         )
 
     if lifecycle.state == LifecycleState.INVALID_TOPOLOGY:
-        return ValidationIssue(
+        return state.ValidationIssue(
             code="topology.invalid",
             message=lifecycle.message or "invalid topology",
-            severity=ValidationSeverity.ERROR,
+            severity=state.ValidationSeverity.ERROR,
             component="replication",
         )
 
-    return ValidationIssue(
+    return state.ValidationIssue(
         code="replication.unknown",
         message=lifecycle.message or "replication unknown",
-        severity=ValidationSeverity.WARN,
+        severity=state.ValidationSeverity.WARN,
         component="replication",
     )
 
@@ -302,7 +229,7 @@ def collect_validation_report(cx, include=None):
         include = {"datasets", "snapshot", "replication"}
 
     lifecycle = detect_lifecycle(cx)
-    report = ValidationReport(lifecycle=lifecycle)
+    report = state.ValidationReport(lifecycle=lifecycle)
     report.extend([
         lifecycle_validation_issue(lifecycle)
     ])
@@ -333,20 +260,20 @@ def collect_snapshot_validation(cx, max_age=None):
         )
     if not name:
         issues.append(
-            ValidationIssue(
+            state.ValidationIssue(
                 code="snapshot.missing",
                 message=f"none for {dataset}",
-                severity=ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.WARN,
                 component="snapshot",
             )
         )
         return issues
     if ts is None:
         issues.append(
-            ValidationIssue(
+            state.ValidationIssue(
                 code="snapshot.invalid_timestamp",
                 message="could not parse timestamp",
-                severity=ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.WARN,
                 component="snapshot",
             )
         )
@@ -355,10 +282,10 @@ def collect_snapshot_validation(cx, max_age=None):
     age = util.now_epoch() - ts
     if age > max_age:
         issues.append(
-            ValidationIssue(
+            state.ValidationIssue(
                 code="snapshot.stale",
                 message=f"stale ({age} s)",
-                severity=ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.WARN,
                 component="snapshot",
             )
         )

@@ -4,13 +4,13 @@ import sys
 
 from pilo import context
 from pilo import error
-from pilo import lifecycle
+from pilo import state
 from pilo import status
 
 
 def main():
     cx = context.Context()
-    report = lifecycle.ValidationReport()
+    report = state.ValidationReport()
     report.extend(status.collect_manifest_validation(cx))
     for line in status.render_validation_report(report):
         print(line)

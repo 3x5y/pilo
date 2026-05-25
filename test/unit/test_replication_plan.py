@@ -2,7 +2,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from pilo import lifecycle
+from pilo.storage import lifecycle
 from pilo.storage import replication as repl
 import pilotest
 
@@ -114,7 +114,7 @@ class TestReplicationPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             repl.build_replication_plan("tank/a", "backup/a")
 
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     @patch("pilo.storage.replication.build_seed_replication_plan")
     def test_build_replica_seed_plan(self, mock_build, mock_detect):
         cx = pilotest.make_context()
@@ -132,7 +132,7 @@ class TestReplicationPlan(pilotest.TestCase):
             label="backup",
         )
 
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     def test_build_replica_seed_plan_rejects_normal(self, mock_detect):
         cx = pilotest.make_context()
 
@@ -425,7 +425,7 @@ class TestReplicateCommands(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
         p1 = patch(
-            "pilo.lifecycle.detect_lifecycle",
+            "pilo.storage.lifecycle.detect_lifecycle",
             return_value=lifecycle.LifecycleStatus(
                 state=lifecycle.LifecycleState.REPLICA_MISSING,
                 message="secondary unattached: backup/a",
@@ -458,7 +458,7 @@ class TestReplicateCommands(pilotest.TestCase):
             message="behind",
             secondary="backup/a",
         )
-        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.storage.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
         p3 = patch("pilo.storage.replication.replication_status",
                    side_effect=[
@@ -477,7 +477,7 @@ class TestReplicateCommands(pilotest.TestCase):
             message="divergence in backup/a",
             secondary="backup/a",
         )
-        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.storage.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2, pilotest.assert_fatal(self)):
@@ -507,7 +507,7 @@ class TestReplicateCommands(pilotest.TestCase):
             secondary="backup/a",
         )
 
-        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.storage.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2):
@@ -529,13 +529,13 @@ class TestReplicateCommands(pilotest.TestCase):
             secondary="backup/a",
         )
 
-        p1 = patch("pilo.lifecycle.detect_lifecycle", return_value=detected)
+        p1 = patch("pilo.storage.lifecycle.detect_lifecycle", return_value=detected)
         p2 = patch("pilo.context.Context", return_value=cx)
 
         with (p1, p2, pilotest.assert_fatal(self)):
             mod.main()
 
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     def test_replicate_safe_rejects_diverged(self, detect):
         detect.return_value = lifecycle.LifecycleStatus(
             state=lifecycle.LifecycleState.REPLICATION_DIVERGED,
@@ -549,7 +549,7 @@ class TestReplicateCommands(pilotest.TestCase):
         with (p1, pilotest.assert_fatal(self)):
             mod.main()
 
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     def test_replicate_rejects_uninitialized(self, detect):
         detect.return_value = lifecycle.LifecycleStatus(
             state=lifecycle.LifecycleState.REPLICA_UNINITIALIZED,

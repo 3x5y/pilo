@@ -1,17 +1,17 @@
 import unittest
 from unittest.mock import patch
 
-from pilo import lifecycle
+from pilo.storage import lifecycle
 from pilo.storage import recover
 import pilotest
 
 
 class TestRecoveryPlan(pilotest.TestCase):
 
-    @patch("pilo.lifecycle.lifecycle_recoverable", return_value=True)
+    @patch("pilo.storage.lifecycle.lifecycle_recoverable", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-123")
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     @patch("pilo.zfs.dataset_exists")
     def test_build_plan_root(self, exists, detect, *_):
 
@@ -45,10 +45,10 @@ class TestRecoveryPlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             recover.build_recovery_plan(cx, "tank/a")
 
-    @patch("pilo.lifecycle.lifecycle_recoverable", return_value=True)
+    @patch("pilo.storage.lifecycle.lifecycle_recoverable", return_value=True)
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.latest_snapshot", return_value="backup/a/foo@r-1")
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     @patch("pilo.zfs.dataset_exists")
     def test_build_plan_subdataset(self, exists, detect, *_):
 
@@ -218,7 +218,7 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.zfs.snapshot_exists", return_value=True)
     @patch("pilo.zfs.dataset_exists")
     @patch("pilo.zfs.latest_snapshot")
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     def test_build_plan_uses_detected_secondary(
         self,
         mock_detect,

@@ -1,11 +1,12 @@
 import unittest
 from unittest.mock import patch
 
-from pilo import lifecycle
+from pilo import state
+from pilo.storage import lifecycle
 import pilotest
 
 
-state = lifecycle
+#state = lifecycle
 
 
 class TestOperationalState(pilotest.TestCase):
@@ -13,15 +14,15 @@ class TestOperationalState(pilotest.TestCase):
     @patch("pilo.storage.normalize.validate_dataset_contracts")
     def test_incomplete_state(self, validate):
         validate.return_value = [
-            lifecycle.ValidationIssue(
+            state.ValidationIssue(
                 code="missing.required.dataset",
                 message="missing dataset tank/test",
-                severity=lifecycle.ValidationSeverity.ERROR,
+                severity=state.ValidationSeverity.ERROR,
                 component="datasets",
             )
         ]
         cx = pilotest.make_context()
-        report = state.collect_validation_report(cx)
+        report = lifecycle.collect_validation_report(cx)
         self.assertEqual(len(report.by_code("missing.required.dataset")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
@@ -33,7 +34,7 @@ class TestOperationalState(pilotest.TestCase):
         from pilo.storage.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.DIVERGED, "diverged")
         cx = pilotest.make_context()
-        report = state.collect_validation_report(cx)
+        report = lifecycle.collect_validation_report(cx)
         self.assertEqual(len(report.by_code("replication.diverged")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
@@ -47,7 +48,7 @@ class TestOperationalState(pilotest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.healthy_snapshot_state():
-            report = state.collect_validation_report(cx)
+            report = lifecycle.collect_validation_report(cx)
 
         self.assertTrue(report.is_healthy)
 
@@ -56,17 +57,17 @@ class TestOperationalState(pilotest.TestCase):
     @patch("pilo.storage.normalize.validate_dataset_contracts")
     def test_collect_validation_report(self, validate, *_):
         validate.return_value = [
-            lifecycle.ValidationIssue(
+            state.ValidationIssue(
                 code="missing.required.dataset",
                 message=f"missing dataset tank/x",
-                severity=lifecycle.ValidationSeverity.ERROR,
+                severity=state.ValidationSeverity.ERROR,
                 component="datasets",
             )
         ]
 
         cx = pilotest.make_context()
         with pilotest.healthy_system_state():
-            report = state.collect_validation_report(cx)
+            report = lifecycle.collect_validation_report(cx)
 
         issues = report.by_code("missing.required.dataset")
         self.assertEqual(len(issues), 1)
@@ -77,7 +78,7 @@ class TestOperationalState(pilotest.TestCase):
     def test_collect_validation_report_empty(self, validate, *_):
         with pilotest.healthy_system_state():
             cx = pilotest.make_context()
-            report = state.collect_validation_report(cx)
+            report = lifecycle.collect_validation_report(cx)
 
         self.assertTrue(report.is_healthy)
 
@@ -87,7 +88,7 @@ class TestOperationalState(pilotest.TestCase):
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=900, now=1000):
             with patch.dict("os.environ", env):
-                issues = state.collect_snapshot_validation(cx)
+                issues = lifecycle.collect_snapshot_validation(cx)
 
         self.assertEqual(len(issues), 1)
         issue = issues[0]
@@ -100,7 +101,7 @@ class TestOperationalState(pilotest.TestCase):
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=990, now=1000):
             with patch.dict("os.environ", env):
-                issues = state.collect_snapshot_validation(cx)
+                issues = lifecycle.collect_snapshot_validation(cx)
 
         self.assertEqual(issues, [])
 
@@ -109,7 +110,7 @@ class TestOperationalState(pilotest.TestCase):
         mock_snap.return_value = (None, None)
         cx = pilotest.make_context()
 
-        issues = state.collect_snapshot_validation(cx)
+        issues = lifecycle.collect_snapshot_validation(cx)
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "snapshot.missing")
@@ -126,9 +127,9 @@ class TestOperationalState(pilotest.TestCase):
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=0, now=1000):
             with patch.dict("os.environ", env):
-                report = state.collect_validation_report(cx)
+                report = lifecycle.collect_validation_report(cx)
 
-        #self.assertEqual(st.state, lifecycle.OperationalState.DEGRADED)
+        #self.assertEqual(st.state, state.OperationalState.DEGRADED)
         self.assertEqual(len(report.by_code("snapshot.stale")), 1)
 
     @patch("pilo.zfs.latest_snapshot")
@@ -139,7 +140,7 @@ class TestOperationalState(pilotest.TestCase):
         repl.return_value = (ReplicationStatus.BEHIND, "behind in tank/b")
         cx = pilotest.make_context()
 
-        issues = state.collect_replication_validation(cx)
+        issues = lifecycle.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
         issue = issues[0]
@@ -154,11 +155,11 @@ class TestOperationalState(pilotest.TestCase):
         repl.return_value = (ReplicationStatus.DIVERGED, "diverged")
         cx = pilotest.make_context()
 
-        issues = state.collect_replication_validation(cx)
+        issues = lifecycle.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.diverged")
-        self.assertEqual(issues[0].severity, lifecycle.ValidationSeverity.ERROR)
+        self.assertEqual(issues[0].severity, state.ValidationSeverity.ERROR)
 
     @patch("pilo.zfs.latest_snapshot")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -168,7 +169,7 @@ class TestOperationalState(pilotest.TestCase):
         repl.return_value = (ReplicationStatus.OK, None)
         cx = pilotest.make_context()
 
-        issues = state.collect_replication_validation(cx)
+        issues = lifecycle.collect_replication_validation(cx)
 
         self.assertEqual(issues, [])
 
@@ -183,9 +184,9 @@ class TestOperationalState(pilotest.TestCase):
         cx = pilotest.make_context()
 
         with pilotest.healthy_snapshot_state():
-            report = state.collect_validation_report(cx)
+            report = lifecycle.collect_validation_report(cx)
 
-        #self.assertEqual(st.state, lifecycle.OperationalState.DEGRADED)
+        #self.assertEqual(st.state, state.OperationalState.DEGRADED)
         self.assertEqual(len(report.by_code("replication.behind")), 1)
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
@@ -195,7 +196,7 @@ class TestOperationalState(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="backup/a",
         )
 
-        issues = state.collect_replication_validation(cx)
+        issues = lifecycle.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.secondary_missing")
@@ -207,19 +208,19 @@ class TestOperationalState(pilotest.TestCase):
             PILO_SECONDARY_ROOTS="",
         )
 
-        issues = state.collect_replication_validation(cx)
+        issues = lifecycle.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.secondary_missing")
 
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     def test_collect_replication_validation_uses_classifier(self, detect):
         detect.return_value = lifecycle.LifecycleStatus(
             state=lifecycle.LifecycleState.REPLICATION_BEHIND,
             message="behind",
         )
         cx = pilotest.make_context()
-        issues = state.collect_replication_validation(cx)
+        issues = lifecycle.collect_replication_validation(cx)
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].code, "replication.behind")
@@ -227,12 +228,12 @@ class TestOperationalState(pilotest.TestCase):
 
     def test_validation_report_error_exit_code(self):
         cx = pilotest.make_context()
-        report = lifecycle.ValidationReport()
+        report = state.ValidationReport()
         report.extend([
-            lifecycle.ValidationIssue(
+            state.ValidationIssue(
                 code="foo.bar",
                 message="bad condition",
-                severity=lifecycle.ValidationSeverity.ERROR,
+                severity=state.ValidationSeverity.ERROR,
                 component="foo",
             )
         ])
@@ -242,12 +243,12 @@ class TestOperationalState(pilotest.TestCase):
 
     def test_validation_report_warning_exit_code(self):
         cx = pilotest.make_context()
-        report = lifecycle.ValidationReport()
+        report = state.ValidationReport()
         report.extend([
-            lifecycle.ValidationIssue(
+            state.ValidationIssue(
                 code="foo.bar",
                 message="less bad",
-                severity=lifecycle.ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.WARN,
                 component="foo",
             )
         ])
@@ -362,7 +363,7 @@ class TestSystemClassifier(pilotest.TestCase):
         self.assertEqual(issue.code, "replication.diverged")
         self.assertEqual(
             issue.severity,
-            lifecycle.ValidationSeverity.ERROR,
+            state.ValidationSeverity.ERROR,
         )
 
     def test_lifecycle_recoverable_normal(self):
@@ -493,7 +494,7 @@ class TestLifecycleLegality(pilotest.TestCase):
         )
         self.assertFalse(lifecycle.lifecycle_seed_replication_permitted(ls))
 
-    @patch("pilo.lifecycle.detect_lifecycle")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
     def test_recovery_permitted_unknown(self, detect):
 
         detect.return_value = lifecycle.LifecycleStatus(

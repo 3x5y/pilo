@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from .. import checks
 from .. import context
 from .. import error
+from . import lifecycle
 from . import normalize
-from .. import lifecycle
 from . import restore
 
 

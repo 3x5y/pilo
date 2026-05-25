@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo import lifecycle
+from pilo.storage import lifecycle
 from pilo.storage import replication as repl
 
 

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from .. import checks
 from .. import fs
+from .. import state
 from .. import zfs
 
 
@@ -149,15 +150,14 @@ def normalize_system(cx):
 
 
 def validate_dataset_contract(cx, contract):
-    from ..lifecycle import ValidationIssue,ValidationSeverity
     issues = []
     dataset = contract_dataset(cx, contract)
     if not zfs.dataset_exists(dataset):
         issues.append(
-            ValidationIssue(
+            state.ValidationIssue(
                 code="missing.required.dataset",
                 message=f"missing dataset {dataset}",
-                severity=ValidationSeverity.ERROR,
+                severity=state.ValidationSeverity.ERROR,
                 component="datasets",
             )
         )
@@ -167,13 +167,13 @@ def validate_dataset_contract(cx, contract):
         if contract.readonly is not None:
             if readonly != contract.readonly:
                 issues.append(
-                    ValidationIssue(
+                    state.ValidationIssue(
                         code="invalid.readonly",
                         message=(
                             f"{dataset} readonly="
                             f"{readonly} expected={contract.readonly}"
                         ),
-                        severity=ValidationSeverity.ERROR,
+                        severity=state.ValidationSeverity.ERROR,
                         component="datasets",
                     )
                 )
