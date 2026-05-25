@@ -2,16 +2,16 @@
 set -e
 
 # Create anchor and seed
-pilo snapshot-anchor
+pilo snapshot-mark
 ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-anchor$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 ANCHOR=${ANCHOR#*@}
 pilo replica-seed
 
 # Create an incremental snapshot and export it
-pilo snapshot-incr
+pilo snapshot-reg
 INCR=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR=${INCR#*@}
 
 capture_status pilo stream-export "$TEST_ROOT@$INCR" "$TEST_ROOT@$ANCHOR"

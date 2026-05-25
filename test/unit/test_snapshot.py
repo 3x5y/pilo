@@ -8,11 +8,11 @@ from pilo.back.snapshot import (
     SnapshotName,
     parse_snapshot_name,
     classify_snapshot,
-    is_anchor_snapshot,
-    is_incremental_snapshot,
+    is_mark_snapshot,
+    is_reg_snapshot,
     is_extra_snapshot,
-    create_anchor_snapshot,
-    create_incremental_snapshot,
+    create_mark_snapshot,
+    create_reg_snapshot,
     create_extra_snapshot,
 )
 import pilotest
@@ -72,13 +72,13 @@ class TestSnapshotPolicy(pilotest.TestCase):
 class TestSnapshotKind(pilotest.TestCase):
 
     def test_enum_values(self):
-        self.assertEqual(SnapshotKind.ANCHOR.value, "anchor")
-        self.assertEqual(SnapshotKind.INCR.value, "incr")
+        self.assertEqual(SnapshotKind.MARK.value, "mark")
+        self.assertEqual(SnapshotKind.REG.value, "reg")
         self.assertEqual(SnapshotKind.EXTRA.value, "extra")
 
     def test_from_string(self):
-        self.assertIs(SnapshotKind("anchor"), SnapshotKind.ANCHOR)
-        self.assertIs(SnapshotKind("incr"), SnapshotKind.INCR)
+        self.assertIs(SnapshotKind("mark"), SnapshotKind.MARK)
+        self.assertIs(SnapshotKind("reg"), SnapshotKind.REG)
         self.assertIs(SnapshotKind("extra"), SnapshotKind.EXTRA)
 
     def test_invalid_string_raises(self):
@@ -88,13 +88,13 @@ class TestSnapshotKind(pilotest.TestCase):
 
 class TestSnapshotName(pilotest.TestCase):
 
-    def test_anchor_format(self):
-        name = SnapshotName("20260522_012345_000000", SnapshotKind.ANCHOR)
-        self.assertEqual(name.format(), "20260522_012345_000000-anchor")
+    def test_mark_format(self):
+        name = SnapshotName("20260522_012345_000000", SnapshotKind.MARK)
+        self.assertEqual(name.format(), "20260522_012345_000000-mark")
 
-    def test_incremental_format(self):
-        name = SnapshotName("20260522_012345_000000", SnapshotKind.INCR)
-        self.assertEqual(name.format(), "20260522_012345_000000-incr")
+    def test_reg_format(self):
+        name = SnapshotName("20260522_012345_000000", SnapshotKind.REG)
+        self.assertEqual(name.format(), "20260522_012345_000000-reg")
 
     def test_extra_format(self):
         name = SnapshotName("20260522_012345_000000", SnapshotKind.EXTRA, "mylabel")
@@ -104,25 +104,25 @@ class TestSnapshotName(pilotest.TestCase):
         SnapshotName("ts", SnapshotKind.EXTRA, "x")
 
     def test_frozen(self):
-        name = SnapshotName("ts", SnapshotKind.ANCHOR)
+        name = SnapshotName("ts", SnapshotKind.MARK)
         with self.assertRaises(AttributeError):
             name.timestamp = "other"
 
 
 class TestParseSnapshotName(pilotest.TestCase):
 
-    def test_parse_anchor(self):
-        result = parse_snapshot_name("20260522_012345_000000-anchor")
+    def test_parse_mark(self):
+        result = parse_snapshot_name("20260522_012345_000000-mark")
         self.assertIsNotNone(result)
         self.assertEqual(result.timestamp, "20260522_012345_000000")
-        self.assertIs(result.kind, SnapshotKind.ANCHOR)
+        self.assertIs(result.kind, SnapshotKind.MARK)
         self.assertIsNone(result.label)
 
-    def test_parse_incremental(self):
-        result = parse_snapshot_name("20260522_012345_000000-incr")
+    def test_parse_reg(self):
+        result = parse_snapshot_name("20260522_012345_000000-reg")
         self.assertIsNotNone(result)
         self.assertEqual(result.timestamp, "20260522_012345_000000")
-        self.assertIs(result.kind, SnapshotKind.INCR)
+        self.assertIs(result.kind, SnapshotKind.REG)
         self.assertIsNone(result.label)
 
     def test_parse_extra(self):
@@ -139,8 +139,8 @@ class TestParseSnapshotName(pilotest.TestCase):
 
     def test_parse_roundtrip(self):
         for orig in [
-            SnapshotName("20260522_012345_000000", SnapshotKind.ANCHOR),
-            SnapshotName("20260522_012345_000000", SnapshotKind.INCR),
+            SnapshotName("20260522_012345_000000", SnapshotKind.MARK),
+            SnapshotName("20260522_012345_000000", SnapshotKind.REG),
             SnapshotName("20260522_012345_000000", SnapshotKind.EXTRA, "x"),
         ]:
             parsed = parse_snapshot_name(orig.format())
@@ -164,20 +164,20 @@ class TestParseSnapshotName(pilotest.TestCase):
     def test_parse_extra_without_label_returns_none(self):
         self.assertIsNone(parse_snapshot_name("ts-extra"))
 
-    def test_parse_anchor_with_label_returns_none(self):
-        self.assertIsNone(parse_snapshot_name("ts-anchor-label"))
+    def test_parse_mark_with_label_returns_none(self):
+        self.assertIsNone(parse_snapshot_name("ts-mark-label"))
 
-    def test_parse_incr_with_label_returns_none(self):
-        self.assertIsNone(parse_snapshot_name("ts-incr-label"))
+    def test_parse_reg_with_label_returns_none(self):
+        self.assertIsNone(parse_snapshot_name("ts-reg-label"))
 
 
 class TestClassifySnapshot(pilotest.TestCase):
 
-    def test_classify_anchor(self):
-        self.assertIs(classify_snapshot("ts-anchor"), SnapshotKind.ANCHOR)
+    def test_classify_mark(self):
+        self.assertIs(classify_snapshot("ts-mark"), SnapshotKind.MARK)
 
-    def test_classify_incremental(self):
-        self.assertIs(classify_snapshot("ts-incr"), SnapshotKind.INCR)
+    def test_classify_reg(self):
+        self.assertIs(classify_snapshot("ts-reg"), SnapshotKind.REG)
 
     def test_classify_extra(self):
         self.assertIs(classify_snapshot("ts-extra-x"), SnapshotKind.EXTRA)
@@ -190,35 +190,35 @@ class TestClassifySnapshot(pilotest.TestCase):
 
 class TestClassificationHelpers(pilotest.TestCase):
 
-    def test_is_anchor_snapshot(self):
-        self.assertTrue(is_anchor_snapshot("ts-anchor"))
-        self.assertFalse(is_anchor_snapshot("ts-incr"))
-        self.assertFalse(is_anchor_snapshot("t0"))
+    def test_is_mark_snapshot(self):
+        self.assertTrue(is_mark_snapshot("ts-mark"))
+        self.assertFalse(is_mark_snapshot("ts-reg"))
+        self.assertFalse(is_mark_snapshot("t0"))
 
-    def test_is_incremental_snapshot(self):
-        self.assertTrue(is_incremental_snapshot("ts-incr"))
-        self.assertFalse(is_incremental_snapshot("ts-anchor"))
-        self.assertFalse(is_incremental_snapshot("t0"))
+    def test_is_reg_snapshot(self):
+        self.assertTrue(is_reg_snapshot("ts-reg"))
+        self.assertFalse(is_reg_snapshot("ts-mark"))
+        self.assertFalse(is_reg_snapshot("t0"))
 
     def test_is_extra_snapshot(self):
         self.assertTrue(is_extra_snapshot("ts-extra-x"))
-        self.assertFalse(is_extra_snapshot("ts-anchor"))
+        self.assertFalse(is_extra_snapshot("ts-mark"))
         self.assertFalse(is_extra_snapshot("t0"))
 
 
 class TestCreateSnapshotHelpers(pilotest.TestCase):
 
     @patch("pilo.zfs.snapshot")
-    def test_create_anchor(self, mock_snap):
-        result = create_anchor_snapshot("tank/a", ts="TS")
-        self.assertEqual(result, "tank/a@TS-anchor")
-        mock_snap.assert_called_once_with("TS-anchor", "tank/a")
+    def test_create_mark(self, mock_snap):
+        result = create_mark_snapshot("tank/a", ts="TS")
+        self.assertEqual(result, "tank/a@TS-mark")
+        mock_snap.assert_called_once_with("TS-mark", "tank/a")
 
     @patch("pilo.zfs.snapshot")
-    def test_create_incremental(self, mock_snap):
-        result = create_incremental_snapshot("tank/a", ts="TS")
-        self.assertEqual(result, "tank/a@TS-incr")
-        mock_snap.assert_called_once_with("TS-incr", "tank/a")
+    def test_create_reg(self, mock_snap):
+        result = create_reg_snapshot("tank/a", ts="TS")
+        self.assertEqual(result, "tank/a@TS-reg")
+        mock_snap.assert_called_once_with("TS-reg", "tank/a")
 
     @patch("pilo.zfs.snapshot")
     def test_create_extra(self, mock_snap):
@@ -228,17 +228,17 @@ class TestCreateSnapshotHelpers(pilotest.TestCase):
 
     @patch("pilo.zfs.snapshot")
     @patch("pilo.util.snapshot_timestamp", return_value="AUTO")
-    def test_create_anchor_auto_timestamp(self, mock_ts, mock_snap):
-        result = create_anchor_snapshot("tank/a")
-        self.assertEqual(result, "tank/a@AUTO-anchor")
-        mock_snap.assert_called_once_with("AUTO-anchor", "tank/a")
+    def test_create_mark_auto_timestamp(self, mock_ts, mock_snap):
+        result = create_mark_snapshot("tank/a")
+        self.assertEqual(result, "tank/a@AUTO-mark")
+        mock_snap.assert_called_once_with("AUTO-mark", "tank/a")
 
     @patch("pilo.zfs.snapshot")
     def test_create_empty_dataset_fatal(self, mock_snap):
         with pilotest.assert_fatal(self):
-            create_anchor_snapshot("")
+            create_mark_snapshot("")
 
     @patch("pilo.zfs.snapshot")
-    def test_create_incremental_empty_dataset_fatal(self, mock_snap):
+    def test_create_reg_empty_dataset_fatal(self, mock_snap):
         with pilotest.assert_fatal(self):
-            create_incremental_snapshot("")
+            create_reg_snapshot("")

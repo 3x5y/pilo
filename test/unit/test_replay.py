@@ -7,7 +7,7 @@ from pilo.back.streams import StreamManifest, MANIFEST_SUFFIX
 import pilotest
 
 
-def _make_manifest(snapshot="20260522_010203_000000-incr",
+def _make_manifest(snapshot="20260522_010203_000000-reg",
                    source="tank/a", guid="12345"):
     return StreamManifest(
         stream=f"20260522/{snapshot}.zfs",
@@ -115,14 +115,14 @@ class TestExecuteReplayPlan(pilotest.TestCase):
         mock_recv.assert_called_once_with(
             Path("/out/stream.zfs"), "tank/b")
         mock_exists.assert_called_once_with(
-            "tank/b@20260522_010203_000000-incr")
+            "tank/b@20260522_010203_000000-reg")
 
     @patch("pilo.zfs.get_guid")
     @patch("pilo.zfs.snapshot_exists", return_value=False)
     @patch("pilo.zfs.recv_file")
     def test_returns_applied_result(self, mock_recv, mock_exists, mock_guid):
         manifest = _make_manifest(
-            snapshot="20260522_010203_000000-incr", source="tank/a")
+            snapshot="20260522_010203_000000-reg", source="tank/a")
         plan = replay.ReplayPlan(
             stream_path=Path("/out/stream.zfs"),
             manifest=manifest,
@@ -132,7 +132,7 @@ class TestExecuteReplayPlan(pilotest.TestCase):
         result = replay.execute_replay_plan(plan)
 
         self.assertEqual(result.status, "APPLIED")
-        self.assertEqual(result.snapshot, "20260522_010203_000000-incr")
+        self.assertEqual(result.snapshot, "20260522_010203_000000-reg")
         self.assertEqual(result.source, "tank/a")
         self.assertEqual(result.target_dataset, "tank/b")
         self.assertIsNotNone(result.applied_at)
@@ -168,7 +168,7 @@ class TestExecuteReplayPlan(pilotest.TestCase):
         result = replay.execute_replay_plan(plan)
 
         self.assertEqual(result.status, "SKIPPED")
-        self.assertEqual(result.snapshot, "20260522_010203_000000-incr")
+        self.assertEqual(result.snapshot, "20260522_010203_000000-reg")
         self.assertEqual(result.target_dataset, "tank/b")
         mock_recv.assert_not_called()
 
@@ -200,11 +200,11 @@ class TestClassifyStreams(pilotest.TestCase):
 
     def test_is_rollup_stream_no_match_incr(self):
         self.assertFalse(
-            replay.is_rollup_stream(Path("a-incr.zfs")))
+            replay.is_rollup_stream(Path("a-reg.zfs")))
 
     def test_is_rollup_stream_no_match_anchor(self):
         self.assertFalse(
-            replay.is_rollup_stream(Path("a-anchor.zfs")))
+            replay.is_rollup_stream(Path("a-mark.zfs")))
 
     def test_is_rollup_stream_no_match_plain(self):
         self.assertFalse(replay.is_rollup_stream(Path("a.zfs")))
@@ -216,7 +216,7 @@ class TestOrderStreams(pilotest.TestCase):
         self.assertEqual(replay.order_streams([]), [])
 
     def test_order_single_incr(self):
-        p = Path("a-incr.zfs")
+        p = Path("a-reg.zfs")
         self.assertEqual(replay.order_streams([p]), [p])
 
     def test_order_single_rollup(self):
@@ -226,29 +226,29 @@ class TestOrderStreams(pilotest.TestCase):
     def test_order_rollups_first(self):
         r1 = Path("b-rollup.zfs")
         r2 = Path("a-rollup.zfs")
-        i1 = Path("d-incr.zfs")
-        i2 = Path("c-incr.zfs")
+        i1 = Path("d-reg.zfs")
+        i2 = Path("c-reg.zfs")
         result = replay.order_streams([i1, r1, i2, r2])
         self.assertEqual(result, [r2, r1, i2, i1])
 
     def test_order_with_anchor(self):
         r = Path("r-rollup.zfs")
-        a = Path("a-anchor.zfs")
-        i = Path("i-incr.zfs")
+        a = Path("a-mark.zfs")
+        i = Path("i-reg.zfs")
         result = replay.order_streams([i, r, a])
         self.assertEqual(result, [r, a, i])
 
     def test_order_sorted_within_bucket(self):
         r2 = Path("20260524_000000_000002-rollup.zfs")
         r1 = Path("20260524_000000_000001-rollup.zfs")
-        i2 = Path("20260524_000000_000004-incr.zfs")
-        i1 = Path("20260524_000000_000003-incr.zfs")
+        i2 = Path("20260524_000000_000004-reg.zfs")
+        i1 = Path("20260524_000000_000003-reg.zfs")
         result = replay.order_streams([i2, r2, i1, r1])
         self.assertEqual(result, [r1, r2, i1, i2])
 
     def test_order_non_canonical_last(self):
         r = Path("r-rollup.zfs")
-        i = Path("i-incr.zfs")
+        i = Path("i-reg.zfs")
         x = Path("x.zfs")
         y = Path("y.zfs")
         result = replay.order_streams([x, i, r, y])
@@ -264,11 +264,11 @@ class TestFindStreams(pilotest.TestCase):
 
     def test_single_stream_file(self):
         with tempfile.TemporaryDirectory() as d:
-            Path(d, "20260522_010203_000000-incr.zfs").touch()
+            Path(d, "20260522_010203_000000-reg.zfs").touch()
             result = replay.find_streams(d)
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].name,
-                             "20260522_010203_000000-incr.zfs")
+                             "20260522_010203_000000-reg.zfs")
 
     def test_lexical_ordering(self):
         with tempfile.TemporaryDirectory() as d:
@@ -369,12 +369,12 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
 
     def test_multiple_paths_ordered(self):
         with tempfile.TemporaryDirectory() as d:
-            a_path = Path(d, "b-incr.zfs")
-            b_path = Path(d, "a-incr.zfs")
+            a_path = Path(d, "b-reg.zfs")
+            b_path = Path(d, "a-reg.zfs")
             a_path.touch()
             b_path.touch()
-            Path(d, "b-incr.zfs.manifest").write_text("{}")
-            Path(d, "a-incr.zfs.manifest").write_text("{}")
+            Path(d, "b-reg.zfs.manifest").write_text("{}")
+            Path(d, "a-reg.zfs.manifest").write_text("{}")
             manifest = _make_manifest(source="tank/a")
             with patch("pilo.back.replay.load_stream_manifest",
                        return_value=manifest):
@@ -384,7 +384,7 @@ class TestBuildBatchReplayPlan(pilotest.TestCase):
                         [str(a_path), str(b_path)])
 
                     self.assertEqual(len(batch.plans), 2)
-                    # ordered lexically: a-incr.zfs < b-incr.zfs
+                    # ordered lexically: a-reg.zfs < b-reg.zfs
                     self.assertEqual(
                         batch.plans[0].stream_path, b_path)
                     self.assertEqual(

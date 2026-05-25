@@ -8,8 +8,8 @@ from .. import zfs
 
 
 class SnapshotKind(Enum):
-    ANCHOR = "anchor"
-    INCR = "incr"
+    MARK = "mark"
+    REG = "reg"
     EXTRA = "extra"
 
 
@@ -48,12 +48,12 @@ def classify_snapshot(name: str) -> SnapshotKind | None:
     return parsed.kind if parsed is not None else None
 
 
-def is_anchor_snapshot(name: str) -> bool:
-    return classify_snapshot(name) is SnapshotKind.ANCHOR
+def is_mark_snapshot(name: str) -> bool:
+    return classify_snapshot(name) is SnapshotKind.MARK
 
 
-def is_incremental_snapshot(name: str) -> bool:
-    return classify_snapshot(name) is SnapshotKind.INCR
+def is_reg_snapshot(name: str) -> bool:
+    return classify_snapshot(name) is SnapshotKind.REG
 
 
 def is_extra_snapshot(name: str) -> bool:
@@ -70,12 +70,12 @@ def _create_canonical_snapshot(kind: SnapshotKind, dataset: str,
     return f"{dataset}@{name}"
 
 
-def create_anchor_snapshot(dataset: str, ts: str | None = None) -> str:
-    return _create_canonical_snapshot(SnapshotKind.ANCHOR, dataset, ts=ts)
+def create_mark_snapshot(dataset: str, ts: str | None = None) -> str:
+    return _create_canonical_snapshot(SnapshotKind.MARK, dataset, ts=ts)
 
 
-def create_incremental_snapshot(dataset: str, ts: str | None = None) -> str:
-    return _create_canonical_snapshot(SnapshotKind.INCR, dataset, ts=ts)
+def create_reg_snapshot(dataset: str, ts: str | None = None) -> str:
+    return _create_canonical_snapshot(SnapshotKind.REG, dataset, ts=ts)
 
 
 def create_extra_snapshot(dataset: str, label: str,

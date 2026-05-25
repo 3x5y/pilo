@@ -29,7 +29,7 @@ class TestStreamExportCmd(pilotest.TestCase):
     @patch("pilo.back.streams.export_incremental_stream")
     @patch("sys.argv", [
         "pilo-stream-export",
-        "tank/a@20260522_000000_000000-anchor",
+        "tank/a@20260522_000000_000000-mark",
     ])
     def test_full_export(self, mock_export):
         mock_export.return_value = Path("/out/streams/20260522/test.zfs")
@@ -41,14 +41,14 @@ class TestStreamExportCmd(pilotest.TestCase):
         args, kwargs = mock_export.call_args
         self.assertEqual(args[0], "tank/a")
         self.assertEqual(args[1].format(),
-                         "20260522_000000_000000-anchor")
+                         "20260522_000000_000000-mark")
         self.assertIsNone(kwargs.get("base"))
 
     @patch("pilo.back.streams.export_incremental_stream")
     @patch("sys.argv", [
         "pilo-stream-export",
-        "tank/a@20260522_000002_000000-incr",
-        "tank/a@20260522_000000_000000-anchor",
+        "tank/a@20260522_000002_000000-reg",
+        "tank/a@20260522_000000_000000-mark",
     ])
     def test_incremental_export(self, mock_export):
         mock_export.return_value = Path("/out/streams/20260522/test.zfs")
@@ -60,15 +60,15 @@ class TestStreamExportCmd(pilotest.TestCase):
         args, kwargs = mock_export.call_args
         self.assertEqual(args[0], "tank/a")
         self.assertEqual(args[1].format(),
-                         "20260522_000002_000000-incr")
+                         "20260522_000002_000000-reg")
         self.assertIsNotNone(kwargs.get("base"))
         self.assertEqual(kwargs["base"].format(),
-                         "20260522_000000_000000-anchor")
+                         "20260522_000000_000000-mark")
 
     @patch("pilo.back.streams.export_incremental_stream")
     @patch("sys.argv", [
         "pilo-stream-export",
-        "tank/a@20260522_000000_000000-anchor",
+        "tank/a@20260522_000000_000000-mark",
     ])
     def test_prints_filepath(self, mock_export):
         mock_export.return_value = Path("/out/streams/20260522/test.zfs")
@@ -80,7 +80,7 @@ class TestStreamExportCmd(pilotest.TestCase):
 
     @patch("sys.argv", [
         "pilo-stream-export",
-        "tank/a@20260522_000000_000000-incr",
+        "tank/a@20260522_000000_000000-reg",
         "tank/a@non-canonical",
     ])
     def test_non_canonical_base_fatal(self):

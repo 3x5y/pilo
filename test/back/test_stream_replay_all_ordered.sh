@@ -2,16 +2,16 @@
 set -e
 
 # Create canonical anchor snapshot and seed replica
-pilo snapshot-anchor
+pilo snapshot-mark
 ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-anchor$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 ANCHOR=${ANCHOR#*@}
 pilo replica-seed
 
 # Create first incremental snapshot
-pilo snapshot-incr
+pilo snapshot-reg
 INCR1=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR1=${INCR1#*@}
 
 # Export stream1 (incremental from anchor)
@@ -21,9 +21,9 @@ assert_command_ok
 STREAM_DIR=$(dirname "$OUTPUT")
 
 # Create second incremental snapshot
-pilo snapshot-incr
+pilo snapshot-reg
 latest_snap=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR2=${latest_snap#*@}
 
 # Export stream2 (incremental from incr1)

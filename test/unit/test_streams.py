@@ -27,16 +27,16 @@ class TestStreamOutputPath(pilotest.TestCase):
 
 class TestStreamFilename(pilotest.TestCase):
 
-    def test_incremental(self):
+    def test_reg(self):
         self.assertEqual(
-            streams.stream_filename("20260522_010203_000000", "incr"),
-            "20260522_010203_000000-incr.zfs",
+            streams.stream_filename("20260522_010203_000000", "reg"),
+            "20260522_010203_000000-reg.zfs",
         )
 
-    def test_anchor(self):
+    def test_mark(self):
         self.assertEqual(
-            streams.stream_filename("20260522_010203_000000", "anchor"),
-            "20260522_010203_000000-anchor.zfs",
+            streams.stream_filename("20260522_010203_000000", "mark"),
+            "20260522_010203_000000-mark.zfs",
         )
 
     def test_extra(self):
@@ -60,19 +60,19 @@ class TestStreamDateDir(pilotest.TestCase):
 class TestStreamFilepath(pilotest.TestCase):
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
-    def test_full_path_incremental(self):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+    def test_full_path_reg(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         result = streams.stream_filepath(snap)
         self.assertEqual(
-            result, Path("/out/20260522/20260522_010203_000000-incr.zfs")
+            result, Path("/out/20260522/20260522_010203_000000-reg.zfs")
         )
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
-    def test_full_path_anchor(self):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.ANCHOR)
+    def test_full_path_mark(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.MARK)
         result = streams.stream_filepath(snap)
         self.assertEqual(
-            result, Path("/out/20260522/20260522_010203_000000-anchor.zfs")
+            result, Path("/out/20260522/20260522_010203_000000-mark.zfs")
         )
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
@@ -93,23 +93,23 @@ class TestExportIncrementalStream(pilotest.TestCase):
     @patch("pilo.back.streams.zfs.get_guid", return_value="guid123")
     @patch("pilo.back.streams.zfs.send_full_to_file")
     def test_full_export_no_base(self, mock_send, mock_guid, mock_manifest):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         result = streams.export_incremental_stream("tank/a", snap)
 
         expected_path = Path(
-            "/out/20260522/20260522_010203_000000-incr.zfs"
+            "/out/20260522/20260522_010203_000000-reg.zfs"
         )
         self.assertEqual(result, expected_path)
         mock_send.assert_called_once_with(
-            "tank/a@20260522_010203_000000-incr",
+            "tank/a@20260522_010203_000000-reg",
             expected_path,
         )
         mock_guid.assert_called_once_with(
-            "tank/a@20260522_010203_000000-incr"
+            "tank/a@20260522_010203_000000-reg"
         )
         mock_manifest.assert_called_once_with(
             expected_path,
-            "20260522_010203_000000-incr",
+            "20260522_010203_000000-reg",
             "tank/a",
             "guid123",
             kind="full", base_snapshot=None,
@@ -119,34 +119,34 @@ class TestExportIncrementalStream(pilotest.TestCase):
     @patch("pilo.back.streams.write_stream_manifest")
     @patch("pilo.back.streams.zfs.get_guid", return_value="guid456")
     @patch("pilo.back.streams.zfs.send_incremental_to_file")
-    def test_incremental_export_with_base(self, mock_send, mock_guid, mock_manifest):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+    def test_reg_export_with_base(self, mock_send, mock_guid, mock_manifest):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         base = SnapshotName(
-            "20260522_010000_000000", SnapshotKind.ANCHOR
+            "20260522_010000_000000", SnapshotKind.MARK
         )
         result = streams.export_incremental_stream(
             "tank/a", snap, base=base,
         )
 
         expected_path = Path(
-            "/out/20260522/20260522_010203_000000-incr.zfs"
+            "/out/20260522/20260522_010203_000000-reg.zfs"
         )
         self.assertEqual(result, expected_path)
         mock_send.assert_called_once_with(
-            "tank/a@20260522_010000_000000-anchor",
-            "tank/a@20260522_010203_000000-incr",
+            "tank/a@20260522_010000_000000-mark",
+            "tank/a@20260522_010203_000000-reg",
             expected_path,
         )
         mock_guid.assert_called_once_with(
-            "tank/a@20260522_010203_000000-incr"
+            "tank/a@20260522_010203_000000-reg"
         )
         mock_manifest.assert_called_once_with(
             expected_path,
-            "20260522_010203_000000-incr",
+            "20260522_010203_000000-reg",
             "tank/a",
             "guid456",
             kind="incremental",
-            base_snapshot="20260522_010000_000000-anchor",
+            base_snapshot="20260522_010000_000000-mark",
         )
 
 
@@ -154,21 +154,21 @@ class TestStreamManifest(pilotest.TestCase):
 
     def test_manifest_fields(self):
         m = streams.StreamManifest(
-            stream="20260522/20260522_010203_000000-incr.zfs",
-            snapshot="20260522_010203_000000-incr",
+            stream="20260522/20260522_010203_000000-reg.zfs",
+            snapshot="20260522_010203_000000-reg",
             source="tank/a",
             guid="1234567890abcdef",
             checksum="abc" * 20,
             size=4096,
             created="2026-05-22T01:02:03.123456+00:00",
         )
-        self.assertEqual(m.stream, "20260522/20260522_010203_000000-incr.zfs")
+        self.assertEqual(m.stream, "20260522/20260522_010203_000000-reg.zfs")
         self.assertEqual(m.size, 4096)
 
     def test_to_dict(self):
         m = streams.StreamManifest(
             stream="20260522/s.zfs",
-            snapshot="ts-incr",
+            snapshot="ts-reg",
             source="tank/a",
             guid="guid",
             checksum="chk",
@@ -178,12 +178,12 @@ class TestStreamManifest(pilotest.TestCase):
         d = m.to_dict()
         self.assertEqual(d["stream"], "20260522/s.zfs")
         self.assertEqual(d["size"], 100)
-        self.assertEqual(d["snapshot"], "ts-incr")
+        self.assertEqual(d["snapshot"], "ts-reg")
 
     def test_from_dict(self):
         d = {
             "stream": "20260522/s.zfs",
-            "snapshot": "ts-incr",
+            "snapshot": "ts-reg",
             "source": "tank/a",
             "guid": "guid",
             "checksum": "chk",
@@ -210,7 +210,7 @@ class TestStreamManifest(pilotest.TestCase):
     def test_roundtrip(self):
         m1 = streams.StreamManifest(
             stream="20260522/s.zfs",
-            snapshot="ts-incr",
+            snapshot="ts-reg",
             source="tank/a",
             guid="abc123",
             checksum="def456",
@@ -220,7 +220,7 @@ class TestStreamManifest(pilotest.TestCase):
         m2 = streams.StreamManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
 
-    def test_kind_defaults_to_incremental(self):
+    def test_kind_defaults_to_reg(self):
         m = streams.StreamManifest(
             stream="s.zfs", snapshot="s", source="t",
             guid="g", checksum="c", size=1, created="now",
@@ -275,22 +275,22 @@ class TestStreamManifest(pilotest.TestCase):
         with self.assertRaises(ValueError):
             streams.StreamManifest.from_dict(d)
 
-    def test_roundtrip_incremental(self):
+    def test_roundtrip_reg(self):
         m1 = streams.StreamManifest(
-            stream="s.zfs", snapshot="ts-incr", source="tank/a",
+            stream="s.zfs", snapshot="ts-reg", source="tank/a",
             guid="g", checksum="c", size=100, created="now",
-            kind="incremental", base_snapshot="ts-anchor",
+            kind="incremental", base_snapshot="ts-mark",
         )
         m2 = streams.StreamManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
         self.assertEqual(m2.kind, "incremental")
-        self.assertEqual(m2.base_snapshot, "ts-anchor")
+        self.assertEqual(m2.base_snapshot, "ts-mark")
 
     def test_roundtrip_rollup(self):
         m1 = streams.StreamManifest(
             stream="s.zfs", snapshot="ts-rollup", source="tank/a",
             guid="g", checksum="c", size=100, created="now",
-            kind="rollup", base_snapshot="ts-anchor",
+            kind="rollup", base_snapshot="ts-mark",
         )
         m2 = streams.StreamManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
@@ -310,18 +310,18 @@ class TestStreamManifest(pilotest.TestCase):
 
 class TestManifestFilename(pilotest.TestCase):
 
-    def test_incremental(self):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+    def test_reg(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         self.assertEqual(
             streams.manifest_filename(snap),
-            "20260522_010203_000000-incr.zfs.manifest",
+            "20260522_010203_000000-reg.zfs.manifest",
         )
 
-    def test_anchor(self):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.ANCHOR)
+    def test_mark(self):
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.MARK)
         self.assertEqual(
             streams.manifest_filename(snap),
-            "20260522_010203_000000-anchor.zfs.manifest",
+            "20260522_010203_000000-mark.zfs.manifest",
         )
 
 
@@ -329,11 +329,11 @@ class TestManifestFilepath(pilotest.TestCase):
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
     def test_manifest_filepath(self):
-        snap = SnapshotName("20260522_010203_000000", SnapshotKind.INCR)
+        snap = SnapshotName("20260522_010203_000000", SnapshotKind.REG)
         result = streams.manifest_filepath(snap)
         self.assertEqual(
             result,
-            Path("/out/20260522/20260522_010203_000000-incr.zfs.manifest"),
+            Path("/out/20260522/20260522_010203_000000-reg.zfs.manifest"),
         )
 
 
@@ -346,13 +346,13 @@ class TestWriteStreamManifest(pilotest.TestCase):
             out_root.mkdir(parents=True, exist_ok=True)
             date_dir = out_root / "20260522"
             date_dir.mkdir(parents=True, exist_ok=True)
-            stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+            stream_path = date_dir / "20260522_010203_000000-reg.zfs"
             stream_path.write_bytes(b"hello world")
 
             with patch.dict(os.environ, env):
                 result = streams.write_stream_manifest(
                     stream_path,
-                    snapshot_name="20260522_010203_000000-incr",
+                    snapshot_name="20260522_010203_000000-reg",
                     source="tank/a",
                     guid="abcdef",
                 )
@@ -364,8 +364,8 @@ class TestWriteStreamManifest(pilotest.TestCase):
                 self.assertTrue(expected_manifest.exists())
 
                 m = streams.load_stream_manifest(expected_manifest)
-        self.assertEqual(m.stream, "20260522/20260522_010203_000000-incr.zfs")
-        self.assertEqual(m.snapshot, "20260522_010203_000000-incr")
+        self.assertEqual(m.stream, "20260522/20260522_010203_000000-reg.zfs")
+        self.assertEqual(m.snapshot, "20260522_010203_000000-reg")
         self.assertEqual(m.source, "tank/a")
         self.assertEqual(m.guid, "abcdef")
         self.assertIsInstance(m.size, int)
@@ -378,7 +378,7 @@ class TestWriteStreamManifest(pilotest.TestCase):
             env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
             date_dir = out_root / "20260522"
             date_dir.mkdir(parents=True, exist_ok=True)
-            stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+            stream_path = date_dir / "20260522_010203_000000-reg.zfs"
             stream_path.write_bytes(b"hello world")
 
             import hashlib
@@ -387,7 +387,7 @@ class TestWriteStreamManifest(pilotest.TestCase):
             with patch.dict(os.environ, env):
                 result_path = streams.write_stream_manifest(
                     stream_path,
-                    snapshot_name="ts-incr",
+                    snapshot_name="ts-reg",
                     source="tank/a",
                     guid="g",
                 )
@@ -400,14 +400,14 @@ class TestWriteStreamManifest(pilotest.TestCase):
             env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
             date_dir = out_root / "20260522"
             date_dir.mkdir(parents=True, exist_ok=True)
-            stream_path = date_dir / "20260522_010203_000000-incr.zfs"
+            stream_path = date_dir / "20260522_010203_000000-reg.zfs"
             data = b"x" * 12345
             stream_path.write_bytes(data)
 
             with patch.dict(os.environ, env):
                 result_path = streams.write_stream_manifest(
                     stream_path,
-                    snapshot_name="ts-incr",
+                    snapshot_name="ts-reg",
                     source="tank/a",
                     guid="g",
                 )
@@ -419,7 +419,7 @@ class TestWriteStreamManifest(pilotest.TestCase):
         with self.assertRaises(FileNotFoundError):
             streams.write_stream_manifest(
                 stream_path,
-                snapshot_name="ts-incr",
+                snapshot_name="ts-reg",
                 source="tank/a",
                 guid="g",
             )
@@ -439,12 +439,12 @@ class TestWriteIncrementalManifest(pilotest.TestCase):
 
             with patch.dict(os.environ, env):
                 result = streams.write_incremental_manifest(
-                    stream_path, "ts-incr", "tank/a", "g",
-                    base_snapshot="ts-anchor",
+                    stream_path, "ts-reg", "tank/a", "g",
+                    base_snapshot="ts-mark",
                 )
                 m = streams.load_stream_manifest(result)
         self.assertEqual(m.kind, "incremental")
-        self.assertEqual(m.base_snapshot, "ts-anchor")
+        self.assertEqual(m.base_snapshot, "ts-mark")
 
 
 class TestWriteRollupManifest(pilotest.TestCase):
@@ -462,11 +462,11 @@ class TestWriteRollupManifest(pilotest.TestCase):
             with patch.dict(os.environ, env):
                 result = streams.write_rollup_manifest(
                     stream_path, "ts-rollup", "tank/a", "g",
-                    base_snapshot="ts-anchor",
+                    base_snapshot="ts-mark",
                 )
                 m = streams.load_stream_manifest(result)
         self.assertEqual(m.kind, "rollup")
-        self.assertEqual(m.base_snapshot, "ts-anchor")
+        self.assertEqual(m.base_snapshot, "ts-mark")
 
 
 class TestLoadStreamManifest(pilotest.TestCase):
@@ -474,7 +474,7 @@ class TestLoadStreamManifest(pilotest.TestCase):
     def test_load_valid(self):
         d = {
             "stream": "20260522/s.zfs",
-            "snapshot": "ts-incr",
+            "snapshot": "ts-reg",
             "source": "tank/a",
             "guid": "abc",
             "checksum": "def",
@@ -517,7 +517,7 @@ class TestVerifyOne(pilotest.TestCase):
             size = len(data)
         manifest = {
             "stream": "s.zfs",
-            "snapshot": "ts-incr",
+            "snapshot": "ts-reg",
             "source": "tank/a",
             "guid": "g",
             "checksum": checksum,
@@ -546,7 +546,7 @@ class TestVerifyOne(pilotest.TestCase):
         with pilotest.tmpdir() as td:
             manifest = {
                 "stream": "s.zfs",
-                "snapshot": "ts-incr",
+                "snapshot": "ts-reg",
                 "source": "tank/a",
                 "guid": "g",
                 "checksum": "c" * 64,

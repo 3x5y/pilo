@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from .snapshot import is_anchor_snapshot
+from .snapshot import is_mark_snapshot
 from .streams import (
     stream_output_path,
     verify_one,
@@ -35,19 +35,19 @@ def rollup_output_path(target_name: str, filename: str) -> Path:
     return stream_output_path() / target_ts[:8] / filename
 
 
-def discover_anchor_chain(dataset):
+def discover_rollup_chain(dataset):
     snaps = zfs.list_snapshots(dataset)
-    anchors = []
+    marks = []
     for snap in snaps:
         name = snap.split("@", 1)[1]
-        if is_anchor_snapshot(name):
-            anchors.append(name)
-    return [(anchors[i], anchors[i + 1])
-            for i in range(len(anchors) - 1)]
+        if is_mark_snapshot(name):
+            marks.append(name)
+    return [(marks[i], marks[i + 1])
+            for i in range(len(marks) - 1)]
 
 
 def build_rollup_plan(dataset) -> RollupPlan:
-    pairs = discover_anchor_chain(dataset)
+    pairs = discover_rollup_chain(dataset)
     ops = []
     for base_name, target_name in pairs:
         fname = rollup_filename(base_name, target_name)

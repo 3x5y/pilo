@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-capture_status pilo snapshot-incr
+capture_status pilo snapshot-reg
 
 assert_command_ok failed to create snapshot
 

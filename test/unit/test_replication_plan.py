@@ -148,21 +148,21 @@ class TestReplicationPlan(pilotest.TestCase):
 class TestReplicationPlanExport(pilotest.TestCase):
 
     @patch("pilo.back.replication._resolve_export_path",
-           return_value="/out/ts-incr.zfs")
+           return_value="/out/ts-reg.zfs")
     @patch("pilo.checks.require_dataset")
     @patch("pilo.back.replication.find_incremental_base")
     @patch("pilo.zfs.latest_snapshot")
     def test_export_true_sets_export_path(
         self, mock_latest, mock_base, *_,
     ):
-        mock_latest.side_effect = ["tank/a@ts-incr", "backup/a@ts-incr"]
-        mock_base.return_value = "tank/a@ts-incr"
+        mock_latest.side_effect = ["tank/a@ts-reg", "backup/a@ts-reg"]
+        mock_base.return_value = "tank/a@ts-reg"
 
         plan = repl.build_replication_plan(
             "tank/a", "backup/a", export=True,
         )
 
-        self.assertEqual(plan.export_path, "/out/ts-incr.zfs")
+        self.assertEqual(plan.export_path, "/out/ts-reg.zfs")
 
     @patch("pilo.checks.require_dataset")
     @patch("pilo.back.replication.find_incremental_base")
@@ -170,8 +170,8 @@ class TestReplicationPlanExport(pilotest.TestCase):
     def test_export_false_leaves_export_path_none(
         self, mock_latest, mock_base, *_,
     ):
-        mock_latest.side_effect = ["tank/a@ts-incr", "backup/a@ts-incr"]
-        mock_base.return_value = "tank/a@ts-incr"
+        mock_latest.side_effect = ["tank/a@ts-reg", "backup/a@ts-reg"]
+        mock_base.return_value = "tank/a@ts-reg"
 
         plan = repl.build_replication_plan(
             "tank/a", "backup/a", export=False,
@@ -353,7 +353,7 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         plan = repl.ReplicationPlan(
             src="tank/a",
             dst="backup/a",
-            snapshot="tank/a@ts-incr",
+            snapshot="tank/a@ts-reg",
             base="tank/a@base",
             mode="incremental",
             export_path="/out/s.zfs",
@@ -361,9 +361,9 @@ class TestExecuteWithExportPath(pilotest.TestCase):
 
         repl.execute_replication_plan(plan)
 
-        mock_guid.assert_called_once_with("tank/a@ts-incr")
+        mock_guid.assert_called_once_with("tank/a@ts-reg")
         mock_manifest.assert_called_once_with(
-            Path("/out/s.zfs"), "ts-incr", "tank/a", "guid_incr",
+            Path("/out/s.zfs"), "ts-reg", "tank/a", "guid_incr",
             kind="incremental", base_snapshot="base",
         )
 
@@ -376,8 +376,8 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         plan = repl.ReplicationPlan(
             src="tank/a",
             dst="backup/a",
-            snapshot="tank/a@ts-incr",
-            base="tank/a@ts-incr",
+            snapshot="tank/a@ts-reg",
+            base="tank/a@ts-reg",
             mode="noop",
             export_path="/out/s.zfs",
         )

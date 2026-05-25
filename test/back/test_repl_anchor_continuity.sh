@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-incr
+pilo snapshot-reg
 pilo replica-seed
 
 pilo snapshot t1

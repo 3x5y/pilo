@@ -11,7 +11,7 @@ from pilo import error
 import pilotest
 
 
-def _make_result(snapshot="20260522_010203_000000-incr",
+def _make_result(snapshot="20260522_010203_000000-reg",
                  source="tank/a", target="tank/b"):
     return ReplayResult(
         status="APPLIED",
@@ -25,8 +25,8 @@ def _make_result(snapshot="20260522_010203_000000-incr",
 
 def _make_manifest():
     return StreamManifest(
-        stream="20260522/20260522_010203_000000-incr.zfs",
-        snapshot="20260522_010203_000000-incr",
+        stream="20260522/20260522_010203_000000-reg.zfs",
+        snapshot="20260522_010203_000000-reg",
         source="tank/a", guid="123",
         checksum="abc", size=100,
         created="2026-05-22T01:02:03",
@@ -99,10 +99,10 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
             with patch("pilo.back.replay.execute_batch_replay_plan",
                        return_value=[
                            _make_result(
-                               snapshot="20260522_010203_000000-incr",
+                               snapshot="20260522_010203_000000-reg",
                                target="tank/b"),
                            _make_result(
-                               snapshot="20260522_010204_000000-incr",
+                               snapshot="20260522_010204_000000-reg",
                                target="tank/b"),
                        ]):
                 with patch("builtins.print") as mock_print:
@@ -112,10 +112,10 @@ class TestStreamReplayAllCmd(pilotest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertEqual(
             str(calls[0]),
-            "call('APPLIED 20260522_010203_000000-incr.zfs tank/b')")
+            "call('APPLIED 20260522_010203_000000-reg.zfs tank/b')")
         self.assertEqual(
             str(calls[1]),
-            "call('APPLIED 20260522_010204_000000-incr.zfs tank/b')")
+            "call('APPLIED 20260522_010204_000000-reg.zfs tank/b')")
 
     @patch("pilo.back.replay.find_streams")
     @patch("sys.argv", ["pilo-stream-replay-all", "/streams"])

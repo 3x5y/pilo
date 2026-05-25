@@ -4,11 +4,11 @@ set -e
 pilo snapshot t0
 pilo replica-seed
 
-pilo snapshot-incr
+pilo snapshot-reg
 pilo replicate
 
 pilo snapshot t1
 pilo replicate
 
 # ensure incremental basis was the rpo snapshot (indirectly)
-zfs list -t snap -Ho name $TEST_REPLICA | assert_grep "incr$"
+zfs list -t snap -Ho name $TEST_REPLICA | assert_grep "reg$"

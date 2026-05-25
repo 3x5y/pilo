@@ -4,44 +4,44 @@ set -e
 echo "content1" > /$ADMIN/file1.txt
 
 # First anchor + seed replica (replica now has A_ANCHOR)
-pilo snapshot-anchor
+pilo snapshot-mark
 A_ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-anchor$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 A_ANCHOR=${A_ANCHOR#*@}
 pilo replica-seed
 
 # First incremental
 echo "content2" > /$ADMIN/file2.txt
-pilo snapshot-incr
+pilo snapshot-reg
 INCR1=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR1=${INCR1#*@}
 
 # Second anchor
 echo "content3" > /$ADMIN/file3.txt
-pilo snapshot-anchor
+pilo snapshot-mark
 B_ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-anchor$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 B_ANCHOR=${B_ANCHOR#*@}
 
 # Second and third incrementals
 echo "content4" > /$ADMIN/file4.txt
-pilo snapshot-incr
+pilo snapshot-reg
 INCR2=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR2=${INCR2#*@}
 
 echo "content5" > /$ADMIN/file5.txt
-pilo snapshot-incr
+pilo snapshot-reg
 INCR3=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 INCR3=${INCR3#*@}
 
 # Third anchor
 echo "content6" > /$ADMIN/file6.txt
-pilo snapshot-anchor
+pilo snapshot-mark
 C_ANCHOR=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-anchor$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-mark$" | tail -1)
 C_ANCHOR=${C_ANCHOR#*@}
 
 # Build rollup plans and execute

@@ -14,10 +14,10 @@ SEC_POOL1=z1-rem
 SEC_POOL2=z2-rem
 SEC_POOL3=z3-rem
 
-STREAMS=/tmp/streams
-#STREAMS=$(mktemp -d)
-#chmod a+rx $STREAMS
-#export PILO_STREAM_OUTPUT_PATH=$STREAMS
+#STREAMS=/tmp/streams
+STREAMS=$(mktemp -d)
+chmod a+rx $STREAMS
+export PILO_STREAM_OUTPUT_PATH=$STREAMS
 
 
 _pilo() {
@@ -229,10 +229,10 @@ cycle() {
     do
         for hour in {0..1}
         do
-            _pilo snapshot-incr
+            _pilo snapshot-reg
             _pilo replicate
         done
-        _pilo snapshot-anchor
+        _pilo snapshot-mark
         _pilo replicate
         _pilo rollup
     done
@@ -257,7 +257,7 @@ test_main() {
     init_pool $PRI_POOL $PRI_DEV
     _pilo provision-primary
     _pilo init
-    _pilo snapshot-anchor
+    _pilo snapshot-mark
 
     TARGET_ID=z1
     init_pool $SEC_POOL1 $SEC_DEV1

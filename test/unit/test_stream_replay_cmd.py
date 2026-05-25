@@ -7,7 +7,7 @@ from pilo import error
 import pilotest
 
 
-def _make_result(snapshot="20260522_010203_000000-incr",
+def _make_result(snapshot="20260522_010203_000000-reg",
                  source="tank/a", target="tank/b"):
     return ReplayResult(
         status="APPLIED",
@@ -89,7 +89,7 @@ class TestStreamReplayCmd(pilotest.TestCase):
     @patch("sys.argv", ["pilo-stream-replay", "stream.zfs"])
     def test_prints_result_line(self, mock_build):
         manifest = StreamManifest(
-            stream="stream.zfs", snapshot="20260522_010203_000000-incr",
+            stream="stream.zfs", snapshot="20260522_010203_000000-reg",
             source="tank/a", guid="123",
             checksum="abc", size=100,
             created="2026-05-22T01:02:03",
@@ -108,4 +108,4 @@ class TestStreamReplayCmd(pilotest.TestCase):
                 mod.main()
 
         mock_print.assert_called_once_with(
-            "APPLIED 20260522_010203_000000-incr.zfs tank/b")
+            "APPLIED 20260522_010203_000000-reg.zfs tank/b")

@@ -3,19 +3,19 @@ set -e
 
 # Create content and a canonical snapshot
 echo "content" > /$ADMIN/file.txt
-pilo snapshot-incr
+pilo snapshot-reg
 
 # Seed the replica
 pilo replica-seed
 
 # More content, another snapshot, then replicate with stream export
 echo "more" > /$ADMIN/file2.txt
-pilo snapshot-incr
+pilo snapshot-reg
 PILO_STREAM_EXPORT=1 pilo replicate
 
 # Find the latest canonical snapshot
 latest_snap=$(zfs list -t snapshot -r -Ho name -s creation \
-    "$PILO_PRIMARY_ROOT" | grep -- "-incr$" | tail -1)
+    "$PILO_PRIMARY_ROOT" | grep -- "-reg$" | tail -1)
 snap_name=${latest_snap#*@}
 ts=${snap_name%%-*}
 date_dir=$(echo "$ts" | cut -c1-8)

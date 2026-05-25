@@ -3,11 +3,11 @@
 import os
 
 from pilo import error
-from pilo.back.snapshot import create_incremental_snapshot
+from pilo.back.snapshot import create_mark_snapshot
 
 
 def main():
-    create_incremental_snapshot(os.environ["PILO_PRIMARY_ROOT"])
+    create_mark_snapshot(os.environ["PILO_PRIMARY_ROOT"])
 
 
 if __name__ == "__main__":

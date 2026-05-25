@@ -1,13 +1,13 @@
 #!/bin/sh
 set -e
 
-pilo snapshot-incr
+pilo snapshot-reg
 pilo replica-seed
 
 pilo snapshot t1
 pilo replicate
 
-pilo snapshot-incr
+pilo snapshot-reg
 pilo replicate
 
 capture_status pilo replication-verify
