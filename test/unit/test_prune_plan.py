@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
+from pilo.content import prune
 from pilo.front import mutation
-from pilo.front import prune
 import pilotest
 
 

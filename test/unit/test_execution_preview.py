@@ -3,9 +3,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pilo.content import ingest
+from pilo.content import prune
 from pilo.front import mutation
 from pilo.front import promote
-from pilo.front import prune
 import pilotest
 
 

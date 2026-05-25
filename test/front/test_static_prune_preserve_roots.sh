@@ -5,7 +5,7 @@ with_writable $PILE mkdir -p /$PILE/in
 with_writable $PILE mkdir -p /$PILE/out
 with_writable $PILE mkdir -p /$PILE/sort
 
-pilo prune-pile
+pilo content-prune
 
 assert_dir_exists /$PILE/in
 assert_dir_exists /$PILE/out

@@ -2,7 +2,7 @@
 
 from pilo import context
 from pilo import error
-from pilo.front import prune
+from pilo.content import prune
 
 
 def main():

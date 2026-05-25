@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import mutation
+from ..front import mutation
 
 
 @dataclass(frozen=True)
