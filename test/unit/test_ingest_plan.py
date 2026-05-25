@@ -454,7 +454,7 @@ class TestIngestOps(pilotest.TestCase):
         self.assertEqual(op.manifest_path, mpath)
         self.assertEqual(len(op.build_mutations()), 1)
 
-    @patch("pilo.front.checksum.generate_checksum")
+    @patch("pilo.content.checksum.generate_checksum")
     def test_ingest_manifest_mutations_use_acquisition_layer(
         self,
         mock_generate,

@@ -118,7 +118,7 @@ class TestRewritePlan(pilotest.TestCase):
         rewrite.execute_rewrite_plan(cx, plan)
         mock_exec.assert_called_once()
 
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
     def test_rewrite_execution_plan_builds_execution_plan(self, *_):
 
@@ -145,7 +145,7 @@ class TestRewritePlan(pilotest.TestCase):
         self.assertEqual(len(exec_plan.filesystem_steps), 1)
         self.assertEqual(len(exec_plan.manifest_steps), 1)
 
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
     def test_rewrite_execution_plan_contains_manifest_steps(self, *_):
 
@@ -176,7 +176,7 @@ class TestRewritePlan(pilotest.TestCase):
 
 
     @patch("pilo.checks.require_file")
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     def test_rewrite_execution_plan_builds_checksum_verification(self, *_):
 
         cx = pilotest.make_context()
@@ -235,7 +235,7 @@ class TestRewritePlan(pilotest.TestCase):
         add = muts[1]
         self.assertEqual(add.entry.checksum, "abc123")
 
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     def test_rewrite_verified_checksums_reuses_manifest_entries(
         self,
         mock_verify,
@@ -301,7 +301,7 @@ class TestRewritePlan(pilotest.TestCase):
         with pilotest.assert_fatal(self):
             rewrite.build_checksum_index([op], cx.pile_path, entries)
 
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     @patch("pilo.checks.require_file")
     @patch("pilo.content.reorg.build_manifest_mutations")
     def test_rewrite_execution_plan_uses_verified_checksums(
@@ -375,7 +375,7 @@ class TestRewritePlan(pilotest.TestCase):
 
         mock_sha.assert_not_called()
 
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     def test_rewrite_verified_checksums_mark_verified(self, mock_verify):
 
         mock_verify.return_value = manifest.ProvenancedChecksum(
@@ -418,7 +418,7 @@ class TestRewritePlan(pilotest.TestCase):
         self.assertEqual(item.provenance,
                          manifest.ChecksumProvenance.VERIFIED)
 
-    @patch("pilo.front.checksum.verify_checksum")
+    @patch("pilo.content.checksum.verify_checksum")
     def test_rewrite_verified_checksums_use_acquisition_layer(
         self,
         mock_verify,
