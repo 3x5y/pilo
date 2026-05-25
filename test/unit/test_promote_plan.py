@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pilo import paths
 from pilo.content import promote
-from pilo.front import execution
+from pilo.content import execution
 from pilo.front import manifest
 from pilo.front import mutation
 import pilotest

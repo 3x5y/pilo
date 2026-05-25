@@ -9,7 +9,7 @@ from .. import policy
 from . import continuity
 from ..front import manifest
 from ..front import mutation
-from ..front.execution import (
+from .execution import (
     ExecutionPlan,
     ManifestStep,
     VerifyChecksumStep,

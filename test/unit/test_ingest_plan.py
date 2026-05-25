@@ -5,9 +5,9 @@ from unittest.mock import patch
 
 from pilo.content import capture
 from pilo.content import ingest
+from pilo.content.execution import ExecutionPlan
 from pilo.front import manifest
 from pilo.front import mutation
-from pilo.front.execution import ExecutionPlan
 import pilotest
 
 

@@ -5,7 +5,7 @@ from pilo.content import ingest
 from pilo import checks
 from pilo import context
 from pilo import error
-from pilo.front import execution
+from pilo.content import execution
 from pilo import fs
 
 

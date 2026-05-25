@@ -8,7 +8,7 @@ from .. import fs
 from . import continuity
 from ..front import mutation
 from ..front import manifest
-from ..front.execution import (
+from .execution import (
     ExecutionPlan,
     ManifestStep,
     VerifyChecksumStep,
