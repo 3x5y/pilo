@@ -213,9 +213,10 @@ postrotate() {
     _pilo stream-replay-all $STREAMS $TARGET_FS
     #show
 
+    report_gc
     show_count_before
+    _pilo stream-gc
     _pilo rotate-gc --preview
-
     _pilo rotate-gc
     show_count_after
     #show

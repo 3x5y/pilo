@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .snapshot import is_mark_snapshot
+from .stream_gc import oldest_held_timestamp
 from .streams import (
     stream_output_path,
     verify_one,
@@ -35,21 +36,16 @@ def rollup_output_path(target_name: str, filename: str) -> Path:
 
 
 def discover_rollup_chain(dataset):
-    entries = zfs.snapshots_userrefs(dataset)
-    cutoff_idx = None
-    for i, (full_ref, refs) in enumerate(entries):
-        if refs > 0:
-            name = full_ref.split("@", 1)[1]
-            if is_mark_snapshot(name):
-                cutoff_idx = i
-                break
-    if cutoff_idx is None:
+    cutoff_ts = oldest_held_timestamp(dataset)
+    if cutoff_ts is None:
         return []
     marks = []
-    for full_ref, _ in entries[cutoff_idx:]:
+    for full_ref, _ in zfs.snapshots_userrefs(dataset):
         name = full_ref.split("@", 1)[1]
         if is_mark_snapshot(name):
-            marks.append(name)
+            ts = name.split("-")[0]
+            if ts >= cutoff_ts:
+                marks.append(name)
     return [(marks[i], marks[i + 1])
             for i in range(len(marks) - 1)]
 
