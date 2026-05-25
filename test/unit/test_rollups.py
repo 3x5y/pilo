@@ -102,23 +102,23 @@ class TestRollupOutputPath(pilotest.TestCase):
 
 class TestDiscoverRollupChain(pilotest.TestCase):
 
-    @patch("pilo.zfs.list_snapshots", return_value=[])
-    def test_no_snapshots(self, mock_list):
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[])
+    def test_no_snapshots(self, mock_userrefs):
         pairs = rollups.discover_rollup_chain("tank")
         self.assertEqual(pairs, [])
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@20260101_000000_000000-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 0),
     ])
-    def test_one_mark(self, mock_list):
+    def test_one_mark(self, mock_userrefs):
         pairs = rollups.discover_rollup_chain("tank")
         self.assertEqual(pairs, [])
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@20260101_000000_000000-mark",
-        "tank@20260102_000000_000000-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 1),
+        ("tank@20260102_000000_000000-mark", 1),
     ])
-    def test_two_marks_one_pair(self, mock_list):
+    def test_two_marks_one_pair(self, mock_userrefs):
         pairs = rollups.discover_rollup_chain("tank")
         self.assertEqual(len(pairs), 1)
         self.assertEqual(
@@ -127,14 +127,14 @@ class TestDiscoverRollupChain(pilotest.TestCase):
              "20260102_000000_000000-mark"),
         )
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@20260101_000000_000000-mark",
-        "tank@20260101_010000_000000-reg",
-        "tank@20260102_000000_000000-mark",
-        "tank@20260102_010000_000000-reg",
-        "tank@20260103_000000_000000-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 1),
+        ("tank@20260101_010000_000000-reg", 1),
+        ("tank@20260102_000000_000000-mark", 1),
+        ("tank@20260102_010000_000000-reg", 1),
+        ("tank@20260103_000000_000000-mark", 1),
     ])
-    def test_three_marks_two_pairs(self, mock_list):
+    def test_three_marks_two_pairs(self, mock_userrefs):
         pairs = rollups.discover_rollup_chain("tank")
         self.assertEqual(len(pairs), 2)
         self.assertEqual(pairs[0][0], "20260101_000000_000000-mark")
@@ -142,12 +142,12 @@ class TestDiscoverRollupChain(pilotest.TestCase):
         self.assertEqual(pairs[1][0], "20260102_000000_000000-mark")
         self.assertEqual(pairs[1][1], "20260103_000000_000000-mark")
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@20260101_000000_000000-mark",
-        "tank@20260102_000000_000000-mark",
-        "tank@20260103_000000_000000-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 1),
+        ("tank@20260102_000000_000000-mark", 1),
+        ("tank@20260103_000000_000000-mark", 1),
     ])
-    def test_chronological_order(self, mock_list):
+    def test_chronological_order(self, mock_userrefs):
         pairs = rollups.discover_rollup_chain("tank")
         self.assertEqual(len(pairs), 2)
         self.assertEqual(
@@ -161,30 +161,49 @@ class TestDiscoverRollupChain(pilotest.TestCase):
              "20260103_000000_000000-mark"),
         )
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@20260101_000000_000000-reg",
-        "tank@20260102_000000_000000-reg",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-reg", 1),
+        ("tank@20260102_000000_000000-reg", 1),
     ])
-    def test_non_mark_ignored(self, mock_list):
+    def test_non_mark_ignored(self, mock_userrefs):
+        pairs = rollups.discover_rollup_chain("tank")
+        self.assertEqual(pairs, [])
+
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 0),    # unheld older mark
+        ("tank@20260102_000000_000000-mark", 1),    # held → cutoff
+        ("tank@20260103_000000_000000-mark", 0),    # unheld but after cutoff
+        ("tank@20260104_000000_000000-mark", 1),    # held, after cutoff
+    ])
+    def test_oldest_held_cutoff(self, mock_userrefs):
+        pairs = rollups.discover_rollup_chain("tank")
+        self.assertEqual(len(pairs), 2)
+        self.assertEqual(pairs[0][0], "20260102_000000_000000-mark")
+        self.assertEqual(pairs[0][1], "20260103_000000_000000-mark")
+        self.assertEqual(pairs[1][0], "20260103_000000_000000-mark")
+        self.assertEqual(pairs[1][1], "20260104_000000_000000-mark")
+
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 0),
+        ("tank@20260102_000000_000000-mark", 0),
+    ])
+    def test_no_held_marks(self, mock_userrefs):
         pairs = rollups.discover_rollup_chain("tank")
         self.assertEqual(pairs, [])
 
 
 class TestBuildRollupPlan(pilotest.TestCase):
 
-    def _make_snaps(self, *names):
-        return [f"tank@{n}" for n in names]
-
-    @patch("pilo.zfs.list_snapshots", return_value=[])
-    def test_empty_plan(self, mock_list):
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[])
+    def test_empty_plan(self, mock_userrefs):
         plan = rollups.build_rollup_plan("tank")
         self.assertEqual(len(plan.ops), 0)
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@20260101_000000_000000-mark",
-        "tank@20260102_000000_000000-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@20260101_000000_000000-mark", 1),
+        ("tank@20260102_000000_000000-mark", 1),
     ])
-    def test_builds_one_op(self, mock_list):
+    def test_builds_one_op(self, mock_userrefs):
         with patch("pilo.back.rollups.verify_one",
                    return_value=("NOT_FOUND", "")):
             with patch.dict(os.environ,
@@ -205,11 +224,11 @@ class TestBuildRollupPlan(pilotest.TestCase):
                       "--20260102_000000_000000.rollup.zfs",
                       str(op.output_path))
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@a-mark",
-        "tank@b-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@a-mark", 1),
+        ("tank@b-mark", 1),
     ])
-    def test_skip_existing_verified(self, mock_list):
+    def test_skip_existing_verified(self, mock_userrefs):
         with patch("pilo.back.rollups.verify_one",
                    return_value=("OK", "")):
             with patch("pilo.back.rollups.stream_output_path",
@@ -219,11 +238,11 @@ class TestBuildRollupPlan(pilotest.TestCase):
                     plan = rollups.build_rollup_plan("tank")
         self.assertEqual(len(plan.ops), 0)
 
-    @patch("pilo.zfs.list_snapshots", return_value=[
-        "tank@a-mark",
-        "tank@b-mark",
+    @patch("pilo.zfs.snapshots_userrefs", return_value=[
+        ("tank@a-mark", 1),
+        ("tank@b-mark", 1),
     ])
-    def test_skip_existing_corrupt_regenerates(self, mock_list):
+    def test_skip_existing_corrupt_regenerates(self, mock_userrefs):
         with patch("pilo.back.rollups.verify_one",
                    return_value=("MISMATCH", "")):
             with patch.dict(os.environ,

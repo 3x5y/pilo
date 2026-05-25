@@ -7,7 +7,6 @@ from .streams import (
     verify_one,
     write_rollup_manifest,
 )
-from .. import error
 from .. import zfs
 
 
@@ -36,10 +35,19 @@ def rollup_output_path(target_name: str, filename: str) -> Path:
 
 
 def discover_rollup_chain(dataset):
-    snaps = zfs.list_snapshots(dataset)
+    entries = zfs.snapshots_userrefs(dataset)
+    cutoff_idx = None
+    for i, (full_ref, refs) in enumerate(entries):
+        if refs > 0:
+            name = full_ref.split("@", 1)[1]
+            if is_mark_snapshot(name):
+                cutoff_idx = i
+                break
+    if cutoff_idx is None:
+        return []
     marks = []
-    for snap in snaps:
-        name = snap.split("@", 1)[1]
+    for full_ref, _ in entries[cutoff_idx:]:
+        name = full_ref.split("@", 1)[1]
         if is_mark_snapshot(name):
             marks.append(name)
     return [(marks[i], marks[i + 1])
