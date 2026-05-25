@@ -11,7 +11,7 @@ capture_file c.txt
 
 pilo content-ingest
 
-SCRIPT=$(pilo rewrite-edit --script <<EOF
+SCRIPT=$(pilo content-reorg-edit --script <<EOF
 2	in/x.txt
 EOF
 )

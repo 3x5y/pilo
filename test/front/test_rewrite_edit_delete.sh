@@ -9,7 +9,7 @@ capture_file b.txt
 
 pilo content-ingest
 
-SCRIPT=$(pilo rewrite-edit --script <<EOF
+SCRIPT=$(pilo content-reorg-edit --script <<EOF
 2	in/b.txt
 EOF
 )

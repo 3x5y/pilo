@@ -5,7 +5,7 @@ mkfile a a.txt
 capture_file a.txt
 pilo content-ingest
 
-SCRIPT=$(pilo rewrite-edit --script <<EOF
+SCRIPT=$(pilo content-reorg-edit --script <<EOF
 1	in/b.txt
 EOF
 )
