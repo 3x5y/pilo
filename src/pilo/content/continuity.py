@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..content import checksum
-from . import manifest
+from ..front import manifest
 
 
 @dataclass(frozen=True)

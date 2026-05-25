@@ -5,7 +5,7 @@ from pathlib import Path
 from .. import checks
 from .. import error
 from .. import fs
-from ..front import continuity
+from . import continuity
 from ..front import mutation
 from ..front import manifest
 from ..front.execution import (

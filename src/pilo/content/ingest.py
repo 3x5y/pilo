@@ -3,7 +3,7 @@ from pathlib import Path
 
 from . import capture
 from .. import checks
-from ..front import continuity
+from . import continuity
 from ..front import manifest
 from ..front import mutation
 from ..front.execution import (

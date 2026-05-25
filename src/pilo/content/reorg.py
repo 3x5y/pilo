@@ -6,7 +6,7 @@ from .. import checks
 from .. import error
 from .. import paths
 from .. import policy
-from ..front import continuity
+from . import continuity
 from ..front import manifest
 from ..front import mutation
 from ..front.execution import (

@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from pilo.front import continuity
+from pilo.content import continuity
 from pilo.front import manifest
 import pilotest
 
