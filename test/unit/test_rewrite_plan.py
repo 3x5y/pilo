@@ -6,7 +6,7 @@ from pathlib import Path
 from pilo.content import reorg as rewrite
 from pilo.content import execution
 from pilo.content import manifest
-from pilo.front import mutation
+from pilo.content import mutation
 from pilo import paths
 import pilotest
 
@@ -45,7 +45,7 @@ class TestRewritePlan(pilotest.TestCase):
                 root / "in/b.txt"
             )
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 
@@ -94,7 +94,7 @@ class TestRewritePlan(pilotest.TestCase):
         self.assertEqual(mut.dst, Path("/tmp/b"))
         self.assertEqual(mut.dataset, "tank/a/pile")
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     def test_execute_uses_executor2(self, mock_exec):
         cx = pilotest.make_context()
 

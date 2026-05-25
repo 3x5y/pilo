@@ -3,8 +3,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from pathlib import Path
 
-from pilo.front import mutation
-from pilo.front import mutation
+from pilo.content import mutation
 import pilotest
 
 
@@ -113,7 +112,7 @@ class TestSemanticMutation(pilotest.TestCase):
         )
 
     @patch("pilo.zfs.writable_datasets")
-    @patch("pilo.front.mutation.apply_mutation")
+    @patch("pilo.content.mutation.apply_mutation")
     def test_execute_semantic_mutations(
         self,
         mock_apply,
@@ -171,7 +170,7 @@ class TestSemanticMutation(pilotest.TestCase):
             ),
         ]
 
-        with patch("pilo.front.mutation.apply_mutation", side_effect=fake_apply):
+        with patch("pilo.content.mutation.apply_mutation", side_effect=fake_apply):
             with patch("pilo.zfs.writable_datasets") as mock_writable:
                 cm = MagicMock()
                 cm.__enter__.return_value = None
@@ -209,7 +208,7 @@ class TestSemanticMutation(pilotest.TestCase):
             return_value=FakeContext(),
         ):
             with patch(
-                "pilo.front.mutation.apply_mutation",
+                "pilo.content.mutation.apply_mutation",
                 side_effect=fake_apply,
             ):
                 mutation.execute_fs_mutations(cx, muts)

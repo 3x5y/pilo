@@ -16,7 +16,7 @@ import pilotest
 
 
 class TestExecutionPlan(pilotest.TestCase):
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     @patch("pilo.content.manifest.execute_manifest_mutations")
     def test_execute_plan_skips_empty_sections(self,
                                                mock_manifest,
@@ -28,7 +28,7 @@ class TestExecutionPlan(pilotest.TestCase):
         mock_manifest.assert_not_called()
 
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     @patch("pilo.content.manifest.execute_manifest_mutations")
     def test_manifest_step_builds_after_mutations(self, mock_man, mock_sem):
 
@@ -78,7 +78,7 @@ class TestExecutionPlan(pilotest.TestCase):
         )
 
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     @patch("pilo.content.execution.execute_verify_checksum_step")
     def test_preflight_executes_before_mutations(
         self,
@@ -113,7 +113,7 @@ class TestExecutionPlan(pilotest.TestCase):
         self.assertEqual(order, ["verify", "mutate"])
 
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     @patch("pilo.content.execution.execute_verify_checksum_step")
     def test_preflight_failure_prevents_mutation(
         self,

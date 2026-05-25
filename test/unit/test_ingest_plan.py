@@ -7,7 +7,7 @@ from pilo.content import capture
 from pilo.content import ingest
 from pilo.content.execution import ExecutionPlan
 from pilo.content import manifest
-from pilo.front import mutation
+from pilo.content import mutation
 import pilotest
 
 
@@ -283,7 +283,7 @@ class TestIngestOps(pilotest.TestCase):
         self.assertIsInstance(muts[0], mutation.MoveMutation)
         self.assertIsInstance(muts[1], mutation.UnlinkMutation)
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from .. import error
 from .. import fs
 from . import manifest
-from ..front import mutation
+from . import mutation
 
 
 @dataclass(frozen=True)

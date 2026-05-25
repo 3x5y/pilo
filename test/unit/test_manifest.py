@@ -5,13 +5,13 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from pilo.content import ingest
-from pilo.content import checksum
 from pilo import context
 from pilo import fs
-from pilo.content import manifest
-from pilo.front import mutation
 from pilo import status
+from pilo.content import ingest
+from pilo.content import checksum
+from pilo.content import manifest
+from pilo.content import mutation
 import pilotest
 
 

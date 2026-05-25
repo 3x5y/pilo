@@ -5,7 +5,7 @@ from . import capture
 from .. import checks
 from . import continuity
 from . import manifest
-from ..front import mutation
+from . import mutation
 from .execution import (
     ExecutionPlan,
     ManifestStep,

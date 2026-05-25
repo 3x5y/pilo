@@ -8,7 +8,7 @@ from .. import paths
 from .. import policy
 from . import continuity
 from . import manifest
-from ..front import mutation
+from . import mutation
 from .execution import (
     ExecutionPlan,
     ManifestStep,

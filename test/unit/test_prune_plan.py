@@ -4,7 +4,7 @@ from unittest.mock import patch
 from pathlib import Path
 
 from pilo.content import prune
-from pilo.front import mutation
+from pilo.content import mutation
 import pilotest
 
 
@@ -83,7 +83,7 @@ class TestPrunePlan(pilotest.TestCase):
 
         mock_rmdir.assert_called_once()
 
-    @patch("pilo.front.mutation.execute_fs_mutations")
+    @patch("pilo.content.mutation.execute_fs_mutations")
     def test_execute_uses_executor(self, mock_exec):
         cx = pilotest.make_context()
         plan = prune.PrunePlan(

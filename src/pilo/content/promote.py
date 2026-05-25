@@ -7,7 +7,7 @@ from .. import error
 from .. import fs
 from . import continuity
 from . import manifest
-from ..front import mutation
+from . import mutation
 from .execution import (
     ExecutionPlan,
     ManifestStep,
