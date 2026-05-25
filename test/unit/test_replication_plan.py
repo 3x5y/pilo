@@ -364,6 +364,7 @@ class TestExecuteWithExportPath(pilotest.TestCase):
         mock_guid.assert_called_once_with("tank/a@ts-incr")
         mock_manifest.assert_called_once_with(
             Path("/out/s.zfs"), "ts-incr", "tank/a", "guid_incr",
+            kind="incremental", base_snapshot="base",
         )
 
     @patch("pilo.back.streams.write_stream_manifest")

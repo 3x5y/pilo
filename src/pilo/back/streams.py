@@ -12,6 +12,12 @@ from .. import zfs
 STREAM_SUFFIX = ".zfs"
 MANIFEST_SUFFIX = ".zfs.manifest"
 
+KIND_FULL = "full"
+KIND_INCREMENTAL = "incremental"
+KIND_ROLLUP = "rollup"
+
+_VALID_KINDS = {KIND_FULL, KIND_INCREMENTAL, KIND_ROLLUP}
+
 
 @dataclass(frozen=True)
 class StreamManifest:
@@ -22,6 +28,8 @@ class StreamManifest:
     checksum: str
     size: int
     created: str
+    kind: str = KIND_INCREMENTAL
+    base_snapshot: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -32,6 +40,8 @@ class StreamManifest:
             "checksum": self.checksum,
             "size": self.size,
             "created": self.created,
+            "kind": self.kind,
+            "base_snapshot": self.base_snapshot,
         }
 
     @classmethod
@@ -40,6 +50,9 @@ class StreamManifest:
             size = d["size"]
             if not isinstance(size, int):
                 raise ValueError("size must be int")
+            kind = d.get("kind", KIND_INCREMENTAL)
+            if kind not in _VALID_KINDS:
+                raise ValueError(f"invalid stream kind: {kind}")
             return cls(
                 stream=d["stream"],
                 snapshot=d["snapshot"],
@@ -48,6 +61,8 @@ class StreamManifest:
                 checksum=d["checksum"],
                 size=size,
                 created=d["created"],
+                kind=kind,
+                base_snapshot=d.get("base_snapshot"),
             )
         except KeyError as e:
             raise ValueError(f"missing field: {e}") from e
@@ -93,6 +108,8 @@ def write_stream_manifest(
     snapshot_name: str,
     source: str,
     guid: str,
+    kind: str = KIND_INCREMENTAL,
+    base_snapshot: str | None = None,
 ) -> Path:
     checksum = fs.sha256_file(stream_path)
     size = stream_path.stat().st_size
@@ -104,10 +121,38 @@ def write_stream_manifest(
         checksum=checksum,
         size=size,
         created=datetime.now(timezone.utc).isoformat(),
+        kind=kind,
+        base_snapshot=base_snapshot,
     )
     manifest_path = stream_path.with_suffix(MANIFEST_SUFFIX)
     manifest_path.write_text(json.dumps(entry.to_dict(), indent=2) + "\n")
     return manifest_path
+
+
+def write_incremental_manifest(
+    stream_path: Path,
+    snapshot_name: str,
+    source: str,
+    guid: str,
+    base_snapshot: str | None = None,
+) -> Path:
+    return write_stream_manifest(
+        stream_path, snapshot_name, source, guid,
+        kind=KIND_INCREMENTAL, base_snapshot=base_snapshot,
+    )
+
+
+def write_rollup_manifest(
+    stream_path: Path,
+    snapshot_name: str,
+    source: str,
+    guid: str,
+    base_snapshot: str,
+) -> Path:
+    return write_stream_manifest(
+        stream_path, snapshot_name, source, guid,
+        kind=KIND_ROLLUP, base_snapshot=base_snapshot,
+    )
 
 
 def load_stream_manifest(path: Path) -> StreamManifest:
@@ -157,8 +202,15 @@ def export_incremental_stream(dataset: str, snapshot: SnapshotName,
     if base is not None:
         base_snap = f"{dataset}@{base.format()}"
         zfs.send_incremental_to_file(base_snap, snap, filepath)
+        kind = KIND_INCREMENTAL
+        base_name = base.format()
     else:
         zfs.send_full_to_file(snap, filepath)
+        kind = KIND_FULL
+        base_name = None
     guid = zfs.get_guid(snap)
-    write_stream_manifest(filepath, snapshot.format(), dataset, guid)
+    write_stream_manifest(
+        filepath, snapshot.format(), dataset, guid,
+        kind=kind, base_snapshot=base_name,
+    )
     return filepath

@@ -200,9 +200,11 @@ def _execute_file_backed_incremental(plan: ReplicationPlan):
     zfs.send_incremental_to_file(plan.base, plan.snapshot, plan.export_path)
 
     dataset, snap_name = plan.snapshot.split("@", 1)
+    base_name = plan.base.split("@", 1)[1] if plan.base else None
     guid = zfs.get_guid(plan.snapshot)
     streams.write_stream_manifest(
         Path(plan.export_path), snap_name, dataset, guid,
+        kind=streams.KIND_INCREMENTAL, base_snapshot=base_name,
     )
 
     status, msg = streams.verify_one(Path(plan.export_path))

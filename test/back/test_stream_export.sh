@@ -32,3 +32,9 @@ assert_command_ok
 
 capture_status pilo stream-verify "$manifest_file"
 assert_command_ok
+
+# Assert manifest has correct kind and base_snapshot
+grep -q '"kind": "incremental"' "$manifest_file" \
+    || fail "manifest missing kind=incremental"
+grep -q '"base_snapshot"' "$manifest_file" \
+    || fail "manifest missing base_snapshot"

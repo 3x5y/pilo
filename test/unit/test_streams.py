@@ -112,6 +112,7 @@ class TestExportIncrementalStream(pilotest.TestCase):
             "20260522_010203_000000-incr",
             "tank/a",
             "guid123",
+            kind="full", base_snapshot=None,
         )
 
     @patch.dict(os.environ, {"PILO_STREAM_OUTPUT_PATH": "/out"})
@@ -144,6 +145,8 @@ class TestExportIncrementalStream(pilotest.TestCase):
             "20260522_010203_000000-incr",
             "tank/a",
             "guid456",
+            kind="incremental",
+            base_snapshot="20260522_010000_000000-anchor",
         )
 
 
@@ -216,6 +219,93 @@ class TestStreamManifest(pilotest.TestCase):
         )
         m2 = streams.StreamManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
+
+    def test_kind_defaults_to_incremental(self):
+        m = streams.StreamManifest(
+            stream="s.zfs", snapshot="s", source="t",
+            guid="g", checksum="c", size=1, created="now",
+        )
+        self.assertEqual(m.kind, "incremental")
+
+    def test_base_snapshot_defaults_to_none(self):
+        m = streams.StreamManifest(
+            stream="s.zfs", snapshot="s", source="t",
+            guid="g", checksum="c", size=1, created="now",
+        )
+        self.assertIsNone(m.base_snapshot)
+
+    def test_to_dict_includes_kind(self):
+        m = streams.StreamManifest(
+            stream="s.zfs", snapshot="s", source="t",
+            guid="g", checksum="c", size=1, created="now",
+        )
+        d = m.to_dict()
+        self.assertIn("kind", d)
+
+    def test_to_dict_includes_base_snapshot(self):
+        m = streams.StreamManifest(
+            stream="s.zfs", snapshot="s", source="t",
+            guid="g", checksum="c", size=1, created="now",
+        )
+        d = m.to_dict()
+        self.assertIn("base_snapshot", d)
+
+    def test_from_dict_missing_kind_defaults(self):
+        d = {
+            "stream": "s.zfs", "snapshot": "s", "source": "t",
+            "guid": "g", "checksum": "c", "size": 1, "created": "now",
+        }
+        m = streams.StreamManifest.from_dict(d)
+        self.assertEqual(m.kind, "incremental")
+
+    def test_from_dict_missing_base_snapshot_defaults(self):
+        d = {
+            "stream": "s.zfs", "snapshot": "s", "source": "t",
+            "guid": "g", "checksum": "c", "size": 1, "created": "now",
+        }
+        m = streams.StreamManifest.from_dict(d)
+        self.assertIsNone(m.base_snapshot)
+
+    def test_from_dict_invalid_kind_raises(self):
+        d = {
+            "stream": "s.zfs", "snapshot": "s", "source": "t",
+            "guid": "g", "checksum": "c", "size": 1, "created": "now",
+            "kind": "invalid_kind",
+        }
+        with self.assertRaises(ValueError):
+            streams.StreamManifest.from_dict(d)
+
+    def test_roundtrip_incremental(self):
+        m1 = streams.StreamManifest(
+            stream="s.zfs", snapshot="ts-incr", source="tank/a",
+            guid="g", checksum="c", size=100, created="now",
+            kind="incremental", base_snapshot="ts-anchor",
+        )
+        m2 = streams.StreamManifest.from_dict(m1.to_dict())
+        self.assertEqual(m1, m2)
+        self.assertEqual(m2.kind, "incremental")
+        self.assertEqual(m2.base_snapshot, "ts-anchor")
+
+    def test_roundtrip_rollup(self):
+        m1 = streams.StreamManifest(
+            stream="s.zfs", snapshot="ts-rollup", source="tank/a",
+            guid="g", checksum="c", size=100, created="now",
+            kind="rollup", base_snapshot="ts-anchor",
+        )
+        m2 = streams.StreamManifest.from_dict(m1.to_dict())
+        self.assertEqual(m1, m2)
+        self.assertEqual(m2.kind, "rollup")
+
+    def test_roundtrip_full(self):
+        m1 = streams.StreamManifest(
+            stream="s.zfs", snapshot="ts-full", source="tank/a",
+            guid="g", checksum="c", size=100, created="now",
+            kind="full", base_snapshot=None,
+        )
+        m2 = streams.StreamManifest.from_dict(m1.to_dict())
+        self.assertEqual(m1, m2)
+        self.assertEqual(m2.kind, "full")
+        self.assertIsNone(m2.base_snapshot)
 
 
 class TestManifestFilename(pilotest.TestCase):
@@ -333,6 +423,50 @@ class TestWriteStreamManifest(pilotest.TestCase):
                 source="tank/a",
                 guid="g",
             )
+
+
+class TestWriteIncrementalManifest(pilotest.TestCase):
+
+    def test_writes_incremental_kind(self):
+        with pilotest.tmpdir() as td:
+            out_root = td / 'streams'
+            env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
+            out_root.mkdir(parents=True, exist_ok=True)
+            date_dir = out_root / "20260522"
+            date_dir.mkdir(parents=True, exist_ok=True)
+            stream_path = date_dir / "stream.zfs"
+            stream_path.write_bytes(b"data")
+
+            with patch.dict(os.environ, env):
+                result = streams.write_incremental_manifest(
+                    stream_path, "ts-incr", "tank/a", "g",
+                    base_snapshot="ts-anchor",
+                )
+                m = streams.load_stream_manifest(result)
+        self.assertEqual(m.kind, "incremental")
+        self.assertEqual(m.base_snapshot, "ts-anchor")
+
+
+class TestWriteRollupManifest(pilotest.TestCase):
+
+    def test_writes_rollup_kind(self):
+        with pilotest.tmpdir() as td:
+            out_root = td / 'streams'
+            env = {"PILO_STREAM_OUTPUT_PATH": str(out_root)}
+            out_root.mkdir(parents=True, exist_ok=True)
+            date_dir = out_root / "20260522"
+            date_dir.mkdir(parents=True, exist_ok=True)
+            stream_path = date_dir / "stream.zfs"
+            stream_path.write_bytes(b"data")
+
+            with patch.dict(os.environ, env):
+                result = streams.write_rollup_manifest(
+                    stream_path, "ts-rollup", "tank/a", "g",
+                    base_snapshot="ts-anchor",
+                )
+                m = streams.load_stream_manifest(result)
+        self.assertEqual(m.kind, "rollup")
+        self.assertEqual(m.base_snapshot, "ts-anchor")
 
 
 class TestLoadStreamManifest(pilotest.TestCase):
