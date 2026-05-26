@@ -140,7 +140,8 @@ def load_manifest_entries(path):
 
 # --- policy / domain (was manifest_policy.py) ---
 
-MANIFEST_SUBSET_DOMAINS = {
+# unused
+__MANIFEST_SUBSET_DOMAINS = {
     "pile": paths.StorageDomain.PILE,
     "collection": paths.StorageDomain.COLLECTION,
     "filing": paths.StorageDomain.FILING,
@@ -153,14 +154,14 @@ MANIFEST_DATASET_PATTERNS = {
 }
 
 
-def manifest_subset_domain(subset):
+def __manifest_subset_domain(subset):
     try:
         return MANIFEST_SUBSET_DOMAINS[subset]
     except KeyError:
         error.fatal(f"invalid manifest subset: {subset}")
 
 
-def manifest_subset_root(cx, subset):
+def __manifest_subset_root(cx, subset):
     domain = manifest_subset_domain(subset)
     policy = cx.storage_policy(domain)
     return policy.root_path
@@ -229,46 +230,10 @@ def write_manifest_entries(cx, manifest_path, entries):
     manifest_path.chmod(0o644)
 
 
-def write_manifest(cx, root: Path, manifest: Path):
-    entries = list(generate_manifest_entries(root))
-    write_manifest_entries(cx, manifest, entries)
-
-
 def commit_manifest_if_changed(cx, manifest, message):
     repo = cx.admin_path / "manifest"
     git.ensure_repo(cx, repo)
     git.commit_if_changed(cx, repo, manifest, message)
-
-
-# --- update orchestration (was manifest_update.py) ---
-
-@dataclass(frozen=True)
-class ManifestSubset:
-    name: str
-    root: Path
-    manifest: Path
-
-
-@dataclass(frozen=True)
-class ManifestUpdatePlan:
-    subsets: list[ManifestSubset]
-
-
-def build_manifest_update_plan(cx, subsets):
-    def build(name):
-        manifest = cx.admin_path / "manifest" / f"{name}.manifest"
-        root = manifest_subset_root(cx, name)
-        return ManifestSubset(name=name, root=root, manifest=manifest)
-    resolved = [build(name) for name in subsets]
-    return ManifestUpdatePlan(subsets=resolved)
-
-
-def execute_manifest_update_plan(cx, plan):
-    for subset in plan.subsets:
-        fs.ensure_parent_dir(cx, subset.manifest)
-        write_manifest(cx, subset.root, subset.manifest)
-        msg = f"{subset.name} manifest update"
-        commit_manifest_if_changed(cx, subset.manifest, msg)
 
 
 # --- verify (was manifest_verify.py) ---
@@ -343,6 +308,7 @@ def verify_checksum(path: Path, expected_checksum: str):
     )
 
 
+# unused
 def reuse_manifest_checksum(entry):
     return (
         ProvenancedChecksum(
@@ -468,3 +434,39 @@ def acquire_generated_checksums(paths):
             )
         )
     return manifest.ChecksumIndex(generated)
+
+
+# --- updates -- unused
+
+@dataclass(frozen=True)
+class __ManifestSubset:
+    name: str
+    root: Path
+    manifest: Path
+
+
+@dataclass(frozen=True)
+class __ManifestUpdatePlan:
+    subsets: list[ManifestSubset]
+
+
+def __write_manifest(cx, root: Path, manifest: Path):
+    entries = list(generate_manifest_entries(root))
+    write_manifest_entries(cx, manifest, entries)
+
+
+def __build_manifest_update_plan(cx, subsets):
+    def build(name):
+        manifest = cx.admin_path / "manifest" / f"{name}.manifest"
+        root = manifest_subset_root(cx, name)
+        return ManifestSubset(name=name, root=root, manifest=manifest)
+    resolved = [build(name) for name in subsets]
+    return ManifestUpdatePlan(subsets=resolved)
+
+
+def __execute_manifest_update_plan(cx, plan):
+    for subset in plan.subsets:
+        fs.ensure_parent_dir(cx, subset.manifest)
+        write_manifest(cx, subset.root, subset.manifest)
+        msg = f"{subset.name} manifest update"
+        commit_manifest_if_changed(cx, subset.manifest, msg)

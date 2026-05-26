@@ -334,8 +334,8 @@ class TestIngestOps(pilotest.TestCase):
         files = list(ingest.ingestible_capture_files([data, meta]))
         self.assertEqual(files, [data])
 
-    @patch("pilo.content.manifest.execute_manifest_update_plan")
-    @patch("pilo.content.manifest.build_manifest_update_plan")
+    #@patch("pilo.content.manifest.execute_manifest_update_plan")
+    #@patch("pilo.content.manifest.build_manifest_update_plan")
     @patch("pilo.content.ingest.execute_ingest_plan")
     @patch("pilo.content.ingest.build_ingest_plan")
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -344,8 +344,8 @@ class TestIngestOps(pilotest.TestCase):
         _exists,
         mock_build_ingest,
         mock_exec_ingest,
-        mock_build_manifest,
-        mock_exec_manifest,
+        #mock_build_manifest,
+        #mock_exec_manifest,
     ):
         mod = pilotest.import_command("content-ingest")
 

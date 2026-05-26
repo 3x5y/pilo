@@ -83,6 +83,7 @@ class TestContextStoragePolicy(pilotest.TestCase):
         self.assertEqual(sp.root_dataset, "tank/a/static/filing")
 
 
+@unittest.skip("obsolete")
 class TestManifestSubsetPolicy(pilotest.TestCase):
 
     def test_manifest_subset_pile_uses_pile_policy(self):

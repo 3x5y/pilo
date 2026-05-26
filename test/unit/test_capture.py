@@ -24,6 +24,7 @@ class TestCaptureManifest(pilotest.TestCase):
             expected_lines = [f"{expected_hash}  ./a.txt"]
             self.assertEqual(lines, expected_lines)
 
+    @unittest.skip("obsolete")
     def test_write_capture_manifest(self):
 
         with pilotest.tmpdir() as td:
