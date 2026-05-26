@@ -412,11 +412,11 @@ def recv_file(stream_path: str | Path, dataset: str) -> None:
 
 
 def send_recv(src_snap, dst, recursive=False):
-    send_cmd = "zfs send".split()
+    send_cmd = "zfs send -h".split()
     if recursive:
         send_cmd.append("-R")
     send_args = [src_snap]
-    recv_cmd = "zfs recv".split()
+    recv_cmd = "zfs recv -u".split()
     recv_args = [dst]
     simple_pipe(send_cmd + send_args, recv_cmd + recv_args)
 
