@@ -242,3 +242,76 @@ class TestCreateSnapshotHelpers(pilotest.TestCase):
     def test_create_reg_empty_dataset_fatal(self, mock_snap):
         with pilotest.assert_fatal(self):
             create_reg_snapshot("")
+
+
+class TestSnapshotTimestamp(pilotest.TestCase):
+
+    def test_mark(self):
+        ts = snapshot.snapshot_timestamp("20260522_010203_000000-mark")
+        self.assertEqual(ts, "20260522_010203_000000")
+
+    def test_reg(self):
+        ts = snapshot.snapshot_timestamp("20260522_010203_000000-reg")
+        self.assertEqual(ts, "20260522_010203_000000")
+
+    def test_extra(self):
+        ts = snapshot.snapshot_timestamp("20260522_010203_000000-extra-mylabel")
+        self.assertEqual(ts, "20260522_010203_000000")
+
+    def test_unparseable_empty(self):
+        self.assertIsNone(snapshot.snapshot_timestamp(""))
+
+    def test_unparseable_non_canonical(self):
+        self.assertIsNone(snapshot.snapshot_timestamp("baseline"))
+
+    def test_unparseable_unknown_kind(self):
+        self.assertIsNone(snapshot.snapshot_timestamp("ts-unknown"))
+
+    def test_full_snapshot_ref(self):
+        ts = snapshot.snapshot_timestamp(
+            "tank/a@20260522_010203_000000-reg")
+        self.assertEqual(ts, "20260522_010203_000000")
+
+    def test_full_snapshot_ref_with_extra(self):
+        ts = snapshot.snapshot_timestamp(
+            "tank/a@20260522_010203_000000-extra-mylabel")
+        self.assertEqual(ts, "20260522_010203_000000")
+
+
+class TestSnapshotSortKey(pilotest.TestCase):
+
+    def test_returns_tuple(self):
+        key = snapshot.snapshot_sort_key("20260522_010203_000000-reg")
+        self.assertIsInstance(key, tuple)
+
+    def test_chronological_order(self):
+        earlier = "20260522_000000_000000-reg"
+        later = "20260522_010000_000000-reg"
+        self.assertLess(
+            snapshot.snapshot_sort_key(earlier),
+            snapshot.snapshot_sort_key(later))
+
+    def test_same_timestamp_different_kind(self):
+        mark = "20260522_000000_000000-mark"
+        reg = "20260522_000000_000000-reg"
+        self.assertLess(
+            snapshot.snapshot_sort_key(mark),
+            snapshot.snapshot_sort_key(reg))
+
+    def test_strips_dataset_prefix(self):
+        ref = "tank/a@20260522_010203_000000-reg"
+        plain = "20260522_010203_000000-reg"
+        self.assertEqual(
+            snapshot.snapshot_sort_key(ref),
+            snapshot.snapshot_sort_key(plain))
+
+    def test_unparseable_fallback(self):
+        key = snapshot.snapshot_sort_key("baseline")
+        self.assertEqual(key, ("baseline",))
+
+    def test_extra_sorts_by_kind(self):
+        reg = "20260522_000000_000000-reg"
+        extra = "20260522_000000_000000-extra-x"
+        self.assertGreater(
+            snapshot.snapshot_sort_key(reg),
+            snapshot.snapshot_sort_key(extra))

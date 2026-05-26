@@ -1,8 +1,11 @@
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from pilo.storage import lifecycle
 from pilo.storage import recover
+from pilo.storage import replay
 import pilotest
 
 
@@ -27,7 +30,7 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         self.assertEqual(plan.target, "tank/a")
         self.assertEqual(plan.replica, "backup/a")
-        self.assertEqual(plan.snapshot, "backup/a@r-123")
+        self.assertEqual(plan.baseline_snapshot, "backup/a@r-123")
         self.assertTrue(plan.recursive)
 
     @patch("pilo.zfs.dataset_exists", return_value=False)
@@ -63,7 +66,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.build_recovery_plan(cx, "tank/a/foo")
 
         self.assertEqual(plan.replica, "backup/a/foo")
-        self.assertEqual(plan.snapshot, "backup/a/foo@r-1")
+        self.assertEqual(plan.baseline_snapshot, "backup/a/foo@r-1")
 
     @patch("pilo.zfs.dataset_exists")
     @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-1")
@@ -88,7 +91,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 
@@ -113,7 +116,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 
@@ -134,7 +137,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 
@@ -156,7 +159,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 
@@ -177,7 +180,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 
@@ -193,7 +196,7 @@ class TestRecoveryPlan(pilotest.TestCase):
         mock_build.return_value = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 
@@ -203,7 +206,7 @@ class TestRecoveryPlan(pilotest.TestCase):
             with patch("pilo.context.Context", return_value=cx):
                 mod.main()
 
-        mock_build.assert_called_once_with(cx, "tank/a")
+        mock_build.assert_called_once_with(cx, "tank/a", stream_dir=None)
         mock_exec.assert_called_once()
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
@@ -243,3 +246,236 @@ class TestRecoveryPlan(pilotest.TestCase):
         plan = recover.build_recovery_plan(cx, "tank/a")
 
         self.assertEqual(plan.replica, "backup/a")
+
+
+class TestReplayCatchupPlan(pilotest.TestCase):
+
+    def test_fields(self):
+        batch = replay.BatchReplayPlan(plans=())
+        plan = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot="s1")
+        self.assertIs(plan.replay_batch, batch)
+        self.assertEqual(plan.latest_snapshot, "s1")
+
+    def test_no_latest(self):
+        batch = replay.BatchReplayPlan(plans=())
+        plan = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot=None)
+        self.assertIsNone(plan.latest_snapshot)
+
+    def test_frozen(self):
+        batch = replay.BatchReplayPlan(plans=())
+        plan = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot=None)
+        with self.assertRaises(AttributeError):
+            plan.latest_snapshot = "other"
+
+    def test_frozen_batch(self):
+        batch = replay.BatchReplayPlan(plans=())
+        plan = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot=None)
+        with self.assertRaises(AttributeError):
+            plan.replay_batch = None
+
+
+class TestRecoveryPlanCatchup(pilotest.TestCase):
+
+    def test_defaults_none(self):
+        plan = recover.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            baseline_snapshot="backup/a@r-1",
+            recursive=True,
+        )
+        self.assertIsNone(plan.catchup)
+
+    def test_with_catchup(self):
+        batch = replay.BatchReplayPlan(plans=())
+        catchup = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot="s2")
+        plan = recover.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            baseline_snapshot="backup/a@r-1",
+            recursive=True,
+            catchup=catchup,
+        )
+        self.assertIs(plan.catchup, catchup)
+        self.assertIs(plan.catchup.replay_batch, batch)
+        self.assertEqual(plan.catchup.latest_snapshot, "s2")
+
+
+class TestBuildRecoveryReplayPlan(pilotest.TestCase):
+
+    @patch("pilo.storage.recover.replay.find_streams", return_value=[])
+    def test_empty_dir(self, mock_find):
+        result = recover.build_recovery_replay_plan(
+            "/streams", "tank/a", "baseline_snap")
+        self.assertIsNone(result)
+
+    @patch("pilo.storage.recover.replay.filter_newer_than", return_value=[])
+    @patch("pilo.storage.recover.replay.order_streams")
+    @patch("pilo.storage.recover.replay.find_streams")
+    def test_all_filtered(self, mock_find, mock_order, mock_filter):
+        mock_find.return_value = [Path("/s1.zfs")]
+        mock_order.return_value = [Path("/s1.zfs")]
+        result = recover.build_recovery_replay_plan(
+            "/streams", "tank/a", "baseline_snap")
+        self.assertIsNone(result)
+
+    @patch("pilo.storage.recover.replay.build_batch_replay_plan")
+    @patch("pilo.storage.recover.replay.filter_newer_than")
+    @patch("pilo.storage.recover.replay.order_streams")
+    @patch("pilo.storage.recover.replay.find_streams")
+    def test_happy_path(self, mock_find, mock_order, mock_filter,
+                        mock_build_batch):
+        mock_find.return_value = [Path("/s1.zfs"), Path("/s2.zfs")]
+        mock_order.return_value = [Path("/s1.zfs"), Path("/s2.zfs")]
+        mock_filter.return_value = [Path("/s2.zfs")]
+        batch = replay.BatchReplayPlan(plans=(
+            replay.ReplayPlan(
+                stream_path=Path("/s2.zfs"),
+                manifest=SimpleNamespace(snapshot="s2"),
+                target_dataset="tank/a",
+            ),
+        ))
+        mock_build_batch.return_value = batch
+
+        result = recover.build_recovery_replay_plan(
+            "/streams", "tank/a", "baseline_snap")
+
+        self.assertIsNotNone(result)
+        self.assertIs(result.replay_batch, batch)
+
+    @patch("pilo.storage.recover.replay.build_batch_replay_plan")
+    @patch("pilo.storage.recover.replay.filter_newer_than")
+    @patch("pilo.storage.recover.replay.order_streams")
+    @patch("pilo.storage.recover.replay.find_streams")
+    def test_latest_snapshot(self, mock_find, mock_order, mock_filter,
+                             mock_build_batch):
+        mock_find.return_value = [Path("/s1.zfs"), Path("/s2.zfs")]
+        mock_order.return_value = [Path("/s1.zfs"), Path("/s2.zfs")]
+        mock_filter.return_value = [Path("/s1.zfs"), Path("/s2.zfs")]
+        batch = replay.BatchReplayPlan(plans=(
+            replay.ReplayPlan(
+                stream_path=Path("/s1.zfs"),
+                manifest=SimpleNamespace(
+                    snapshot="20260522_010000_000000-reg"),
+                target_dataset="tank/a",
+            ),
+            replay.ReplayPlan(
+                stream_path=Path("/s2.zfs"),
+                manifest=SimpleNamespace(
+                    snapshot="20260522_020000_000000-reg"),
+                target_dataset="tank/a",
+            ),
+        ))
+        mock_build_batch.return_value = batch
+
+        result = recover.build_recovery_replay_plan(
+            "/streams", "tank/a", "20260522_000000_000000-reg")
+
+        self.assertEqual(result.latest_snapshot,
+                         "20260522_020000_000000-reg")
+
+    @patch("pilo.storage.recover.replay.build_batch_replay_plan")
+    @patch("pilo.storage.recover.replay.filter_newer_than")
+    @patch("pilo.storage.recover.replay.order_streams")
+    @patch("pilo.storage.recover.replay.find_streams")
+    def test_latest_snapshot_single_stream(
+        self, mock_find, mock_order, mock_filter, mock_build_batch
+    ):
+        mock_find.return_value = [Path("/s1.zfs")]
+        mock_order.return_value = [Path("/s1.zfs")]
+        mock_filter.return_value = [Path("/s1.zfs")]
+        batch = replay.BatchReplayPlan(plans=(
+            replay.ReplayPlan(
+                stream_path=Path("/s1.zfs"),
+                manifest=SimpleNamespace(
+                    snapshot="20260522_010000_000000-reg"),
+                target_dataset="tank/a",
+            ),
+        ))
+        mock_build_batch.return_value = batch
+
+        result = recover.build_recovery_replay_plan(
+            "/streams", "tank/a", "20260522_000000_000000-reg")
+
+        self.assertEqual(result.latest_snapshot,
+                         "20260522_010000_000000-reg")
+
+    @patch("pilo.storage.recover.build_recovery_replay_plan")
+    @patch("pilo.storage.lifecycle.lifecycle_recoverable", return_value=True)
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-1")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
+    @patch("pilo.zfs.dataset_exists")
+    def test_build_plan_with_stream_dir_calls_replay_plan(
+        self, mock_exists, mock_detect, *_,
+    ):
+        mock_detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
+            secondary="backup/a",
+        )
+        mock_exists.side_effect = lambda ds: ds == "backup/a"
+
+        cx = pilotest.make_context()
+        plan = recover.build_recovery_plan(
+            cx, "tank/a", stream_dir="/streams")
+
+        self.assertIsNotNone(plan.catchup)
+
+    @patch("pilo.storage.lifecycle.lifecycle_recoverable", return_value=True)
+    @patch("pilo.zfs.snapshot_exists", return_value=True)
+    @patch("pilo.zfs.latest_snapshot", return_value="backup/a@r-1")
+    @patch("pilo.storage.lifecycle.detect_lifecycle")
+    @patch("pilo.zfs.dataset_exists")
+    def test_build_plan_no_stream_dir_no_catchup(
+        self, mock_exists, mock_detect, *_,
+    ):
+        mock_detect.return_value = lifecycle.LifecycleStatus(
+            state=lifecycle.LifecycleState.NORMAL,
+            secondary="backup/a",
+        )
+        mock_exists.side_effect = lambda ds: ds == "backup/a"
+
+        cx = pilotest.make_context()
+        plan = recover.build_recovery_plan(cx, "tank/a")
+
+        self.assertIsNone(plan.catchup)
+
+    @patch("pilo.storage.recover.replay.execute_batch_replay_plan")
+    def test_execute_with_catchup(self, mock_replay):
+        batch = replay.BatchReplayPlan(plans=())
+        catchup = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot="s2")
+        plan = recover.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            baseline_snapshot="backup/a@r-1",
+            recursive=True,
+            catchup=catchup,
+        )
+        cx = pilotest.make_context()
+        with patch("pilo.storage.restore.restore_dataset"):
+            with patch("pilo.storage.normalize.normalize_system"):
+                recover.execute_recovery_plan(plan, cx)
+
+        mock_replay.assert_called_once_with(batch)
+
+    def test_execute_no_catchup(self):
+        plan = recover.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            baseline_snapshot="backup/a@r-1",
+            recursive=True,
+        )
+        cx = pilotest.make_context()
+        with patch("pilo.storage.restore.restore_dataset"):
+            with patch("pilo.storage.normalize.normalize_system"):
+                with patch(
+                    "pilo.storage.recover.replay.execute_batch_replay_plan"
+                ) as mock_replay:
+                    recover.execute_recovery_plan(plan, cx)
+
+        mock_replay.assert_not_called()

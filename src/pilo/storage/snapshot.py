@@ -118,3 +118,19 @@ def create_snapshot(name, dataset=None):
     dataset = dataset or os.environ["PILO_PRIMARY_ROOT"]
     policy = SnapshotPolicy(prefix=name, raw=True)
     return create_snapshot_with_policy(policy, dataset, ts="")
+
+
+def snapshot_timestamp(name: str) -> str | None:
+    if "@" in name:
+        name = name.split("@", 1)[1]
+    parsed = parse_snapshot_name(name)
+    return parsed.timestamp if parsed else None
+
+
+def snapshot_sort_key(name: str) -> tuple:
+    if "@" in name:
+        name = name.split("@", 1)[1]
+    parsed = parse_snapshot_name(name)
+    if parsed is not None:
+        return (parsed.timestamp, parsed.kind.value)
+    return (name,)

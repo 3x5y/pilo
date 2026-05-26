@@ -9,12 +9,10 @@ from pilo.storage import recover
 def main():
     cx = context.Context()
 
-    if cx.args:
-        target = cx.args[0]
-    else:
-        target = cx.root_dataset
+    target = cx.args[0] if cx.args else cx.root_dataset
+    stream_dir = cx.args[1] if len(cx.args) > 1 else None
 
-    plan = recover.build_recovery_plan(cx, target)
+    plan = recover.build_recovery_plan(cx, target, stream_dir=stream_dir)
     recover.execute_recovery_plan(plan, cx)
 
     report = status.collect_report(cx)

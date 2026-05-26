@@ -64,7 +64,7 @@ class TestNormalize(pilotest.TestCase):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
-            snapshot="backup/a@r-1",
+            baseline_snapshot="backup/a@r-1",
             recursive=True,
         )
 

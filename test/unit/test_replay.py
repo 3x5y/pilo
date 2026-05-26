@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -505,3 +506,85 @@ class TestExecuteBatchReplayPlan(pilotest.TestCase):
         self.assertEqual(mock_recv.call_count, 2)
         mock_recv.assert_any_call(Path("/a.zfs"), "tank/a")
         mock_recv.assert_any_call(Path("/b.zfs"), "tank/a")
+
+
+class TestFilterNewerThan(pilotest.TestCase):
+
+    def _write_manifest(self, directory, name, snapshot):
+        path = Path(directory, name)
+        manifest = _make_manifest(snapshot=snapshot)
+        path.write_text(json.dumps(manifest.to_dict()))
+
+    def test_all_newer(self):
+        with tempfile.TemporaryDirectory() as d:
+            p1 = Path(d, "a.zfs"); p1.touch()
+            p2 = Path(d, "b.zfs"); p2.touch()
+            self._write_manifest(d, "a.zfs.manifest", "20260522_010000_000000-reg")
+            self._write_manifest(d, "b.zfs.manifest", "20260522_020000_000000-reg")
+
+            result = replay.filter_newer_than(
+                [p1, p2], "20260522_000000_000000-reg")
+
+            self.assertEqual(result, [p1, p2])
+
+    def test_some_excluded(self):
+        with tempfile.TemporaryDirectory() as d:
+            p_old = Path(d, "old.zfs"); p_old.touch()
+            p_mid = Path(d, "mid.zfs"); p_mid.touch()
+            p_new = Path(d, "new.zfs"); p_new.touch()
+            self._write_manifest(d, "old.zfs.manifest", "20260522_000000_000000-reg")
+            self._write_manifest(d, "mid.zfs.manifest", "20260522_010000_000000-reg")
+            self._write_manifest(d, "new.zfs.manifest", "20260522_020000_000000-reg")
+
+            result = replay.filter_newer_than(
+                [p_old, p_mid, p_new], "20260522_010000_000000-reg")
+
+            self.assertEqual(result, [p_new])
+
+    def test_baseline_excluded(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d, "a.zfs"); p.touch()
+            self._write_manifest(d, "a.zfs.manifest", "20260522_010000_000000-reg")
+
+            result = replay.filter_newer_than(
+                [p], "20260522_010000_000000-reg")
+
+            self.assertEqual(result, [])
+
+    def test_all_excluded(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d, "a.zfs"); p.touch()
+            self._write_manifest(d, "a.zfs.manifest", "20260522_000000_000000-reg")
+
+            result = replay.filter_newer_than(
+                [p], "20260522_010000_000000-reg")
+
+            self.assertEqual(result, [])
+
+    def test_empty_input(self):
+        result = replay.filter_newer_than([], "20260522_000000_000000-reg")
+        self.assertEqual(result, [])
+
+    def test_missing_manifest_fatal(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d, "a.zfs"); p.touch()
+            with self.assert_fatal():
+                replay.filter_newer_than([p], "baseline")
+
+    def test_rollup_order_preserved(self):
+        with tempfile.TemporaryDirectory() as d:
+            rollup = Path(d, "20260522_010000_000000-rollup.zfs"); rollup.touch()
+            incr   = Path(d, "20260522_020000_000000-reg.zfs"); incr.touch()
+            old    = Path(d, "20260522_000000_000000-rollup.zfs"); old.touch()
+            self._write_manifest(d, "20260522_010000_000000-rollup.zfs.manifest",
+                                 "20260522_010000_000000-reg")
+            self._write_manifest(d, "20260522_020000_000000-reg.zfs.manifest",
+                                 "20260522_020000_000000-reg")
+            self._write_manifest(d, "20260522_000000_000000-rollup.zfs.manifest",
+                                 "20260522_000000_000000-reg")
+
+            ordered = [old, rollup, incr]
+            result = replay.filter_newer_than(
+                ordered, "20260522_000000_000001-reg")
+
+            self.assertEqual(result, [rollup, incr])

@@ -113,3 +113,18 @@ def execute_replay_plan(plan):
         target_dataset=plan.target_dataset,
         applied_at=datetime.now(timezone.utc).isoformat(),
     )
+
+
+def filter_newer_than(paths: list[Path], snapshot_name: str) -> list[Path]:
+    from . import snapshot as snapmod
+    baseline_key = snapmod.snapshot_sort_key(snapshot_name)
+    result = []
+    for p in paths:
+        manifest_path = Path(p).with_suffix(MANIFEST_SUFFIX)
+        if not manifest_path.exists():
+            error.fatal(f"manifest not found: {manifest_path}")
+        manifest = load_stream_manifest(manifest_path)
+        stream_key = snapmod.snapshot_sort_key(manifest.snapshot)
+        if stream_key > baseline_key:
+            result.append(p)
+    return result
