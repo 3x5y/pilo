@@ -9,7 +9,7 @@
 ## Python package
 
 - `src/pilo/` — stdlib only, zero external deps. ZFS via `subprocess` calls.
-- Two top-level subpackages: `back/` (replication/recovery), `front/` (capture/ingestion).
+- Two top-level subpackages: `storage/` (replication/recovery), `content/` (capture/ingestion).
 - Key modules: `context.py` (reads env → dataset/path resolution), `paths.py` (logical path parsing, 3 domains: pile/collection/filing), `zfs.py` (thin wrapper over zfs/zpool CLI), `normalize.py` (dataset contract enforcement).
 
 ## Storage topology

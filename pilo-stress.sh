@@ -207,17 +207,17 @@ rotate() {
 
 
 postrotate() {
-    #_pilo replicate
+    #_pilo storage-replicate
     show_count_before
     pause
-    _pilo stream-replay-all $STREAMS $TARGET_FS
+    _pilo storage-stream-replay-all $STREAMS $TARGET_FS
     #show
 
     report_gc
     show_count_before
-    _pilo stream-gc
-    _pilo rotate-gc --preview
-    _pilo rotate-gc
+    _pilo storage-stream-gc
+    _pilo storage-rotate-gc --preview
+    _pilo storage-rotate-gc
     show_count_after
     #show
 }
@@ -230,12 +230,12 @@ cycle() {
     do
         for hour in {0..1}
         do
-            _pilo snapshot-reg
-            _pilo replicate
+            _pilo storage-snapshot-reg
+            _pilo storage-replicate
         done
-        _pilo snapshot-mark
-        _pilo replicate
-        _pilo rollup
+        _pilo storage-snapshot-mark
+        _pilo storage-replicate
+        _pilo storage-rollup
     done
 }
 
@@ -256,26 +256,26 @@ test_main() {
     echo \# provisioning
 
     init_pool $PRI_POOL $PRI_DEV
-    _pilo provision-primary
-    _pilo init
-    _pilo snapshot-mark
+    _pilo storage-provision-primary
+    _pilo storage-init
+    _pilo storage-snapshot-mark
 
     TARGET_ID=z1
     init_pool $SEC_POOL1 $SEC_DEV1
-    _pilo provision-secondary z1-rem/bak
-    _pilo replica-seed
+    _pilo storage-provision-secondary z1-rem/bak
+    _pilo storage-replica-seed
 
     TARGET_ID=z2
     zpool export z1-rem
     init_pool $SEC_POOL2 $SEC_DEV2
-    _pilo provision-secondary z2-rem/bak
-    _pilo replica-seed
+    _pilo storage-provision-secondary z2-rem/bak
+    _pilo storage-replica-seed
 
     #TARGET_ID=z3
     #zpool export z2-rem
     #init_pool $SEC_POOL3 $SEC_DEV3
-    #_pilo provision-secondary z3-rem/bak
-    #_pilo replica-seed
+    #_pilo storage-provision-secondary z3-rem/bak
+    #_pilo storage-replica-seed
 
     cycle z1
     cycle z2
