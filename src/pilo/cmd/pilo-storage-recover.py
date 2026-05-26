@@ -15,6 +15,7 @@ def main():
     plan = recover.build_recovery_plan(cx, target, stream_dir=stream_dir)
     recover.execute_recovery_plan(plan, cx)
 
+    print("VERIFY ...")
     report = status.collect_report(cx)
     for msg in status.render_validation_report(report):
         print(msg)

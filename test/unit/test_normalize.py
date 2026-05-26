@@ -58,7 +58,9 @@ class TestNormalize(pilotest.TestCase):
 
     @patch("pilo.storage.normalize.normalize_system")
     @patch("pilo.storage.restore.restore_dataset")
-    def test_execute_recovery_uses_normalize(self, mock_restore, mock_norm):
+    @patch("builtins.print")
+    def test_execute_recovery_uses_normalize(self, mock_print, mock_restore,
+                                             mock_norm):
         cx = pilotest.make_context()
 
         plan = recover.RecoveryPlan(

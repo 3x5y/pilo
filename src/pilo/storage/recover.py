@@ -91,13 +91,19 @@ def build_recovery_replay_plan(
 
 
 def execute_recovery_plan(plan: RecoveryPlan, cx):
+    print(f"RESTORE {plan.baseline_snapshot}")
     restore.restore_dataset(
         plan.baseline_snapshot,
         plan.target,
         recursive=plan.recursive,
     )
+
     if plan.catchup:
-        for _ in replay.execute_batch_replay_plan(plan.catchup.replay_batch):
-            pass
+        cnt = len(plan.catchup.replay_batch.plans)
+        print(f"REPLAY {cnt} streams")
+        for result in replay.execute_batch_replay_plan(plan.catchup.replay_batch):
+            print(f"{result.status} {result.snapshot}")
+
+    print("NORMALIZE")
     normalize.normalize_system(cx)
 

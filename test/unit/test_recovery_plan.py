@@ -86,8 +86,9 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("subprocess.run")
     @patch("pilo.storage.normalize.apply_dataset_contracts")
     @patch("pilo.storage.restore.restore_dataset")
-    def test_execute_plan(self, mock_restore, mock_contract, mock_run,
-                          mock_owner, mock_dirs):
+    @patch("builtins.print")
+    def test_execute_plan(self, mock_print, mock_restore, mock_contract,
+                          mock_run, mock_owner, mock_dirs):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
@@ -109,8 +110,10 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("subprocess.run")
     @patch("pilo.storage.normalize.apply_dataset_contracts")
     @patch("pilo.storage.restore.restore_dataset")
-    def test_execute_plan_applies_contract(self, mock_restore, mock_contract,
-                                           mock_owner, mock_run, mock_dirs):
+    @patch("builtins.print")
+    def test_execute_plan_applies_contract(self, mock_print, mock_restore,
+                                           mock_contract, mock_owner, mock_run,
+                                           mock_dirs):
         cx = pilotest.make_context()
 
         plan = recover.RecoveryPlan(
@@ -130,8 +133,10 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("pilo.zfs.run")
     @patch("pilo.storage.normalize.apply_dataset_contracts")
     @patch("pilo.storage.restore.restore_dataset")
-    def test_execute_plan_mounts_datasets(self, mock_restore, mock_contract,
-                                          mock_run, mock_owner, mock_dirs):
+    @patch("builtins.print")
+    def test_execute_plan_mounts_datasets(self, mock_print, mock_restore,
+                                          mock_contract, mock_run, mock_owner,
+                                          mock_dirs):
         cx = pilotest.make_context()
 
         plan = recover.RecoveryPlan(
@@ -150,8 +155,9 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("subprocess.run")
     @patch("pilo.storage.normalize.apply_dataset_contracts")
     @patch("pilo.storage.restore.restore_dataset")
+    @patch("builtins.print")
     def test_execute_plan_ensures_runtime_dirs(
-        self, mock_restore, mock_contract, mock_run, mock_dirs,
+        self, mock_print, mock_restore, mock_contract, mock_run, mock_dirs,
         mock_owner,
     ):
         cx = pilotest.make_context()
@@ -172,8 +178,10 @@ class TestRecoveryPlan(pilotest.TestCase):
     @patch("subprocess.run")
     @patch("pilo.storage.normalize.apply_dataset_contracts")
     @patch("pilo.storage.restore.restore_dataset")
+    @patch("builtins.print")
     def test_execute_plan_applies_ownership(
-        self, mock_restore, mock_contract, mock_run, mock_dirs, mock_owner
+        self, mock_print, mock_restore, mock_contract, mock_run, mock_dirs,
+        mock_owner
     ):
         cx = pilotest.make_context()
 
@@ -445,7 +453,8 @@ class TestBuildRecoveryReplayPlan(pilotest.TestCase):
         self.assertIsNone(plan.catchup)
 
     @patch("pilo.storage.recover.replay.execute_batch_replay_plan")
-    def test_execute_with_catchup(self, mock_replay):
+    @patch("builtins.print")
+    def test_execute_with_catchup(self, mock_print, mock_replay):
         batch = replay.BatchReplayPlan(plans=())
         catchup = recover.ReplayCatchupPlan(
             replay_batch=batch, latest_snapshot="s2")
@@ -462,8 +471,12 @@ class TestBuildRecoveryReplayPlan(pilotest.TestCase):
                 recover.execute_recovery_plan(plan, cx)
 
         mock_replay.assert_called_once_with(batch)
+        mock_print.assert_any_call("RESTORE backup/a@r-1")
+        mock_print.assert_any_call("REPLAY 0 streams")
+        mock_print.assert_any_call("NORMALIZE")
 
-    def test_execute_no_catchup(self):
+    @patch("builtins.print")
+    def test_execute_no_catchup(self, mock_print):
         plan = recover.RecoveryPlan(
             target="tank/a",
             replica="backup/a",
@@ -479,3 +492,88 @@ class TestBuildRecoveryReplayPlan(pilotest.TestCase):
                     recover.execute_recovery_plan(plan, cx)
 
         mock_replay.assert_not_called()
+        mock_print.assert_any_call("RESTORE backup/a@r-1")
+        mock_print.assert_any_call("NORMALIZE")
+        replay_calls = [c for c in mock_print.call_args_list
+                        if c[0][0].startswith("REPLAY")]
+        self.assertEqual(len(replay_calls), 0)
+
+    @patch("pilo.storage.recover.replay.execute_batch_replay_plan")
+    @patch("builtins.print")
+    def test_execute_reports_replay_results(
+        self, mock_print, mock_replay,
+    ):
+        r1 = replay.ReplayResult(
+            status="APPLIED", stream="s1", snapshot="snap1",
+            source="src", target_dataset="tank/a",
+            applied_at="2026-01-01T00:00:00",
+        )
+        r2 = replay.ReplayResult(
+            status="SKIPPED", stream="s2", snapshot="snap2",
+            source="src", target_dataset="tank/a",
+            applied_at="2026-01-01T00:00:00",
+        )
+        mock_replay.return_value = [r1, r2]
+
+        batch = replay.BatchReplayPlan(plans=(
+            replay.ReplayPlan(
+                stream_path=Path("/s1.zfs"),
+                manifest=SimpleNamespace(
+                    stream="s1", snapshot="snap1", source="src",
+                    guid="g1", checksum="c1",
+                ),
+                target_dataset="tank/a",
+            ),
+            replay.ReplayPlan(
+                stream_path=Path("/s2.zfs"),
+                manifest=SimpleNamespace(
+                    stream="s2", snapshot="snap2", source="src",
+                    guid="g2", checksum="c2",
+                ),
+                target_dataset="tank/a",
+            ),
+        ))
+        catchup = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot="snap2")
+        plan = recover.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            baseline_snapshot="backup/a@r-1",
+            recursive=True,
+            catchup=catchup,
+        )
+        cx = pilotest.make_context()
+        with patch("pilo.storage.restore.restore_dataset"):
+            with patch("pilo.storage.normalize.normalize_system"):
+                recover.execute_recovery_plan(plan, cx)
+
+        mock_print.assert_any_call("APPLIED snap1")
+        mock_print.assert_any_call("SKIPPED snap2")
+
+    @patch("pilo.storage.recover.replay.execute_batch_replay_plan")
+    @patch("builtins.print")
+    def test_execute_phases_in_order(
+        self, mock_print, mock_replay,
+    ):
+        mock_replay.return_value = []
+        batch = replay.BatchReplayPlan(plans=())
+        catchup = recover.ReplayCatchupPlan(
+            replay_batch=batch, latest_snapshot="snap1")
+        plan = recover.RecoveryPlan(
+            target="tank/a",
+            replica="backup/a",
+            baseline_snapshot="backup/a@r-1",
+            recursive=True,
+            catchup=catchup,
+        )
+        cx = pilotest.make_context()
+        with patch("pilo.storage.restore.restore_dataset"):
+            with patch("pilo.storage.normalize.normalize_system"):
+                recover.execute_recovery_plan(plan, cx)
+
+        calls = [c[0][0] for c in mock_print.call_args_list]
+        restore_idx = calls.index("RESTORE backup/a@r-1")
+        replay_idx = calls.index("REPLAY 0 streams")
+        normalize_idx = calls.index("NORMALIZE")
+        self.assertLess(restore_idx, replay_idx)
+        self.assertLess(replay_idx, normalize_idx)
