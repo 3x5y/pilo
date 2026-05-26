@@ -3,7 +3,6 @@ from pathlib import Path
 
 from .. import checks
 from .. import paths
-from . import continuity
 from . import manifest
 from . import mutation
 from .execution import (
@@ -59,7 +58,7 @@ def build_manifest_mutations(plan, pile_root):
 def build_checksum_index(ops, pile_root):
     pairs = [(op.dst.path.relative_to(pile_root), op.src)
              for op in ops]
-    checksums = continuity.acquire_generated_checksums(pairs)
+    checksums = manifest.acquire_generated_checksums(pairs)
     return manifest.as_checksum_index(checksums)
 
 

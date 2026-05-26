@@ -3,7 +3,6 @@ from pathlib import Path
 
 from . import capture
 from .. import checks
-from . import continuity
 from . import manifest
 from . import mutation
 from .execution import (
@@ -85,7 +84,7 @@ def ingestible_capture_files(files):
 def build_manifest_mutations(ops, pile_root):
     pairs = [(op.dst.relative_to(pile_root), op.dst)
              for op in ops if op.action == "move"]
-    checksums = continuity.acquire_generated_checksums(pairs)
+    checksums = manifest.acquire_generated_checksums(pairs)
     paths = [rel for rel, _ in pairs]
     return manifest.build_pile_additions(paths, checksums)
 

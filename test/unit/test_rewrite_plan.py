@@ -463,8 +463,8 @@ class TestRewritePlan(pilotest.TestCase):
 
         mock_verify.assert_called_once()
 
-    @patch("pilo.content.continuity.build_mutations")
-    @patch("pilo.content.continuity.build_transfers")
+    @patch("pilo.content.manifest.build_mutations")
+    @patch("pilo.content.manifest.build_transfers")
     def test_rewrite_manifest_mutations_use_continuity_layer(
         self,
         mock_build,

@@ -5,7 +5,6 @@ from pathlib import Path
 from .. import checks
 from .. import error
 from .. import fs
-from . import continuity
 from . import manifest
 from . import mutation
 from .execution import (
@@ -136,7 +135,7 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
-    return continuity.build_transfer_mutations(mappings, verified)
+    return manifest.build_transfer_mutations(mappings, verified)
 
 
 def build_preflight_steps(ops, pile_root, entries):
@@ -195,7 +194,7 @@ def build_checksum_index(ops, pile_root, entries):
     index = manifest.as_manifest_index(entries)
     pairs = [(op.src.relative_to(pile_root), op.src)
              for op in ops if op.action == "copy"]
-    return continuity.acquire_verified_checksums(pairs, entries)
+    return manifest.acquire_verified_checksums(pairs, entries)
 
 
 def promote_continuity_mappings(
@@ -218,7 +217,7 @@ def promote_continuity_mappings(
             dst_rel = op.dst.relative_to(filing_root)
         else:
             continue
-        m = continuity.ContinuityMapping(
+        m = manifest.ContinuityMapping(
             src_subset="pile",
             dst_subset=subset,
             src=src_rel,

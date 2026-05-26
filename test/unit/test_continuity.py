@@ -1,7 +1,6 @@
 import unittest
 from pathlib import Path
 
-from pilo.content import continuity
 from pilo.content import manifest
 import pilotest
 
@@ -25,10 +24,10 @@ class TestContinuity(pilotest.TestCase):
         )
 
         transfers = (
-            continuity
+            manifest
             .build_transfers(
                 [
-                    continuity.ContinuityMapping(
+                    manifest.ContinuityMapping(
                         src_subset="pile",
                         dst_subset="pile",
                         src=Path("in/a.txt"),
@@ -50,7 +49,7 @@ class TestContinuity(pilotest.TestCase):
     def test_continuity_manifest_mutations(self):
 
         transfers = [
-            continuity.ContinuityTransfer(
+            manifest.ContinuityTransfer(
                 src_subset="pile",
                 dst_subset="pile",
                 src=Path("in/a.txt"),
@@ -64,7 +63,7 @@ class TestContinuity(pilotest.TestCase):
             )
         ]
 
-        muts = continuity.build_mutations(transfers)
+        muts = manifest.build_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         remove = muts[0]
@@ -75,7 +74,7 @@ class TestContinuity(pilotest.TestCase):
 
     def test_build_continuity_transfers_uses_mapping_objects(self):
 
-        mapping = continuity.ContinuityMapping(
+        mapping = manifest.ContinuityMapping(
             src=Path("a.txt"),
             dst=Path("b.txt"),
             src_subset="pile",
@@ -90,7 +89,7 @@ class TestContinuity(pilotest.TestCase):
         )
         verified = manifest.ChecksumIndex([checksum])
 
-        transfers = continuity.build_transfers(mappings, verified)
+        transfers = manifest.build_transfers(mappings, verified)
 
         self.assertEqual(len(transfers), 1)
         transfer = transfers[0]
@@ -101,7 +100,7 @@ class TestContinuity(pilotest.TestCase):
     def test_continuity_manifest_mutations_same_subset(self):
 
         transfers = [
-            continuity.ContinuityTransfer(
+            manifest.ContinuityTransfer(
                 src_subset="pile",
                 dst_subset="pile",
                 src=Path("a.txt"),
@@ -115,7 +114,7 @@ class TestContinuity(pilotest.TestCase):
             )
         ]
 
-        muts = continuity.build_mutations(transfers)
+        muts = manifest.build_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         self.assertEqual(muts[0].subset, "pile")
@@ -124,7 +123,7 @@ class TestContinuity(pilotest.TestCase):
     def test_continuity_manifest_mutations_cross_subset(self):
 
         transfers = [
-            continuity.ContinuityTransfer(
+            manifest.ContinuityTransfer(
                 src_subset="pile",
                 dst_subset="collection",
                 src=Path(
@@ -140,7 +139,7 @@ class TestContinuity(pilotest.TestCase):
             )
         ]
 
-        muts = continuity.build_mutations(transfers)
+        muts = manifest.build_mutations(transfers)
 
         self.assertEqual(len(muts), 2)
         remove = muts[0]

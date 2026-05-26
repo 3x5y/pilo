@@ -6,7 +6,6 @@ from .. import checks
 from .. import error
 from .. import paths
 from .. import checks
-from . import continuity
 from . import manifest
 from . import mutation
 from .execution import (
@@ -176,13 +175,13 @@ def build_manifest_mutations(ops, pile_root, verified):
         src_rel = op.src.path.relative_to(pile_root)
         if op.op.kind == "mv":
             dst_rel = op.dst.path.relative_to(pile_root)
-            mapping = continuity.ContinuityMapping(
+            mapping = manifest.ContinuityMapping(
                 src_subset="pile",
                 dst_subset="pile",
                 src=src_rel,
                 dst=dst_rel,
             )
-            tm = continuity.build_transfer_mutations([mapping], verified)
+            tm = manifest.build_transfer_mutations([mapping], verified)
             muts.extend(tm)
         elif op.op.kind == "rm":
             muts.append(manifest.build_removal("pile", src_rel))
@@ -204,7 +203,7 @@ def build_manifest_mutations(ops, pile_root, verified):
         if op.op.kind == "mv":
             dst_rel = op.dst.path.relative_to(pile_root)
             mappings.append(
-                continuity.ContinuityMapping(
+                manifest.ContinuityMapping(
                     src_subset="pile",
                     dst_subset="pile",
                     src=src_rel,
@@ -213,7 +212,7 @@ def build_manifest_mutations(ops, pile_root, verified):
             )
         elif op.op.kind == "rm":
             removals.append(
-                continuity.ContinuityRemoval(
+                manifest.ContinuityRemoval(
                     subset="pile",
                     path=src_rel,
                 )
@@ -224,8 +223,8 @@ def build_manifest_mutations(ops, pile_root, verified):
                 f"{op.op.kind}"
             )
 
-    muts = continuity.build_transfer_mutations(mappings, verified)
-    muts.extend(continuity.build_removal_mutations(removals))
+    muts = manifest.build_transfer_mutations(mappings, verified)
+    muts.extend(manifest.build_removal_mutations(removals))
 
     return muts
 
@@ -393,4 +392,4 @@ def build_checksum_index(ops, pile_root, entries):
     pairs = []
     for op in ops:
         pairs.append((op.src.path.relative_to(pile_root), op.src.path))
-    return continuity.acquire_verified_checksums(pairs, index)
+    return manifest.acquire_verified_checksums(pairs, index)
