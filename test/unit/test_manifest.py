@@ -9,7 +9,6 @@ from pilo import context
 from pilo import fs
 from pilo import status
 from pilo.content import ingest
-from pilo.content import checksum
 from pilo.content import manifest
 from pilo.content import mutation
 import pilotest
@@ -144,7 +143,7 @@ class TestManifest(pilotest.TestCase):
             path=Path("a.txt"),
         )
 
-        item = checksum.reuse_manifest_checksum(entry)
+        item = manifest.reuse_manifest_checksum(entry)
 
         self.assertEqual(
             item.provenance,

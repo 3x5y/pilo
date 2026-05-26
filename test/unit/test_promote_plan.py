@@ -385,7 +385,7 @@ class TestPromotePlan(pilotest.TestCase):
         subsets = [step.subset for step in steps]
         self.assertEqual(subsets, ["pile", "collection", "filing"])
 
-    @patch("pilo.content.checksum.verify_checksum")
+    @patch("pilo.content.manifest.verify_checksum")
     def test_promote_verified_checksums_verify_existing_entries(self,
                                                                 mock_verify):
 

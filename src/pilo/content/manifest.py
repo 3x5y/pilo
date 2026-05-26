@@ -9,6 +9,9 @@ from .. import fs
 from .. import git
 from .. import paths
 
+from . import manifest
+
+
 
 # --- data model (was manifest_model.py) ---
 
@@ -305,3 +308,49 @@ def verify_manifest_lines(root: Path, lines, exclude=None):
             continue
         actual[rel] = fs.sha256_file(path)
     return expected == actual
+
+
+def generate_checksum(path: Path):
+    checksum = fs.sha256_file(path)
+    return (
+        ProvenancedChecksum(
+            path=path,
+            checksum=checksum,
+            provenance=(
+                ChecksumProvenance
+                .GENERATED
+            ),
+        )
+    )
+
+
+def verify_checksum(path: Path, expected_checksum: str):
+    actual = fs.sha256_file(path)
+    if actual != expected_checksum:
+        error.fatal(
+            f"checksum verification failed: "
+            f"{path}"
+        )
+    return (
+        ProvenancedChecksum(
+            path=path,
+            checksum=expected_checksum,
+            provenance=(
+                ChecksumProvenance
+                .VERIFIED
+            ),
+        )
+    )
+
+
+def reuse_manifest_checksum(entry):
+    return (
+        ProvenancedChecksum(
+            path=entry.path,
+            checksum=entry.checksum,
+            provenance=(
+                ChecksumProvenance
+                .MANIFEST
+            ),
+        )
+    )

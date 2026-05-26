@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import checksum
 from . import manifest
 
 
@@ -93,7 +92,7 @@ def acquire_verified_checksums(paths, entries):
 
     for rel_path, real_path in paths:
         existing = index.require(rel_path)
-        verified_item = checksum.verify_checksum(real_path, existing.checksum)
+        verified_item = manifest.verify_checksum(real_path, existing.checksum)
         verified.append(
             manifest.ProvenancedChecksum(
                 path=rel_path,
@@ -108,7 +107,7 @@ def acquire_generated_checksums(paths):
 
     generated = []
     for rel_path, real_path in paths:
-        item = checksum.generate_checksum(real_path)
+        item = manifest.generate_checksum(real_path)
         generated.append(
             manifest.ProvenancedChecksum(
                 path=rel_path,
