@@ -69,8 +69,10 @@ def files_equal(a, b):
     return filecmp.cmp(a, b, shallow=False)
 
 
-def sha256_file(path: Path, chunk_size=1024 * 1024):
-    h = hashlib.sha256()
+CHUNK_SIZE = 1024 * 1024
+
+
+def hash_file(h, path: Path, chunk_size):
     with path.open("rb") as f:
         while True:
             chunk = f.read(chunk_size)
@@ -78,3 +80,22 @@ def sha256_file(path: Path, chunk_size=1024 * 1024):
                 break
             h.update(chunk)
     return h.hexdigest()
+
+
+def sha256_file(path: Path, chunk_size=CHUNK_SIZE):
+    h = hashlib.sha256()
+    return hash_file(h, path, chunk_size=chunk_size)
+
+
+def sha512_file(path: Path, chunk_size=CHUNK_SIZE):
+    h = hashlib.sha512()
+    return hash_file(h, path, chunk_size=chunk_size)
+
+
+def b2_file(path: Path, chunk_size=CHUNK_SIZE):
+    h = hashlib.blake2b()
+    return hash_file(h, path, chunk_size=chunk_size)
+
+
+hash_file1 = sha256_file
+hash_file2 = b2_file

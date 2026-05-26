@@ -406,7 +406,7 @@ class TestIngestOps(pilotest.TestCase):
             [],
         )
 
-    @patch("pilo.fs.sha256_file")
+    @patch("pilo.fs.hash_file1")
     def test_ingest_execution_plan_builds_execution_plan(self, *_):
 
         cx = pilotest.make_context()
@@ -429,7 +429,7 @@ class TestIngestOps(pilotest.TestCase):
         self.assertEqual(len(exec_plan.manifest_steps), 1)
 
 
-    @patch("pilo.fs.sha256_file")
+    @patch("pilo.fs.hash_file1")
     def test_ingest_execution_plan_contains_manifest_steps(self, *_):
 
         cx = pilotest.make_context()

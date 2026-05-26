@@ -454,7 +454,7 @@ class TestRewriteScriptSerialization(pilotest.TestCase):
 
 class TestRewriteManifest(pilotest.TestCase):
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
+    @patch("pilo.fs.hash_file1", return_value="abc123")
     def test_rewrite_manifest_mutations_move(self, _):
 
         src = paths.Resolved(

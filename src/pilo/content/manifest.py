@@ -244,7 +244,7 @@ def generate_manifest_entries(root: Path, exclude=None):
         rel = path.relative_to(root)
         if rel in exclude:
             continue
-        checksum = fs.sha256_file(path)
+        checksum = fs.hash_file1(path)
         yield ManifestEntry(checksum, rel)
 
 
@@ -271,12 +271,12 @@ def verify_manifest_lines(root: Path, lines, exclude=None):
         rel = path.relative_to(root)
         if rel in exclude:
             continue
-        actual[rel] = fs.sha256_file(path)
+        actual[rel] = fs.hash_file1(path)
     return expected == actual
 
 
 def generate_checksum(path: Path):
-    checksum = fs.sha256_file(path)
+    checksum = fs.hash_file1(path)
     return (
         ProvenancedChecksum(
             path=path,
@@ -290,7 +290,7 @@ def generate_checksum(path: Path):
 
 
 def verify_checksum(path: Path, expected_checksum: str):
-    actual = fs.sha256_file(path)
+    actual = fs.hash_file1(path)
     if actual != expected_checksum:
         error.fatal(
             f"checksum verification failed: "

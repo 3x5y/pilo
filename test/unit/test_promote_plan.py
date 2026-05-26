@@ -295,7 +295,7 @@ class TestPromotePlan(pilotest.TestCase):
         self.assertIsInstance(muts[1], manifest.ManifestAddEntry)
 
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
+    @patch("pilo.fs.hash_file1", return_value="abc123")
     def test_promote_builds_execution_plan(self, *_):
 
         cx = pilotest.make_context()
@@ -489,7 +489,7 @@ class TestPromotePlan(pilotest.TestCase):
             "abc123",
         )
 
-    @patch("pilo.fs.sha256_file")
+    @patch("pilo.fs.hash_file1")
     def test_promote_manifest_mutations_do_not_hash_destination(
         self,
         mock_sha,

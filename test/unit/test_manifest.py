@@ -16,23 +16,23 @@ import pilotest
 
 class TestManifest(pilotest.TestCase):
 
-    def test_sha256_file_matches_hashlib(self):
+    def test_hash_file1_matches_hashlib(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "a.txt"
             path.write_bytes(b"hello world")
 
             expected = hashlib.sha256(b"hello world").hexdigest()
 
-            self.assertEqual(fs.sha256_file(path), expected)
+            self.assertEqual(fs.hash_file1(path), expected)
 
-    def test_sha256_file_empty(self):
+    def test_hash_file1_empty(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "empty"
             path.write_bytes(b"")
 
             expected = hashlib.sha256(b"").hexdigest()
 
-            self.assertEqual(fs.sha256_file(path), expected)
+            self.assertEqual(fs.hash_file1(path), expected)
 
     def test_generate_manifest_lines_sorted(self):
         with tempfile.TemporaryDirectory() as td:

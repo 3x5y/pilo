@@ -333,7 +333,7 @@ class TestRewritePlan(pilotest.TestCase):
 
         self.assertIsInstance(verified, manifest.ChecksumIndex)
 
-    @patch("pilo.fs.sha256_file")
+    @patch("pilo.fs.hash_file1")
     def test_rewrite_manifest_mutations_do_not_rehash(
         self,
         mock_sha,

@@ -48,7 +48,7 @@ def execute_plan(cx, plan):
 
 
 def execute_verify_checksum_step(step):
-    actual = fs.sha256_file(step.path)
+    actual = fs.hash_file1(step.path)
     if actual != step.expected_checksum:
         error.fatal(
             f"checksum verification failed: "

@@ -158,7 +158,7 @@ class TestReplacePlan(pilotest.TestCase):
             "tank/a/static/collection",
         )
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
+    @patch("pilo.fs.hash_file1", return_value="abc123")
     def test_replace_manifest_mutations(self, _):
 
         dst = paths.Resolved(
@@ -179,7 +179,7 @@ class TestReplacePlan(pilotest.TestCase):
         self.assertEqual(mut.entry.path, Path("in/a.txt"))
         self.assertEqual(mut.entry.checksum, "abc123")
 
-    @patch("pilo.fs.sha256_file")
+    @patch("pilo.fs.hash_file1")
     def test_replace_execution_plan_builds_execution_plan(self, *_):
 
         cx = pilotest.make_context()
@@ -201,7 +201,7 @@ class TestReplacePlan(pilotest.TestCase):
         self.assertEqual(len(exec_plan.filesystem_steps), 1)
         self.assertEqual(len(exec_plan.manifest_steps), 1)
 
-    @patch("pilo.fs.sha256_file")
+    @patch("pilo.fs.hash_file1")
     def test_replace_execution_plan_contains_manifest_steps(self, *_):
 
         cx = pilotest.make_context()

@@ -111,7 +111,7 @@ def write_stream_manifest(
     kind: str = KIND_INCREMENTAL,
     base_snapshot: str | None = None,
 ) -> Path:
-    checksum = fs.sha256_file(stream_path)
+    checksum = fs.hash_file1(stream_path)
     size = stream_path.stat().st_size
     entry = StreamManifest(
         stream=str(stream_path.relative_to(stream_output_path())),
@@ -170,7 +170,7 @@ def verify_one(path: Path):
             return ("NOT_FOUND", str(stream_path))
         try:
             manifest = load_stream_manifest(path)
-            actual = fs.sha256_file(stream_path)
+            actual = fs.hash_file1(stream_path)
             if actual == manifest.checksum:
                 return ("OK", str(path))
             else:
@@ -184,7 +184,7 @@ def verify_one(path: Path):
             return ("NO_MANIFEST", str(path))
         try:
             manifest = load_stream_manifest(manifest_path)
-            actual = fs.sha256_file(path)
+            actual = fs.hash_file1(path)
             if actual == manifest.checksum:
                 return ("OK", str(path))
             else:

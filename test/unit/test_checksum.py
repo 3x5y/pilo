@@ -8,7 +8,7 @@ import pilotest
 
 class TestChecksum(pilotest.TestCase):
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
+    @patch("pilo.fs.hash_file1", return_value="abc123")
     def test_generate_checksum_marks_generated(self, mock_sha):
         item = manifest.generate_checksum(Path("/tmp/a.txt"))
         self.assertEqual(item.checksum, "abc123")
@@ -22,7 +22,7 @@ class TestChecksum(pilotest.TestCase):
             ),
         )
 
-    @patch("pilo.fs.sha256_file", return_value="abc123")
+    @patch("pilo.fs.hash_file1", return_value="abc123")
     def test_verify_checksum_marks_verified(self, mock_sha):
         item = manifest.verify_checksum(Path("/tmp/a.txt"), "abc123")
 
@@ -35,7 +35,7 @@ class TestChecksum(pilotest.TestCase):
             ),
         )
 
-    @patch("pilo.fs.sha256_file", return_value="wrong")
+    @patch("pilo.fs.hash_file1", return_value="wrong")
     def test_verify_checksum_rejects_mismatch(self, mock_sha):
         with pilotest.assert_fatal(self):
             manifest.verify_checksum(

@@ -68,12 +68,12 @@ class TestFilesystemPrimitives(pilotest.TestCase):
 
             self.assertEqual(files, [path])
 
-    def test_sha256_file(self):
+    def test_hash_file1(self):
         with pilotest.tmpdir() as root:
             path = root / "a.txt"
             path.write_text("hello")
             h = hashlib.sha256(b"hello").hexdigest()
-            result = fs.sha256_file(path)
+            result = fs.hash_file1(path)
 
             self.assertEqual(result, h)
 
