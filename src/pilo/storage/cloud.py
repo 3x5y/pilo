@@ -356,6 +356,70 @@ def encrypt_archive(
     return encrypted_path, cloud_manifest
 
 
+def sign_cloud_manifest(manifest_path: Path, keyfile: Path) -> Path:
+    if not manifest_path.is_file():
+        raise ValueError(f"manifest not found: {manifest_path}")
+    if not keyfile:
+        raise ValueError("keyfile must not be empty")
+
+    manifest = load_cloud_manifest(manifest_path)
+    if manifest.encrypted_archive is None:
+        raise ValueError("manifest has no encrypted archive metadata")
+
+    enc = manifest.encrypted_archive
+    archive_path = manifest_path.parent / enc.name
+    actual = fs.hash_file1(archive_path)
+    if actual != enc.checksum:
+        raise ValueError(
+            f"encrypted archive checksum mismatch: {archive_path}"
+        )
+
+    sig_path = manifest_path.parent / (manifest_path.name + ".minisig")
+    if sig_path.exists():
+        raise ValueError(f"signature already exists: {sig_path}")
+
+    subprocess.run(
+        ["minisign", "-Sm", str(manifest_path), "-s", str(keyfile)],
+        check=True,
+    )
+
+    return sig_path
+
+
+def verify_cloud_manifest(manifest_path: Path, pubkey: str) -> Path:
+    if not manifest_path.is_file():
+        raise ValueError(f"manifest not found: {manifest_path}")
+    if not pubkey:
+        raise ValueError("pubkey must not be empty")
+
+    sig_path = manifest_path.parent / (manifest_path.name + ".minisig")
+    if not sig_path.is_file():
+        raise ValueError(f"signature not found: {sig_path}")
+
+    try:
+        subprocess.run(
+            ["minisign", "-Vm", str(manifest_path), "-P", pubkey],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError:
+        raise ValueError("signature verification failed")
+
+    manifest = load_cloud_manifest(manifest_path)
+    if manifest.encrypted_archive is None:
+        raise ValueError("manifest has no encrypted archive metadata")
+
+    enc = manifest.encrypted_archive
+    archive_path = manifest_path.parent / enc.name
+    actual = fs.hash_file1(archive_path)
+    if actual != enc.checksum:
+        raise ValueError(
+            f"encrypted archive checksum mismatch: {archive_path}"
+        )
+
+    return archive_path
+
+
 def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:
     for entry in entries:
         p = entry.path
