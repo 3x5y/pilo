@@ -233,7 +233,7 @@ def pack_stream_day(src_dir: Path, dst_dir: Path) -> Path:
                 "-C", str(src_dir.parent),
                 "--sort=name",
                 "--owner=0:0", "--group=0:0",
-                "--mode=644",
+                #"--mode=644", # stuffs up directory perms
                 "--mtime=@0",
                 date_prefix,
             ],
@@ -494,6 +494,91 @@ def decrypt_archive(
         shutil.move(str(tmp_output), str(output_path))
 
     return output_path
+
+
+def verify_extracted_manifests(
+    extracted_dir: Path,
+    manifest: PackageManifest,
+) -> None:
+    if not extracted_dir.is_dir():
+        raise ValueError(f"not a directory: {extracted_dir}")
+    if not re.match(r"^\d{8}$", extracted_dir.name):
+        raise ValueError(
+            f"unexpected directory name: {extracted_dir.name}"
+        )
+
+    for entry in manifest.entries:
+        file_path = extracted_dir / entry.path
+        if not file_path.is_file():
+            raise ValueError(f"missing extracted file: {file_path}")
+        actual_checksum = fs.hash_file1(file_path)
+        if actual_checksum != entry.checksum:
+            raise ValueError(f"checksum mismatch: {file_path}")
+        actual_size = file_path.stat().st_size
+        if actual_size != entry.size:
+            raise ValueError(f"size mismatch: {file_path}")
+
+    for mf in sorted(extracted_dir.rglob(f"*{MANIFEST_SUFFIX}")):
+        status, msg = streams.verify_one(mf)
+        if status != "OK":
+            raise ValueError(f"stream verification failed: {msg}")
+
+
+def unpack_archive(
+    archive_path: Path,
+    dst_root: Path,
+    manifest_path: Path,
+) -> Path:
+    if not archive_path.is_file():
+        raise ValueError(f"not a file: {archive_path}")
+    if not manifest_path.is_file():
+        raise ValueError(f"manifest not found: {manifest_path}")
+
+    cloud_manifest = load_cloud_manifest(manifest_path)
+    pkg = cloud_manifest.package
+
+    actual_checksum = fs.hash_file1(archive_path)
+    if actual_checksum != pkg.checksum:
+        raise ValueError(
+            f"archive checksum mismatch: {archive_path}"
+        )
+
+    with TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+
+        subprocess.run(
+            [
+                "tar", "--zstd", "-xf", str(archive_path),
+                "--touch", # use current time for mtime
+                "-C", str(tmp_dir),
+            ],
+            check=True,
+        )
+
+        contents = list(tmp_dir.iterdir())
+        if len(contents) != 1 or not contents[0].is_dir():
+            raise ValueError(
+                "archive must contain a single directory"
+            )
+
+        extracted_dir = contents[0]
+        if not re.match(r"^\d{8}$", extracted_dir.name):
+            raise ValueError(
+                f"unexpected directory name: {extracted_dir.name}"
+            )
+
+        dst_path = dst_root / extracted_dir.name
+        if dst_path.exists():
+            raise ValueError(
+                f"destination already exists: {dst_path}"
+            )
+
+        verify_extracted_manifests(extracted_dir, pkg)
+
+        dst_root.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(extracted_dir), str(dst_path))
+
+    return dst_path
 
 
 def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:

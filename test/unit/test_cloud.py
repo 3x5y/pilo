@@ -1,3 +1,4 @@
+import json
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -782,7 +783,7 @@ class TestStorageCloudDecryptCommand(pilotest.TestCase):
         self.assertEqual(cm.exception.code, 1)
 
 
-class TestStorageCloudEncryptCommand(pilotest.TestCase):
+class TestStorageCloudSignCommand(pilotest.TestCase):
 
     def _setup_artefacts(self, td, stamp="20260528_120000"):
         archive_path = td / f"{stamp}.tar.zst.age"
@@ -888,6 +889,427 @@ class TestStorageCloudVerifyCommand(pilotest.TestCase):
         mod = pilotest.import_command("storage-cloud-verify-manifest")
         with (
             patch("sys.argv", ["pilo-storage-cloud-verify-manifest"]),
+            patch("sys.stderr"),
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                mod.main()
+        self.assertEqual(cm.exception.code, 1)
+
+
+class TestVerifyExtractedManifests(pilotest.TestCase):
+
+    def _make_extracted_dir(self, td, date="20260528",
+                            tamper_file=None):
+        d = td / date
+        d.mkdir()
+        stream_path = d / "foo.zfs"
+        stream_path.write_bytes(b"stream data")
+        mf_data = {
+            "stream": "foo.zfs",
+            "snapshot": "snap",
+            "source": "tank/test",
+            "guid": "guid",
+            "checksum": fs.hash_file1(stream_path),
+            "size": stream_path.stat().st_size,
+            "created": "now",
+        }
+        mf_path = d / "foo.zfs.manifest"
+        mf_path.write_text(json.dumps(mf_data))
+        if tamper_file == "manifest":
+            mf_path.write_text('{"corrupted": true}')
+        elif tamper_file == "stream":
+            stream_path.write_bytes(b"tampered")
+        return d
+
+    def test_valid_extraction(self):
+        with pilotest.tmpdir() as td:
+            d = self._make_extracted_dir(td)
+            mf = d / "foo.zfs.manifest"
+            manifest = cloud.PackageManifest(
+                archive="a.tar.zst", created="now",
+                entries=(
+                    cloud.PackageEntry(
+                        path="foo.zfs.manifest",
+                        checksum=fs.hash_file1(mf),
+                        size=mf.stat().st_size,
+                    ),
+                ),
+            )
+            cloud.verify_extracted_manifests(d, manifest)
+
+    def test_checksum_mismatch(self):
+        with pilotest.tmpdir() as td:
+            d = self._make_extracted_dir(td, tamper_file="manifest")
+            mf = d / "foo.zfs.manifest"
+            manifest = cloud.PackageManifest(
+                archive="a.tar.zst", created="now",
+                entries=(
+                    cloud.PackageEntry(
+                        path="foo.zfs.manifest",
+                        checksum="wrong",
+                        size=mf.stat().st_size,
+                    ),
+                ),
+            )
+            with self.assertRaises(ValueError):
+                cloud.verify_extracted_manifests(d, manifest)
+
+    def test_size_mismatch(self):
+        with pilotest.tmpdir() as td:
+            d = self._make_extracted_dir(td)
+            mf = d / "foo.zfs.manifest"
+            manifest = cloud.PackageManifest(
+                archive="a.tar.zst", created="now",
+                entries=(
+                    cloud.PackageEntry(
+                        path="foo.zfs.manifest",
+                        checksum=fs.hash_file1(mf),
+                        size=mf.stat().st_size + 1,
+                    ),
+                ),
+            )
+            with self.assertRaises(ValueError):
+                cloud.verify_extracted_manifests(d, manifest)
+
+    def test_missing_file(self):
+        with pilotest.tmpdir() as td:
+            d = td / "20260528"
+            d.mkdir()
+            manifest = cloud.PackageManifest(
+                archive="a.tar.zst", created="now",
+                entries=(
+                    cloud.PackageEntry(
+                        path="foo.zfs.manifest",
+                        checksum="c", size=1,
+                    ),
+                ),
+            )
+            with self.assertRaises(ValueError):
+                cloud.verify_extracted_manifests(d, manifest)
+
+    def test_not_a_directory(self):
+        with pilotest.tmpdir() as td:
+            f = td / "20260528"
+            f.write_text("not a dir")
+            manifest = cloud.PackageManifest(
+                archive="a.tar.zst", created="now",
+            )
+            with self.assertRaises(ValueError):
+                cloud.verify_extracted_manifests(f, manifest)
+
+    def test_bad_directory_name(self):
+        with pilotest.tmpdir() as td:
+            d = td / "not-a-date"
+            d.mkdir()
+            manifest = cloud.PackageManifest(
+                archive="a.tar.zst", created="now",
+            )
+            with self.assertRaises(ValueError):
+                cloud.verify_extracted_manifests(d, manifest)
+
+
+class TestUnpackArchive(pilotest.TestCase):
+
+    def _make_artefacts(self, td, stamp="20260528_120000",
+                        date="20260528", tamper_archive=False):
+        archive_path = td / f"{stamp}.tar.zst"
+        archive_path.write_bytes(b"archive content")
+        orig_dir = td / "_orig"
+        orig_dir.mkdir()
+        stream_path = orig_dir / "foo.zfs"
+        stream_path.write_bytes(b"stream data")
+        mf_data = {
+            "stream": "foo.zfs",
+            "snapshot": "snap",
+            "source": "tank/test",
+            "guid": "guid",
+            "checksum": fs.hash_file1(stream_path),
+            "size": stream_path.stat().st_size,
+            "created": "now",
+        }
+        mf_path = orig_dir / "foo.zfs.manifest"
+        mf_path.write_text(json.dumps(mf_data))
+        entry = cloud.PackageEntry(
+            path="foo.zfs.manifest",
+            checksum=fs.hash_file1(mf_path),
+            size=mf_path.stat().st_size,
+        )
+        pkg = cloud.PackageManifest(
+            archive=f"{stamp}.tar.zst",
+            format="tar.zst",
+            checksum=fs.hash_file1(archive_path),
+            size=archive_path.stat().st_size,
+            created="now", entries=(entry,),
+        )
+        cm = cloud.CloudManifest(
+            version=1, package=pkg, created="now",
+        )
+        manifest_path = td / f"{stamp}.tar.zst.age.manifest"
+        cloud.write_cloud_manifest(cm, manifest_path)
+        if tamper_archive:
+            archive_path.write_bytes(b"tampered")
+        return manifest_path, archive_path
+
+    @staticmethod
+    def _write_stream_artefacts(tmp, date="20260528",
+                                stream_content=None):
+        d = tmp / date
+        d.mkdir()
+        sc = b"stream data" if stream_content is None else stream_content
+        s = d / "foo.zfs"
+        s.write_bytes(sc)
+        mf = d / "foo.zfs.manifest"
+        mf.write_text(json.dumps({
+            "stream": "foo.zfs",
+            "snapshot": "snap",
+            "source": "tank/test",
+            "guid": "guid",
+            "checksum": fs.hash_file1(s),
+            "size": s.stat().st_size,
+            "created": "now",
+        }))
+
+    def _mock_tar_extract(self, date="20260528",
+                          stream_content=None):
+        def mock_extract(args, **kw):
+            idx = args.index("-C")
+            tmp = Path(args[idx + 1])
+            TestUnpackArchive._write_stream_artefacts(
+                tmp, date, stream_content,
+            )
+        return mock_extract
+
+    def test_unpacks_successfully(self):
+        with pilotest.tmpdir() as td:
+            manifest_path, archive_path = self._make_artefacts(td)
+            dst_root = td / "out"
+            with patch(
+                "pilo.storage.cloud.subprocess.run",
+                side_effect=self._mock_tar_extract(),
+            ):
+                result = cloud.unpack_archive(
+                    archive_path, dst_root, manifest_path,
+                )
+
+            expected = dst_root / "20260528"
+            self.assertEqual(result, expected)
+            self.assertTrue(expected.is_dir())
+            self.assertTrue(
+                (expected / "foo.zfs.manifest").exists()
+            )
+
+    def test_creates_dst_root(self):
+        with pilotest.tmpdir() as td:
+            manifest_path, archive_path = self._make_artefacts(td)
+            dst_root = td / "deep/nested/out"
+            with patch(
+                "pilo.storage.cloud.subprocess.run",
+                side_effect=self._mock_tar_extract(),
+            ):
+                result = cloud.unpack_archive(
+                    archive_path, dst_root, manifest_path,
+                )
+            self.assertTrue(result.is_dir())
+
+    def test_archive_checksum_mismatch_raises(self):
+        with pilotest.tmpdir() as td:
+            manifest_path, archive_path = self._make_artefacts(
+                td, tamper_archive=True,
+            )
+            dst_root = td / "out"
+            with patch(
+                "pilo.storage.cloud.subprocess.run",
+                side_effect=self._mock_tar_extract(),
+            ):
+                with self.assertRaises(ValueError):
+                    cloud.unpack_archive(
+                        archive_path, dst_root, manifest_path,
+                    )
+
+    def test_destination_already_exists_raises(self):
+        with pilotest.tmpdir() as td:
+            manifest_path, archive_path = self._make_artefacts(td)
+            dst_root = td / "out"
+            dst_root.mkdir()
+            (dst_root / "20260528").mkdir()
+            with patch(
+                "pilo.storage.cloud.subprocess.run",
+                side_effect=self._mock_tar_extract(),
+            ):
+                with self.assertRaises(ValueError):
+                    cloud.unpack_archive(
+                        archive_path, dst_root, manifest_path,
+                    )
+
+    def test_missing_archive_raises(self):
+        with pilotest.tmpdir() as td:
+            archive_path = td / "nonexistent.tar.zst"
+            pkg = cloud.PackageManifest(
+                archive="nonexistent.tar.zst", created="now",
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+            )
+            manifest_path = td / "test.age.manifest"
+            cloud.write_cloud_manifest(cm, manifest_path)
+            dst_root = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.unpack_archive(
+                    archive_path, dst_root, manifest_path,
+                )
+
+    def test_missing_manifest_raises(self):
+        with pilotest.tmpdir() as td:
+            archive_path = td / "test.tar.zst"
+            archive_path.write_text("data")
+            manifest_path = td / "nonexistent.age.manifest"
+            dst_root = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.unpack_archive(
+                    archive_path, dst_root, manifest_path,
+                )
+
+    def test_extracted_entry_mismatch_raises(self):
+        with pilotest.tmpdir() as td:
+            manifest_path, archive_path = self._make_artefacts(td)
+            dst_root = td / "out"
+
+            def mock_wrong_stream(args, **kw):
+                idx = args.index("-C")
+                tmp = Path(args[idx + 1])
+                TestUnpackArchive._write_stream_artefacts(
+                    tmp, stream_content=b"different content",
+                )
+
+            with patch(
+                "pilo.storage.cloud.subprocess.run",
+                side_effect=mock_wrong_stream,
+            ):
+                with self.assertRaises(ValueError):
+                    cloud.unpack_archive(
+                        archive_path, dst_root, manifest_path,
+                    )
+
+    def test_extracted_stream_verify_fails_raises(self):
+        with pilotest.tmpdir() as td:
+            manifest_path, archive_path = self._make_artefacts(td)
+            dst_root = td / "out"
+
+            def mock_bad_checksum(args, **kw):
+                idx = args.index("-C")
+                tmp = Path(args[idx + 1])
+                d = tmp / "20260528"
+                d.mkdir()
+                (d / "foo.zfs").write_bytes(b"stream data")
+                (d / "foo.zfs.manifest").write_text(json.dumps({
+                    "stream": "foo.zfs",
+                    "snapshot": "snap",
+                    "source": "tank/test",
+                    "guid": "guid",
+                    "checksum": "badchecksum",
+                    "size": 0,
+                    "created": "now",
+                }))
+
+            with patch(
+                "pilo.storage.cloud.subprocess.run",
+                side_effect=mock_bad_checksum,
+            ):
+                with self.assertRaises(ValueError):
+                    cloud.unpack_archive(
+                        archive_path, dst_root, manifest_path,
+                    )
+
+
+class TestStorageCloudUnpackCommand(pilotest.TestCase):
+
+    @staticmethod
+    def _write_extracted(tmp, date="20260528"):
+        d = tmp / date
+        d.mkdir()
+        s = d / "foo.zfs"
+        s.write_bytes(b"stream data")
+        mf = d / "foo.zfs.manifest"
+        mf.write_text(json.dumps({
+            "stream": "foo.zfs",
+            "snapshot": "snap",
+            "source": "tank/test",
+            "guid": "guid",
+            "checksum": fs.hash_file1(s),
+            "size": s.stat().st_size,
+            "created": "now",
+        }))
+
+    def _setup_artefacts(self, td, stamp="20260528_120000"):
+        archive_path = td / f"{stamp}.tar.zst"
+        archive_path.write_bytes(b"archive content")
+        orig_dir = td / "_orig"
+        orig_dir.mkdir()
+        s = orig_dir / "foo.zfs"
+        s.write_bytes(b"stream data")
+        mf_path = orig_dir / "foo.zfs.manifest"
+        mf_path.write_text(json.dumps({
+            "stream": "foo.zfs",
+            "snapshot": "snap",
+            "source": "tank/test",
+            "guid": "guid",
+            "checksum": fs.hash_file1(s),
+            "size": s.stat().st_size,
+            "created": "now",
+        }))
+        entry = cloud.PackageEntry(
+            path="foo.zfs.manifest",
+            checksum=fs.hash_file1(mf_path),
+            size=mf_path.stat().st_size,
+        )
+        pkg = cloud.PackageManifest(
+            archive=f"{stamp}.tar.zst",
+            format="tar.zst",
+            checksum=fs.hash_file1(archive_path),
+            size=archive_path.stat().st_size,
+            created="now", entries=(entry,),
+        )
+        cm = cloud.CloudManifest(
+            version=1, package=pkg, created="now",
+        )
+        manifest_path = td / f"{stamp}.tar.zst.age.manifest"
+        cloud.write_cloud_manifest(cm, manifest_path)
+        return archive_path, manifest_path
+
+    def _mock_tar_extract(self):
+        def mock_extract(args, **kw):
+            idx = args.index("-C")
+            tmp = Path(args[idx + 1])
+            TestStorageCloudUnpackCommand._write_extracted(tmp)
+        return mock_extract
+
+    def test_valid_invocation(self):
+        mod = pilotest.import_command("storage-cloud-unpack")
+        with pilotest.tmpdir() as td:
+            archive_path, manifest_path = self._setup_artefacts(td)
+            dst_root = td / "out"
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-unpack",
+                    str(archive_path), str(dst_root),
+                    str(manifest_path),
+                ]),
+                patch(
+                    "pilo.storage.cloud.subprocess.run",
+                    side_effect=self._mock_tar_extract(),
+                ),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
+
+            self.assertTrue(
+                (dst_root / "20260528").is_dir()
+            )
+
+    def test_missing_args_exits(self):
+        mod = pilotest.import_command("storage-cloud-unpack")
+        with (
+            patch("sys.argv", ["pilo-storage-cloud-unpack"]),
             patch("sys.stderr"),
         ):
             with self.assertRaises(SystemExit) as cm:
