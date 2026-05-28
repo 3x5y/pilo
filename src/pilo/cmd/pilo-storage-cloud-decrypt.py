@@ -22,7 +22,11 @@ def main():
     archive_path = Path(args[1])
     dst_dir = Path(args[2])
 
-    output_path = decrypt_archive(archive_path, dst_dir, identity)
+    try:
+        output_path = decrypt_archive(archive_path, dst_dir, identity)
+    except ValueError as e:
+        error.fatal(str(e))
+
     print(output_path)
 
 

@@ -21,7 +21,11 @@ def main():
     keyfile = Path(args[0])
     manifest_path = Path(args[1])
 
-    sig_path = sign_cloud_manifest(manifest_path, keyfile)
+    try:
+        sig_path = sign_cloud_manifest(manifest_path, keyfile)
+    except ValueError as e:
+        error.fatal(str(e))
+
     print(sig_path)
 
 

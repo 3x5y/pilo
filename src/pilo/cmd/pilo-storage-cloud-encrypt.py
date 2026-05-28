@@ -37,9 +37,12 @@ def main():
     archive_path = Path(args[1])
     dst_dir = Path(args[2])
 
-    encrypted_path, cloud_manifest = encrypt_archive(
-        archive_path, dst_dir, recipient, identity=identity,
-    )
+    try:
+        encrypted_path, cloud_manifest = encrypt_archive(
+            archive_path, dst_dir, recipient, identity=identity,
+        )
+    except ValueError as e:
+        error.fatal(str(e))
 
     stamp = archive_path.name.removesuffix(".tar.zst")
     age_manifest_path = dst_dir / f"{stamp}.tar.zst.age.manifest"

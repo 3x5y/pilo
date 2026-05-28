@@ -21,7 +21,11 @@ def main():
     pubkey = args[0]
     manifest_path = Path(args[1])
 
-    archive_path = verify_cloud_manifest(manifest_path, pubkey)
+    try:
+        archive_path = verify_cloud_manifest(manifest_path, pubkey)
+    except ValueError as e:
+        error.fatal(str(e))
+
     print(archive_path)
 
 

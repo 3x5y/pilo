@@ -18,7 +18,11 @@ def main():
     src_dir = Path(args[0])
     dst_dir = Path(args[1])
 
-    archive_path = pack_stream_day(src_dir, dst_dir)
+    try:
+        archive_path = pack_stream_day(src_dir, dst_dir)
+    except ValueError as e:
+        error.fatal(str(e))
+
     print(archive_path)
 
 

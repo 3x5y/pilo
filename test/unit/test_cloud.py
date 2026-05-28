@@ -1431,3 +1431,210 @@ class TestStorageCloudEncryptCommand(pilotest.TestCase):
             self.assertTrue(
                 (dst / "20260528_120000.tar.zst.age").exists()
             )
+
+
+class TestFullPrimitiveChain(pilotest.TestCase):
+
+    def test_full_chain(self):
+        """pack → encrypt → sign → verify → decrypt → unpack"""
+        from pilo.storage import cloud
+        import json
+
+        def _tar_make(args, **kw):
+            out_idx = args.index("-cf")
+            Path(args[out_idx + 1]).write_bytes(b"archive content")
+
+        def _tar_extract(args, **kw):
+            c_idx = args.index("-C")
+            tmp = Path(args[c_idx + 1])
+            d = tmp / "20260528"
+            d.mkdir()
+            (d / "foo.zfs").write_bytes(b"stream data")
+            mf = {
+                "stream": "foo.zfs",
+                "snapshot": "snap",
+                "source": "tank/test",
+                "guid": "guid",
+                "checksum": fs.hash_file1(d / "foo.zfs"),
+                "size": (d / "foo.zfs").stat().st_size,
+                "created": "now",
+            }
+            (d / "foo.zfs.manifest").write_text(json.dumps(mf))
+
+        def _age_ops(args, **kw):
+            out_idx = args.index("-o")
+            out = Path(args[out_idx + 1])
+            inp = Path(args[-1])
+            if "-d" in args:
+                data = inp.read_bytes()
+                if data.endswith(b"-age"):
+                    data = data[:-4]
+                out.write_bytes(data)
+            else:
+                out.write_bytes(inp.read_bytes() + b"-age")
+
+        def _minisign_sign(args, **kw):
+            m_idx = args.index("-Sm")
+            manifest = Path(args[m_idx + 1])
+            sig = manifest.parent / (manifest.name + ".minisig")
+            sig.write_text("sig")
+
+        def _minisign_verify(args, **kw):
+            pass
+
+        with pilotest.tmpdir() as td:
+            date = "20260528"
+            src_dir = td / date
+            src_dir.mkdir()
+            s = src_dir / "foo.zfs"
+            s.write_bytes(b"stream data")
+            mf_path = src_dir / "foo.zfs.manifest"
+            mf_path.write_text(json.dumps({
+                "stream": "foo.zfs",
+                "snapshot": "snap",
+                "source": "tank/test",
+                "guid": "guid",
+                "checksum": fs.hash_file1(s),
+                "size": s.stat().st_size,
+                "created": "now",
+            }))
+
+            dst_dir = td / "artefacts"
+            dst_dir.mkdir()
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                        side_effect=_tar_make):
+                archive_path = cloud.pack_stream_day(src_dir, dst_dir)
+            self.assertTrue(archive_path.exists())
+            pack_manifest_path = archive_path.with_suffix(
+                archive_path.suffix + ".manifest"
+            )
+            self.assertTrue(pack_manifest_path.exists())
+
+            stamp = archive_path.name.removesuffix(".tar.zst")
+            keyfile = td / "minisign.key"
+            keyfile.write_text("key")
+            dec_dir = td / "decrypted"
+            dec_dir.mkdir()
+            unpack_root = td / "unpacked"
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                        side_effect=_age_ops):
+                encrypted_path, cm = cloud.encrypt_archive(
+                    archive_path, dst_dir, "age1recipient",
+                    identity=str(keyfile),
+                )
+            self.assertTrue(encrypted_path.exists())
+
+            manifest_age_path = dst_dir / f"{stamp}.tar.zst.age.manifest"
+            cloud.write_cloud_manifest(cm, manifest_age_path)
+            self.assertTrue(manifest_age_path.exists())
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                        side_effect=_minisign_sign):
+                sig_path = cloud.sign_cloud_manifest(manifest_age_path, keyfile)
+            self.assertTrue(sig_path.exists())
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                        side_effect=_minisign_verify):
+                verified_path = cloud.verify_cloud_manifest(
+                    manifest_age_path, "RWTpubkey"
+                )
+            self.assertEqual(verified_path, encrypted_path)
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                        side_effect=_age_ops):
+                dec_path = cloud.decrypt_archive(
+                    encrypted_path, dec_dir, keyfile,
+                )
+            self.assertTrue(dec_path.exists())
+            self.assertEqual(dec_path.read_bytes(), b"archive content")
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                        side_effect=_tar_extract):
+                out_dir = cloud.unpack_archive(
+                    dec_path, unpack_root, manifest_age_path,
+                )
+            self.assertTrue(out_dir.is_dir())
+            self.assertTrue((out_dir / "foo.zfs").exists())
+            self.assertEqual(
+                (out_dir / "foo.zfs").read_bytes(), b"stream data",
+            )
+            mf_out = out_dir / "foo.zfs.manifest"
+            self.assertTrue(mf_out.exists())
+            loaded = json.loads(mf_out.read_text())
+            self.assertEqual(loaded["stream"], "foo.zfs")
+
+
+class TestIdempotence(pilotest.TestCase):
+
+    def test_verify_cloud_manifest_does_not_mutate(self):
+        from pilo.storage import cloud
+
+        with pilotest.tmpdir() as td:
+            archive = td / "data.tar.zst.age"
+            archive.write_bytes(b"content")
+            pkg = cloud.PackageManifest(
+                archive="data.tar.zst", checksum="x" * 64,
+                size=7, created="now",
+            )
+            enc = cloud.EncryptedArchive(
+                recipient="key", name="data.tar.zst.age",
+                checksum=fs.hash_file1(archive),
+                size=archive.stat().st_size,
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+                encrypted_archive=enc,
+            )
+            mp = td / "data.tar.zst.age.manifest"
+            cloud.write_cloud_manifest(cm, mp)
+            sig = td / "data.tar.zst.age.manifest.minisig"
+            sig.write_text("sig")
+
+            mtime_before = mp.stat().st_mtime
+            sig_mtime_before = sig.stat().st_mtime
+
+            with patch("pilo.storage.cloud.subprocess.run"):
+                cloud.verify_cloud_manifest(mp, "pubkey")
+
+            self.assertEqual(mp.stat().st_mtime, mtime_before)
+            self.assertEqual(sig.stat().st_mtime, sig_mtime_before)
+
+    def test_verify_decrypted_archive_does_not_mutate(self):
+        from pilo.storage import cloud
+
+        with pilotest.tmpdir() as td:
+            content = b"test data"
+            fp = td / "data.tar.zst"
+            fp.write_bytes(content)
+            man = cloud.PackageManifest(
+                archive="data.tar.zst",
+                checksum=fs.hash_file1(fp),
+                size=len(content), created="now",
+            )
+            mtime_before = fp.stat().st_mtime
+
+            cloud.verify_decrypted_archive(fp, man)
+
+            self.assertEqual(fp.stat().st_mtime, mtime_before)
+
+    def test_atomic_write_json_cleans_up_tmp(self):
+        from pilo.storage.cloud import _atomic_write_json
+
+        with pilotest.tmpdir() as td:
+            path = td / "test.json"
+            _atomic_write_json({"a": 1}, path)
+
+            self.assertTrue(path.exists())
+            self.assertFalse(path.with_suffix(path.suffix + ".tmp").exists())
+
+    def test_atomic_write_json_content(self):
+        from pilo.storage.cloud import _atomic_write_json
+
+        with pilotest.tmpdir() as td:
+            path = td / "test.json"
+            _atomic_write_json({"key": "value"}, path)
+
+            data = json.loads(path.read_text())
+            self.assertEqual(data, {"key": "value"})

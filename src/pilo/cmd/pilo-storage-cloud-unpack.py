@@ -22,7 +22,11 @@ def main():
     dst_root = Path(args[1])
     manifest_path = Path(args[2])
 
-    dst_path = unpack_archive(archive_path, dst_root, manifest_path)
+    try:
+        dst_path = unpack_archive(archive_path, dst_root, manifest_path)
+    except ValueError as e:
+        error.fatal(str(e))
+
     print(dst_path)
 
 

@@ -19,6 +19,35 @@ _VALID_STAMP_RE = re.compile(r"^\d{8}_\d{6}$")
 _SAFE_FILENAME_RE = re.compile(r"^[a-zA-Z0-9_.-]+$")
 
 
+def require_exists(path: Path, desc: str = "") -> None:
+    if not path.exists():
+        label = f" {desc}" if desc else ""
+        raise ValueError(f"not found{label}: {path}")
+
+
+def require_not_exists(path: Path, desc: str = "") -> None:
+    if path.exists():
+        label = f" {desc}" if desc else ""
+        raise ValueError(f"already exists{label}: {path}")
+
+
+def _atomic_write_json(data: dict, path: Path) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(data, indent=2, sort_keys=True) + "\n"
+    )
+    os.replace(str(tmp), str(path))
+
+
+def _run_subprocess(args: list[str], desc: str = "") -> None:
+    try:
+        subprocess.run(args, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        label = f" {desc}" if desc else ""
+        msg = e.stderr.decode(errors="replace").strip() if e.stderr else str(e)
+        raise ValueError(f"subprocess failed{label}: {msg}") from e
+
+
 @dataclass(frozen=True)
 class PackageEntry:
     path: str
@@ -167,11 +196,9 @@ def validate_pack_input(src_dir: Path, dst_dir: Path, stamp: str) -> None:
     if dst_dir.exists() and not dst_dir.is_dir():
         raise ValueError(f"output path exists and is not a directory: {dst_dir}")
     archive_path = dst_dir / f"{stamp}.tar.zst"
-    if archive_path.exists():
-        raise ValueError(f"output already exists: {archive_path}")
+    require_not_exists(archive_path, "output")
     manifest_path = dst_dir / f"{stamp}.tar.zst.manifest"
-    if manifest_path.exists():
-        raise ValueError(f"output already exists: {manifest_path}")
+    require_not_exists(manifest_path, "output")
 
     for f in sorted(src_dir.iterdir()):
         if f.is_symlink():
@@ -227,17 +254,16 @@ def pack_stream_day(src_dir: Path, dst_dir: Path) -> Path:
         tmp_dir = Path(tmp)
         tmp_archive = tmp_dir / f"{stamp}.tar.zst"
 
-        subprocess.run(
+        _run_subprocess(
             [
                 "tar", "--zstd", "-cf", str(tmp_archive),
                 "-C", str(src_dir.parent),
                 "--sort=name",
                 "--owner=0:0", "--group=0:0",
-                #"--mode=644", # stuffs up directory perms
                 "--mtime=@0",
                 date_prefix,
             ],
-            check=True,
+            desc="tar archive creation",
         )
 
         archive_checksum = fs.hash_file1(tmp_archive)
@@ -279,8 +305,7 @@ def encrypt_archive(
     recipient: str,
     identity: str | None = None,
 ) -> tuple[Path, CloudManifest]:
-    if not archive_path.is_file():
-        raise ValueError(f"not a file: {archive_path}")
+    require_exists(archive_path, "archive")
     if not recipient:
         raise ValueError("recipient must not be empty")
 
@@ -290,8 +315,7 @@ def encrypt_archive(
     stamp = name.removesuffix(".tar.zst")
 
     manifest_path = archive_path.parent / f"{stamp}.tar.zst.manifest"
-    if not manifest_path.is_file():
-        raise ValueError(f"manifest not found: {manifest_path}")
+    require_exists(manifest_path, "manifest")
 
     pkg_manifest = load_package_manifest(manifest_path)
     actual_checksum = fs.hash_file1(archive_path)
@@ -300,12 +324,10 @@ def encrypt_archive(
 
     encrypted_name = f"{stamp}.tar.zst{_AGE_SUFFIX}"
     encrypted_path = dst_dir / encrypted_name
-    if encrypted_path.exists():
-        raise ValueError(f"output already exists: {encrypted_path}")
+    require_not_exists(encrypted_path, "output")
     age_manifest_name = f"{stamp}.tar.zst{_AGE_SUFFIX}.manifest"
     age_manifest_path = dst_dir / age_manifest_name
-    if age_manifest_path.exists():
-        raise ValueError(f"output already exists: {age_manifest_path}")
+    require_not_exists(age_manifest_path, "output")
 
     dst_dir.mkdir(parents=True, exist_ok=True)
 
@@ -313,9 +335,9 @@ def encrypt_archive(
         tmp_dir = Path(tmp)
         tmp_encrypted = tmp_dir / encrypted_name
 
-        subprocess.run(
+        _run_subprocess(
             ["age", "-r", recipient, "-o", str(tmp_encrypted), str(archive_path)],
-            check=True,
+            desc="age encryption",
         )
 
         enc_checksum = fs.hash_file1(tmp_encrypted)
@@ -323,12 +345,12 @@ def encrypt_archive(
 
         if identity is not None:
             tmp_decrypted = tmp_dir / f"{stamp}.tar.zst"
-            subprocess.run(
+            _run_subprocess(
                 [
                     "age", "-d", "-i", identity,
                     "-o", str(tmp_decrypted), str(tmp_encrypted),
                 ],
-                check=True,
+                desc="age decryption verification",
             )
             dec_checksum = fs.hash_file1(tmp_decrypted)
             if dec_checksum != pkg_manifest.checksum:
@@ -357,8 +379,7 @@ def encrypt_archive(
 
 
 def sign_cloud_manifest(manifest_path: Path, keyfile: Path) -> Path:
-    if not manifest_path.is_file():
-        raise ValueError(f"manifest not found: {manifest_path}")
+    require_exists(manifest_path, "manifest")
     if not keyfile:
         raise ValueError("keyfile must not be empty")
 
@@ -368,6 +389,7 @@ def sign_cloud_manifest(manifest_path: Path, keyfile: Path) -> Path:
 
     enc = manifest.encrypted_archive
     archive_path = manifest_path.parent / enc.name
+    require_exists(archive_path, "encrypted archive")
     actual = fs.hash_file1(archive_path)
     if actual != enc.checksum:
         raise ValueError(
@@ -375,35 +397,28 @@ def sign_cloud_manifest(manifest_path: Path, keyfile: Path) -> Path:
         )
 
     sig_path = manifest_path.parent / (manifest_path.name + ".minisig")
-    if sig_path.exists():
-        raise ValueError(f"signature already exists: {sig_path}")
+    require_not_exists(sig_path, "signature")
 
-    subprocess.run(
+    _run_subprocess(
         ["minisign", "-Sm", str(manifest_path), "-s", str(keyfile)],
-        check=True,
+        desc="minisign signing",
     )
 
     return sig_path
 
 
 def verify_cloud_manifest(manifest_path: Path, pubkey: str) -> Path:
-    if not manifest_path.is_file():
-        raise ValueError(f"manifest not found: {manifest_path}")
+    require_exists(manifest_path, "manifest")
     if not pubkey:
         raise ValueError("pubkey must not be empty")
 
     sig_path = manifest_path.parent / (manifest_path.name + ".minisig")
-    if not sig_path.is_file():
-        raise ValueError(f"signature not found: {sig_path}")
+    require_exists(sig_path, "signature")
 
-    try:
-        subprocess.run(
-            ["minisign", "-Vm", str(manifest_path), "-P", pubkey],
-            check=True,
-            capture_output=True,
-        )
-    except subprocess.CalledProcessError:
-        raise ValueError("signature verification failed")
+    _run_subprocess(
+        ["minisign", "-Vm", str(manifest_path), "-P", pubkey],
+        desc="minisign verification",
+    )
 
     manifest = load_cloud_manifest(manifest_path)
     if manifest.encrypted_archive is None:
@@ -411,6 +426,7 @@ def verify_cloud_manifest(manifest_path: Path, pubkey: str) -> Path:
 
     enc = manifest.encrypted_archive
     archive_path = manifest_path.parent / enc.name
+    require_exists(archive_path, "encrypted archive")
     actual = fs.hash_file1(archive_path)
     if actual != enc.checksum:
         raise ValueError(
@@ -441,10 +457,8 @@ def decrypt_archive(
     dst_dir: Path,
     identity: Path,
 ) -> Path:
-    if not archive_path.is_file():
-        raise ValueError(f"not a file: {archive_path}")
-    if not identity.is_file():
-        raise ValueError(f"identity not found: {identity}")
+    require_exists(archive_path, "archive")
+    require_exists(identity, "identity key")
 
     name = archive_path.name
     if not name.endswith(".tar.zst.age"):
@@ -452,8 +466,7 @@ def decrypt_archive(
     stamp = name.removesuffix(".tar.zst.age")
 
     manifest_path = archive_path.parent / f"{name}.manifest"
-    if not manifest_path.is_file():
-        raise ValueError(f"manifest not found: {manifest_path}")
+    require_exists(manifest_path, "manifest")
 
     cloud_manifest = load_cloud_manifest(manifest_path)
     if cloud_manifest.encrypted_archive is None:
@@ -468,8 +481,7 @@ def decrypt_archive(
 
     output_name = f"{stamp}.tar.zst"
     output_path = dst_dir / output_name
-    if output_path.exists():
-        raise ValueError(f"output already exists: {output_path}")
+    require_not_exists(output_path, "output")
 
     dst_dir.mkdir(parents=True, exist_ok=True)
 
@@ -477,17 +489,13 @@ def decrypt_archive(
         tmp_dir = Path(tmp)
         tmp_output = tmp_dir / output_name
 
-        try:
-            subprocess.run(
-                [
-                    "age", "-d", "-i", str(identity),
-                    "-o", str(tmp_output), str(archive_path),
-                ],
-                check=True,
-                capture_output=True,
-            )
-        except subprocess.CalledProcessError:
-            raise ValueError("decryption failed")
+        _run_subprocess(
+            [
+                "age", "-d", "-i", str(identity),
+                "-o", str(tmp_output), str(archive_path),
+            ],
+            desc="age decryption",
+        )
 
         verify_decrypted_archive(tmp_output, cloud_manifest.package)
 
@@ -529,10 +537,8 @@ def unpack_archive(
     dst_root: Path,
     manifest_path: Path,
 ) -> Path:
-    if not archive_path.is_file():
-        raise ValueError(f"not a file: {archive_path}")
-    if not manifest_path.is_file():
-        raise ValueError(f"manifest not found: {manifest_path}")
+    require_exists(archive_path, "archive")
+    require_exists(manifest_path, "manifest")
 
     cloud_manifest = load_cloud_manifest(manifest_path)
     pkg = cloud_manifest.package
@@ -546,13 +552,13 @@ def unpack_archive(
     with TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
 
-        subprocess.run(
+        _run_subprocess(
             [
                 "tar", "--zstd", "-xf", str(archive_path),
-                "--touch", # use current time for mtime
+                "--touch",
                 "-C", str(tmp_dir),
             ],
-            check=True,
+            desc="tar extraction",
         )
 
         contents = list(tmp_dir.iterdir())
@@ -568,10 +574,7 @@ def unpack_archive(
             )
 
         dst_path = dst_root / extracted_dir.name
-        if dst_path.exists():
-            raise ValueError(
-                f"destination already exists: {dst_path}"
-            )
+        require_not_exists(dst_path, "destination")
 
         verify_extracted_manifests(extracted_dir, pkg)
 
@@ -591,8 +594,7 @@ def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:
 
 
 def write_package_manifest(manifest: PackageManifest, path: Path) -> None:
-    text = json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n"
-    path.write_text(text)
+    _atomic_write_json(manifest.to_dict(), path)
 
 
 def load_package_manifest(path: Path) -> PackageManifest:
@@ -601,8 +603,7 @@ def load_package_manifest(path: Path) -> PackageManifest:
 
 
 def write_cloud_manifest(manifest: CloudManifest, path: Path) -> None:
-    text = json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n"
-    path.write_text(text)
+    _atomic_write_json(manifest.to_dict(), path)
 
 
 def load_cloud_manifest(path: Path) -> CloudManifest:
