@@ -420,6 +420,82 @@ def verify_cloud_manifest(manifest_path: Path, pubkey: str) -> Path:
     return archive_path
 
 
+def verify_decrypted_archive(
+    decrypted_path: Path,
+    manifest: PackageManifest,
+) -> None:
+    actual_checksum = fs.hash_file1(decrypted_path)
+    if actual_checksum != manifest.checksum:
+        raise ValueError(
+            f"decrypted archive checksum mismatch: {decrypted_path}"
+        )
+    actual_size = decrypted_path.stat().st_size
+    if actual_size != manifest.size:
+        raise ValueError(
+            f"decrypted archive size mismatch: {decrypted_path}"
+        )
+
+
+def decrypt_archive(
+    archive_path: Path,
+    dst_dir: Path,
+    identity: Path,
+) -> Path:
+    if not archive_path.is_file():
+        raise ValueError(f"not a file: {archive_path}")
+    if not identity.is_file():
+        raise ValueError(f"identity not found: {identity}")
+
+    name = archive_path.name
+    if not name.endswith(".tar.zst.age"):
+        raise ValueError(f"unexpected archive extension: {name}")
+    stamp = name.removesuffix(".tar.zst.age")
+
+    manifest_path = archive_path.parent / f"{name}.manifest"
+    if not manifest_path.is_file():
+        raise ValueError(f"manifest not found: {manifest_path}")
+
+    cloud_manifest = load_cloud_manifest(manifest_path)
+    if cloud_manifest.encrypted_archive is None:
+        raise ValueError("manifest has no encrypted archive metadata")
+
+    enc = cloud_manifest.encrypted_archive
+    actual = fs.hash_file1(archive_path)
+    if actual != enc.checksum:
+        raise ValueError(
+            f"encrypted archive checksum mismatch: {archive_path}"
+        )
+
+    output_name = f"{stamp}.tar.zst"
+    output_path = dst_dir / output_name
+    if output_path.exists():
+        raise ValueError(f"output already exists: {output_path}")
+
+    dst_dir.mkdir(parents=True, exist_ok=True)
+
+    with TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        tmp_output = tmp_dir / output_name
+
+        try:
+            subprocess.run(
+                [
+                    "age", "-d", "-i", str(identity),
+                    "-o", str(tmp_output), str(archive_path),
+                ],
+                check=True,
+                capture_output=True,
+            )
+        except subprocess.CalledProcessError:
+            raise ValueError("decryption failed")
+
+        verify_decrypted_archive(tmp_output, cloud_manifest.package)
+
+        shutil.move(str(tmp_output), str(output_path))
+
+    return output_path
+
+
 def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:
     for entry in entries:
         p = entry.path

@@ -494,124 +494,57 @@ class TestPackStreamDay(pilotest.TestCase):
             )
 
 
-class TestSignCloudManifest(pilotest.TestCase):
+class TestVerifyDecryptedArchive(pilotest.TestCase):
 
-    def _make_encrypted_artefacts(self, td, stamp="20260528_120000",
-                                  tamper_archive=False):
-        archive_path = td / f"{stamp}.tar.zst.age"
-        archive_path.write_bytes(b"original content")
-        entry = cloud.PackageEntry(
-            path="20260528/foo.zfs.manifest",
-            checksum="abc" * 20, size=100,
-        )
-        pkg = cloud.PackageManifest(
-            archive=f"{stamp}.tar.zst",
-            format="tar.zst",
-            checksum="def" * 20, size=200,
-            created="now", entries=(entry,),
-        )
-        enc = cloud.EncryptedArchive(
-            recipient="age1key",
-            name=f"{stamp}.tar.zst.age",
-            checksum=fs.hash_file1(archive_path),
-            size=archive_path.stat().st_size,
-        )
-        cm = cloud.CloudManifest(
-            version=1, package=pkg, created="now",
-            encrypted_archive=enc,
-        )
-        manifest_path = td / f"{stamp}.tar.zst.age.manifest"
-        cloud.write_cloud_manifest(cm, manifest_path)
-        if tamper_archive:
-            archive_path.write_bytes(b"different content")
-        return manifest_path, archive_path
-
-    def test_signs_cloud_manifest(self):
+    def test_verifies_matching_content(self):
         with pilotest.tmpdir() as td:
-            manifest_path, _ = self._make_encrypted_artefacts(td)
-            keyfile = td / "minisign.key"
-            keyfile.write_text("key data")
-            with patch("pilo.storage.cloud.subprocess.run") as mock_run:
-                sig_path = cloud.sign_cloud_manifest(manifest_path, keyfile)
-
-            self.assertEqual(
-                sig_path.name,
-                "20260528_120000.tar.zst.age.manifest.minisig",
+            path = td / "test.tar.zst"
+            path.write_bytes(b"content")
+            manifest = cloud.PackageManifest(
+                archive="test.tar.zst",
+                checksum=fs.hash_file1(path),
+                size=7,
+                created="now",
             )
-            mock_run.assert_called_once()
-            args = mock_run.call_args[0][0]
-            self.assertIn("minisign", args)
-            self.assertIn("-Sm", args)
-            self.assertIn(str(manifest_path), args)
-            self.assertIn("-s", args)
-            self.assertIn(str(keyfile), args)
+            cloud.verify_decrypted_archive(path, manifest)
 
     def test_checksum_mismatch_raises(self):
         with pilotest.tmpdir() as td:
-            manifest_path, _ = self._make_encrypted_artefacts(
-                td, tamper_archive=True,
+            path = td / "test.tar.zst"
+            path.write_bytes(b"content")
+            manifest = cloud.PackageManifest(
+                archive="test.tar.zst",
+                checksum="wrongchecksum",
+                size=7,
+                created="now",
             )
-            keyfile = td / "minisign.key"
-            keyfile.write_text("key data")
-            with patch("pilo.storage.cloud.subprocess.run"):
-                with self.assertRaises(ValueError):
-                    cloud.sign_cloud_manifest(manifest_path, keyfile)
-
-    def test_missing_manifest_raises(self):
-        with pilotest.tmpdir() as td:
-            manifest_path = td / "nonexistent.manifest"
-            keyfile = td / "key"
-            keyfile.write_text("key")
             with self.assertRaises(ValueError):
-                cloud.sign_cloud_manifest(manifest_path, keyfile)
+                cloud.verify_decrypted_archive(path, manifest)
 
-    def test_empty_keyfile_raises(self):
+    def test_size_mismatch_raises(self):
         with pilotest.tmpdir() as td:
-            manifest_path = td / "test.manifest"
-            manifest_path.write_text("{}")
-            with self.assertRaises(ValueError):
-                cloud.sign_cloud_manifest(manifest_path, "")
-
-    def test_missing_keyfile_raises(self):
-        with pilotest.tmpdir() as td:
-            manifest_path = td / "test.manifest"
-            manifest_path.write_text("{}")
-            keyfile = td / "nonexistent.key"
-            with self.assertRaises(ValueError):
-                cloud.sign_cloud_manifest(manifest_path, keyfile)
-
-    def test_no_encrypted_archive_raises(self):
-        with pilotest.tmpdir() as td:
-            pkg = cloud.PackageManifest(
-                archive="a.tar.zst", created="now",
+            path = td / "test.tar.zst"
+            path.write_bytes(b"content")
+            manifest = cloud.PackageManifest(
+                archive="test.tar.zst",
+                checksum=fs.hash_file1(path),
+                size=999,
+                created="now",
             )
-            cm = cloud.CloudManifest(version=1, package=pkg, created="now")
-            manifest_path = td / "plain.manifest"
-            cloud.write_cloud_manifest(cm, manifest_path)
-            keyfile = td / "key"
-            keyfile.write_text("key")
             with self.assertRaises(ValueError):
-                cloud.sign_cloud_manifest(manifest_path, keyfile)
-
-    def test_sig_already_exists_raises(self):
-        with pilotest.tmpdir() as td:
-            manifest_path, _ = self._make_encrypted_artefacts(td)
-            keyfile = td / "minisign.key"
-            keyfile.write_text("key data")
-            sig_path = manifest_path.parent / (
-                manifest_path.name + ".minisig"
-            )
-            sig_path.write_text("existing sig")
-            with self.assertRaises(ValueError):
-                cloud.sign_cloud_manifest(manifest_path, keyfile)
+                cloud.verify_decrypted_archive(path, manifest)
 
 
-class TestVerifyCloudManifest(pilotest.TestCase):
+class TestDecryptArchive(pilotest.TestCase):
 
-    def _make_encrypted_artefacts(self, td, stamp="20260528_120000",
-                                  tamper_archive=False):
+    ORIGINAL_CONTENT = b"original tar archive content"
+
+    def _make_encrypted_artefacts(self, td, stamp="20260528_120000"):
         archive_path = td / f"{stamp}.tar.zst.age"
-        archive_path.write_bytes(b"original content")
+        orig = td / "__orig"
+        orig.write_bytes(self.ORIGINAL_CONTENT)
+        orig_checksum = fs.hash_file1(orig)
+        archive_path.write_bytes(b"encrypted version")
         entry = cloud.PackageEntry(
             path="20260528/foo.zfs.manifest",
             checksum="abc" * 20, size=100,
@@ -619,7 +552,8 @@ class TestVerifyCloudManifest(pilotest.TestCase):
         pkg = cloud.PackageManifest(
             archive=f"{stamp}.tar.zst",
             format="tar.zst",
-            checksum="def" * 20, size=200,
+            checksum=orig_checksum,
+            size=len(self.ORIGINAL_CONTENT),
             created="now", entries=(entry,),
         )
         enc = cloud.EncryptedArchive(
@@ -634,103 +568,221 @@ class TestVerifyCloudManifest(pilotest.TestCase):
         )
         manifest_path = td / f"{stamp}.tar.zst.age.manifest"
         cloud.write_cloud_manifest(cm, manifest_path)
-        if tamper_archive:
-            archive_path.write_bytes(b"different content")
-        sig_path = td / f"{stamp}.tar.zst.age.manifest.minisig"
-        sig_path.write_text("valid signature")
-        return manifest_path, archive_path
+        return archive_path, manifest_path
 
-    def test_verifies_valid_manifest(self):
+    def _mock_age_write_original(self, args, **kw):
+        idx = args.index("-o")
+        Path(args[idx + 1]).write_bytes(self.ORIGINAL_CONTENT)
+
+    def test_decrypts_successfully(self):
         with pilotest.tmpdir() as td:
-            manifest_path, archive_path = self._make_encrypted_artefacts(td)
-            pubkey = "RWRvalidpubkey"
-            with patch("pilo.storage.cloud.subprocess.run"):
-                result = cloud.verify_cloud_manifest(
-                    manifest_path, pubkey,
+            archive_path, _ = self._make_encrypted_artefacts(td)
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "out"
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age_write_original):
+                result = cloud.decrypt_archive(
+                    archive_path, dst, identity,
                 )
-            self.assertEqual(result, archive_path)
 
-    def test_bad_signature_raises(self):
+            expected = dst / "20260528_120000.tar.zst"
+            self.assertEqual(result, expected)
+            self.assertTrue(expected.exists())
+            self.assertEqual(expected.read_bytes(), self.ORIGINAL_CONTENT)
+
+    def test_creates_dst_dir(self):
         with pilotest.tmpdir() as td:
-            manifest_path, _ = self._make_encrypted_artefacts(td)
-            pubkey = "RWRbadpubkey"
+            archive_path, _ = self._make_encrypted_artefacts(td)
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "deep/nested/out"
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age_write_original):
+                cloud.decrypt_archive(archive_path, dst, identity)
+            self.assertTrue(dst.is_dir())
+
+    def test_wrong_key_raises(self):
+        with pilotest.tmpdir() as td:
+            archive_path, _ = self._make_encrypted_artefacts(td)
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "out"
             with patch(
                 "pilo.storage.cloud.subprocess.run",
-                side_effect=CalledProcessError(1, "minisign"),
+                side_effect=CalledProcessError(1, "age"),
             ):
                 with self.assertRaises(ValueError):
-                    cloud.verify_cloud_manifest(manifest_path, pubkey)
+                    cloud.decrypt_archive(archive_path, dst, identity)
 
-    def test_checksum_mismatch_raises(self):
+    def test_corrupt_encrypted_archive_raises(self):
         with pilotest.tmpdir() as td:
-            manifest_path, _ = self._make_encrypted_artefacts(
-                td, tamper_archive=True,
-            )
-            pubkey = "RWRvalidpubkey"
-            with patch("pilo.storage.cloud.subprocess.run"):
+            archive_path, _ = self._make_encrypted_artefacts(td)
+            archive_path.write_bytes(b"tampered content")
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "out"
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age_write_original):
                 with self.assertRaises(ValueError):
-                    cloud.verify_cloud_manifest(manifest_path, pubkey)
+                    cloud.decrypt_archive(archive_path, dst, identity)
+
+    def test_modified_manifest_raises(self):
+        with pilotest.tmpdir() as td:
+            archive_path, manifest_path = self._make_encrypted_artefacts(td)
+            manifest_path.write_text('{"corrupted": true}')
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.decrypt_archive(archive_path, dst, identity)
+
+    def test_checksum_mismatch_after_decrypt_raises(self):
+        with pilotest.tmpdir() as td:
+            archive_path, _ = self._make_encrypted_artefacts(td)
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "out"
+
+            def mock_wrong_content(args, **kw):
+                idx = args.index("-o")
+                Path(args[idx + 1]).write_bytes(
+                    b"different decrypted content"
+                )
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=mock_wrong_content):
+                with self.assertRaises(ValueError):
+                    cloud.decrypt_archive(archive_path, dst, identity)
+
+    def test_missing_encrypted_archive_raises(self):
+        with pilotest.tmpdir() as td:
+            archive_path = td / "nonexistent.tar.zst.age"
+            identity = td / "key"
+            identity.write_text("key")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.decrypt_archive(archive_path, dst, identity)
 
     def test_missing_manifest_raises(self):
         with pilotest.tmpdir() as td:
-            manifest_path = td / "nonexistent.manifest"
-            with patch("pilo.storage.cloud.subprocess.run"):
-                with self.assertRaises(ValueError):
-                    cloud.verify_cloud_manifest(manifest_path, "pubkey")
-
-    def test_missing_sig_raises(self):
-        with pilotest.tmpdir() as td:
-            pkg = cloud.PackageManifest(
-                archive="a.tar.zst", created="now",
-            )
-            enc = cloud.EncryptedArchive(
-                recipient="age1key",
-                name="a.tar.zst.age",
-                checksum="c", size=1,
-            )
-            cm = cloud.CloudManifest(
-                version=1, package=pkg, created="now",
-                encrypted_archive=enc,
-            )
-            manifest_path = td / "test.age.manifest"
-            cloud.write_cloud_manifest(cm, manifest_path)
+            archive_path = td / "test.tar.zst.age"
+            archive_path.write_bytes(b"data")
+            identity = td / "key"
+            identity.write_text("key")
+            dst = td / "out"
             with self.assertRaises(ValueError):
-                cloud.verify_cloud_manifest(manifest_path, "pubkey")
+                cloud.decrypt_archive(archive_path, dst, identity)
 
-    def test_empty_pubkey_raises(self):
+    def test_missing_identity_raises(self):
         with pilotest.tmpdir() as td:
-            manifest_path = td / "test.manifest"
-            manifest_path.write_text("{}")
+            archive_path = td / "test.tar.zst.age"
+            archive_path.write_bytes(b"data")
+            manifest_path = td / "test.tar.zst.age.manifest"
+            manifest_path.write_text('{"version":1}')
+            identity = td / "nonexistent.key"
+            dst = td / "out"
             with self.assertRaises(ValueError):
-                cloud.verify_cloud_manifest(manifest_path, "")
+                cloud.decrypt_archive(archive_path, dst, identity)
 
-    def test_no_encrypted_archive_raises(self):
+    def test_output_already_exists_raises(self):
         with pilotest.tmpdir() as td:
-            pkg = cloud.PackageManifest(
-                archive="a.tar.zst", created="now",
-            )
-            cm = cloud.CloudManifest(version=1, package=pkg, created="now")
-            manifest_path = td / "plain.age.manifest"
-            cloud.write_cloud_manifest(cm, manifest_path)
-            sig_path = td / "plain.age.manifest.minisig"
-            sig_path.write_text("sig")
-            pubkey = "RWRvalidpubkey"
-            with patch("pilo.storage.cloud.subprocess.run"):
+            archive_path, _ = self._make_encrypted_artefacts(td)
+            identity = td / "key"
+            identity.write_text("identity key")
+            dst = td / "out"
+            dst.mkdir()
+            (dst / "20260528_120000.tar.zst").write_text("existing")
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age_write_original):
                 with self.assertRaises(ValueError):
-                    cloud.verify_cloud_manifest(manifest_path, pubkey)
+                    cloud.decrypt_archive(archive_path, dst, identity)
 
-    def test_pubkey_passed_to_minisign(self):
+    def test_wrong_extension_raises(self):
         with pilotest.tmpdir() as td:
-            manifest_path, _ = self._make_encrypted_artefacts(td)
-            pubkey = "RWRtestkey123"
-            with patch("pilo.storage.cloud.subprocess.run") as mock_run:
-                cloud.verify_cloud_manifest(manifest_path, pubkey)
-            args = mock_run.call_args[0][0]
-            self.assertIn("-P", args)
-            self.assertIn(pubkey, args)
+            archive_path = td / "test.txt"
+            archive_path.write_text("data")
+            identity = td / "key"
+            identity.write_text("key")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.decrypt_archive(archive_path, dst, identity)
 
 
-class TestStorageCloudSignCommand(pilotest.TestCase):
+class TestStorageCloudDecryptCommand(pilotest.TestCase):
+
+    ORIGINAL_CONTENT = b"original tar archive content"
+
+    def _setup_artefacts(self, td, stamp="20260528_120000"):
+        archive_path = td / f"{stamp}.tar.zst.age"
+        orig = td / "__orig"
+        orig.write_bytes(self.ORIGINAL_CONTENT)
+        orig_checksum = fs.hash_file1(orig)
+        archive_path.write_bytes(b"encrypted version")
+        entry = cloud.PackageEntry(
+            path="20260528/foo.zfs.manifest",
+            checksum="abc" * 20, size=100,
+        )
+        pkg = cloud.PackageManifest(
+            archive=f"{stamp}.tar.zst",
+            format="tar.zst",
+            checksum=orig_checksum,
+            size=len(self.ORIGINAL_CONTENT),
+            created="now", entries=(entry,),
+        )
+        enc = cloud.EncryptedArchive(
+            recipient="age1key",
+            name=f"{stamp}.tar.zst.age",
+            checksum=fs.hash_file1(archive_path),
+            size=archive_path.stat().st_size,
+        )
+        cm = cloud.CloudManifest(
+            version=1, package=pkg, created="now",
+            encrypted_archive=enc,
+        )
+        manifest_path = td / f"{stamp}.tar.zst.age.manifest"
+        cloud.write_cloud_manifest(cm, manifest_path)
+        identity = td / "key"
+        identity.write_text("identity key")
+        return archive_path, identity
+
+    def test_valid_invocation(self):
+        mod = pilotest.import_command("storage-cloud-decrypt")
+        with pilotest.tmpdir() as td:
+            archive_path, identity = self._setup_artefacts(td)
+            dst = td / "out"
+            dst.mkdir()
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-decrypt",
+                    str(identity), str(archive_path), str(dst),
+                ]),
+                patch(
+                    "pilo.storage.cloud.subprocess.run",
+                    side_effect=lambda args, **kw: Path(
+                        args[args.index("-o") + 1]
+                    ).write_bytes(self.ORIGINAL_CONTENT),
+                ),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
+
+            self.assertTrue(
+                (dst / "20260528_120000.tar.zst").exists()
+            )
+
+    def test_missing_args_exits(self):
+        mod = pilotest.import_command("storage-cloud-decrypt")
+        with (
+            patch("sys.argv", ["pilo-storage-cloud-decrypt"]),
+            patch("sys.stderr"),
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                mod.main()
+        self.assertEqual(cm.exception.code, 1)
+
+
+class TestStorageCloudEncryptCommand(pilotest.TestCase):
 
     def _setup_artefacts(self, td, stamp="20260528_120000"):
         archive_path = td / f"{stamp}.tar.zst.age"
