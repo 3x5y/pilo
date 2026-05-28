@@ -87,6 +87,34 @@ class PackageManifest:
 
 
 @dataclass(frozen=True)
+class EncryptedArchive:
+    name: str
+    checksum: str
+    size: int
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "checksum": self.checksum,
+            "size": self.size,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "EncryptedArchive":
+        try:
+            size = d["size"]
+            if not isinstance(size, int):
+                raise ValueError("size must be int")
+            return cls(
+                name=d["name"],
+                checksum=d["checksum"],
+                size=size,
+            )
+        except KeyError as e:
+            raise ValueError(f"missing field: {e}") from e
+
+
+@dataclass(frozen=True)
 class CloudManifest:
     version: int
     format: str
@@ -95,9 +123,10 @@ class CloudManifest:
     size: int
     package: PackageManifest
     created: str
+    encrypted_archive: EncryptedArchive | None = None
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "version": self.version,
             "format": self.format,
             "recipient": self.recipient,
@@ -106,6 +135,9 @@ class CloudManifest:
             "package": self.package.to_dict(),
             "created": self.created,
         }
+        if self.encrypted_archive is not None:
+            d["encrypted_archive"] = self.encrypted_archive.to_dict()
+        return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "CloudManifest":
@@ -116,6 +148,9 @@ class CloudManifest:
             size = d["size"]
             if not isinstance(size, int):
                 raise ValueError("size must be int")
+            encrypted_archive = None
+            if "encrypted_archive" in d:
+                encrypted_archive = EncryptedArchive.from_dict(d["encrypted_archive"])
             return cls(
                 version=version,
                 format=d["format"],
@@ -124,6 +159,7 @@ class CloudManifest:
                 size=size,
                 package=PackageManifest.from_dict(d["package"]),
                 created=d["created"],
+                encrypted_archive=encrypted_archive,
             )
         except KeyError as e:
             raise ValueError(f"missing field: {e}") from e
@@ -246,6 +282,83 @@ def pack_stream_day(src_dir: Path, dst_dir: Path) -> Path:
         shutil.move(str(tmp_manifest), str(dst_manifest))
 
     return dst_archive
+
+
+_AGE_SUFFIX = ".age"
+
+
+def encrypt_archive(
+    archive_path: Path,
+    dst_dir: Path,
+    recipient: str,
+    identity: str | None = None,
+) -> tuple[Path, EncryptedArchive]:
+    if not archive_path.is_file():
+        raise ValueError(f"not a file: {archive_path}")
+    if not recipient:
+        raise ValueError("recipient must not be empty")
+
+    name = archive_path.name
+    if not name.endswith(".tar.zst"):
+        raise ValueError(f"unexpected archive extension: {name}")
+    stamp = name.removesuffix(".tar.zst")
+
+    manifest_path = archive_path.parent / f"{stamp}.tar.zst.manifest"
+    if not manifest_path.is_file():
+        raise ValueError(f"manifest not found: {manifest_path}")
+
+    manifest = load_package_manifest(manifest_path)
+    actual_checksum = fs.hash_file1(archive_path)
+    if actual_checksum != manifest.package.checksum:
+        raise ValueError(f"archive checksum mismatch: {archive_path}")
+
+    encrypted_name = f"{stamp}.tar.zst{_AGE_SUFFIX}"
+    encrypted_path = dst_dir / encrypted_name
+    if encrypted_path.exists():
+        raise ValueError(f"output already exists: {encrypted_path}")
+    age_manifest_name = f"{stamp}.tar.zst{_AGE_SUFFIX}.manifest"
+    age_manifest_path = dst_dir / age_manifest_name
+    if age_manifest_path.exists():
+        raise ValueError(f"output already exists: {age_manifest_path}")
+
+    dst_dir.mkdir(parents=True, exist_ok=True)
+
+    with TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        tmp_encrypted = tmp_dir / encrypted_name
+
+        subprocess.run(
+            ["age", "-r", recipient, "-o", str(tmp_encrypted), str(archive_path)],
+            check=True,
+        )
+
+        enc_checksum = fs.hash_file1(tmp_encrypted)
+        enc_size = tmp_encrypted.stat().st_size
+
+        if identity is not None:
+            tmp_decrypted = tmp_dir / f"{stamp}.tar.zst"
+            subprocess.run(
+                [
+                    "age", "-d", "-i", identity,
+                    "-o", str(tmp_decrypted), str(tmp_encrypted),
+                ],
+                check=True,
+            )
+            dec_checksum = fs.hash_file1(tmp_decrypted)
+            if dec_checksum != manifest.package.checksum:
+                raise ValueError(
+                    "decrypted archive checksum mismatch"
+                )
+
+        encrypted_archive = EncryptedArchive(
+            name=encrypted_name,
+            checksum=enc_checksum,
+            size=enc_size,
+        )
+
+        shutil.move(str(tmp_encrypted), str(encrypted_path))
+
+    return encrypted_path, encrypted_archive
 
 
 def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:

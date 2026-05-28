@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from pilo import fs
 from pilo.storage import cloud
 import pilotest
 
@@ -748,3 +749,438 @@ class TestStorageCloudPackCommand(pilotest.TestCase):
             with self.assertRaises(SystemExit) as cm:
                 mod.main()
         self.assertEqual(cm.exception.code, 1)
+
+
+class TestEncryptedArchive(pilotest.TestCase):
+
+    def test_construction(self):
+        e = cloud.EncryptedArchive(
+            name="20260528_120000.tar.zst.age",
+            checksum="abc" * 20,
+            size=5000,
+        )
+        self.assertEqual(e.name, "20260528_120000.tar.zst.age")
+        self.assertEqual(e.checksum, "abc" * 20)
+        self.assertEqual(e.size, 5000)
+
+    def test_frozen(self):
+        e = cloud.EncryptedArchive(name="n", checksum="c", size=1)
+        with self.assertRaises(AttributeError):
+            e.name = "other"
+
+    def test_to_dict(self):
+        e = cloud.EncryptedArchive(name="n", checksum="c", size=1)
+        d = e.to_dict()
+        self.assertEqual(d["name"], "n")
+        self.assertEqual(d["checksum"], "c")
+        self.assertEqual(d["size"], 1)
+
+    def test_from_dict(self):
+        d = {"name": "n", "checksum": "c", "size": 1}
+        e = cloud.EncryptedArchive.from_dict(d)
+        self.assertEqual(e.name, "n")
+        self.assertEqual(e.checksum, "c")
+        self.assertEqual(e.size, 1)
+
+    def test_roundtrip(self):
+        e1 = cloud.EncryptedArchive(name="n", checksum="c", size=1)
+        e2 = cloud.EncryptedArchive.from_dict(e1.to_dict())
+        self.assertEqual(e1, e2)
+
+    def test_from_dict_missing_field(self):
+        with self.assertRaises(ValueError):
+            cloud.EncryptedArchive.from_dict({"name": "n", "checksum": "c"})
+
+    def test_from_dict_size_not_int(self):
+        with self.assertRaises(ValueError):
+            cloud.EncryptedArchive.from_dict({
+                "name": "n", "checksum": "c", "size": "not_int",
+            })
+
+
+class TestCloudManifestEncryptedArchive(pilotest.TestCase):
+
+    def _make_entry(self):
+        return cloud.PackageEntry(
+            path="20260528/foo.zfs.manifest",
+            checksum="abc" * 20, size=100,
+        )
+
+    def _make_package(self):
+        return cloud.PackageManifest(
+            archive="20260528_120000.tar.zst",
+            checksum="def" * 20, size=5000,
+            created="now", entries=(self._make_entry(),),
+        )
+
+    def _make_encrypted(self):
+        return cloud.EncryptedArchive(
+            name="20260528_120000.tar.zst.age",
+            checksum="ghi" * 20, size=3000,
+        )
+
+    def test_roundtrip_with_encrypted_archive(self):
+        enc = self._make_encrypted()
+        pkg = self._make_package()
+        m1 = cloud.CloudManifest(
+            version=1, format="tar.zst", recipient="age1...",
+            checksum="def" * 20, size=5000,
+            package=pkg, created="now",
+            encrypted_archive=enc,
+        )
+        m2 = cloud.CloudManifest.from_dict(m1.to_dict())
+        self.assertEqual(m1, m2)
+        self.assertIsNotNone(m2.encrypted_archive)
+        self.assertEqual(m2.encrypted_archive.name, enc.name)
+
+    def test_roundtrip_without_encrypted_archive(self):
+        pkg = self._make_package()
+        m1 = cloud.CloudManifest(
+            version=1, format="tar.zst", recipient="",
+            checksum="def" * 20, size=5000,
+            package=pkg, created="now",
+        )
+        m2 = cloud.CloudManifest.from_dict(m1.to_dict())
+        self.assertEqual(m1, m2)
+        self.assertIsNone(m2.encrypted_archive)
+
+    def test_to_dict_omits_encrypted_when_none(self):
+        pkg = self._make_package()
+        m = cloud.CloudManifest(
+            version=1, format="tar.zst", recipient="",
+            checksum="c", size=1,
+            package=pkg, created="now",
+        )
+        d = m.to_dict()
+        self.assertNotIn("encrypted_archive", d)
+
+    def test_from_dict_handles_encrypted_archive_field(self):
+        enc = self._make_encrypted()
+        pkg = self._make_package()
+        d = {
+            "version": 1, "format": "tar.zst", "recipient": "age1...",
+            "checksum": "c", "size": 1,
+            "package": pkg.to_dict(), "created": "now",
+            "encrypted_archive": enc.to_dict(),
+        }
+        m = cloud.CloudManifest.from_dict(d)
+        self.assertIsNotNone(m.encrypted_archive)
+
+    def test_backward_compat_no_encrypted_archive(self):
+        pkg = self._make_package()
+        d = {
+            "version": 1, "format": "tar.zst", "recipient": "",
+            "checksum": "c", "size": 1,
+            "package": pkg.to_dict(), "created": "now",
+        }
+        m = cloud.CloudManifest.from_dict(d)
+        self.assertIsNone(m.encrypted_archive)
+
+    def test_encrypted_archive_validation_propagates(self):
+        pkg = self._make_package()
+        enc = {"name": "bad", "checksum": "c", "size": "not_int"}
+        d = {
+            "version": 1, "format": "tar.zst", "recipient": "",
+            "checksum": "c", "size": 1,
+            "package": pkg.to_dict(), "created": "now",
+            "encrypted_archive": enc,
+        }
+        with self.assertRaises(ValueError):
+            cloud.CloudManifest.from_dict(d)
+
+
+class TestEncryptArchive(pilotest.TestCase):
+
+    def _mock_age(self, args, **kw):
+        idx = args.index("-o")
+        output = Path(args[idx + 1])
+        output.write_bytes(b"encrypted content")
+
+    def _make_archive_and_manifest(self, td, stamp="20260528_120000",
+                                   checksum=None):
+        archive = td / f"{stamp}.tar.zst"
+        content = checksum.encode() if checksum else b"original content"
+        archive.write_bytes(content)
+        entry = cloud.PackageEntry(
+            path=f"{stamp[:8]}/foo.zfs.manifest",
+            checksum="abc" * 20, size=100,
+        )
+        pkg = cloud.PackageManifest(
+            archive=f"{stamp}.tar.zst",
+            checksum=fs.hash_file1(archive),
+            size=archive.stat().st_size,
+            created="now",
+            entries=(entry,),
+        )
+        manifest = cloud.CloudManifest(
+            version=1, format="tar.zst", recipient="",
+            checksum=pkg.checksum, size=pkg.size,
+            package=pkg, created="now",
+        )
+        manifest_path = td / f"{stamp}.tar.zst.manifest"
+        cloud.write_package_manifest(manifest, manifest_path)
+        return archive, manifest_path
+
+    def test_successful_encrypt(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "out"
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age):
+                enc_path, enc_archive = cloud.encrypt_archive(
+                    archive, dst, "age1test",
+                )
+
+            self.assertEqual(
+                enc_path.name, "20260528_120000.tar.zst.age"
+            )
+            self.assertTrue(enc_path.exists())
+            self.assertEqual(
+                enc_archive.name, "20260528_120000.tar.zst.age"
+            )
+            self.assertIsInstance(enc_archive.size, int)
+
+    def test_returns_encrypted_path(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "out"
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age):
+                enc_path, _ = cloud.encrypt_archive(archive, dst, "rec")
+            self.assertIsInstance(enc_path, Path)
+            self.assertTrue(str(enc_path).endswith(".tar.zst.age"))
+
+    def test_creates_dst_dir(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "deep/nested/out"
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age):
+                cloud.encrypt_archive(archive, dst, "rec")
+            self.assertTrue(dst.is_dir())
+
+    def test_with_identity_roundtrip(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "out"
+
+            def mock_age(args, **kw):
+                idx = args.index("-o")
+                output = Path(args[idx + 1])
+                if "-d" in args:
+                    output.write_bytes(archive.read_bytes())
+                else:
+                    output.write_bytes(b"encrypted content")
+
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=mock_age):
+                enc_path, enc_archive = cloud.encrypt_archive(
+                    archive, dst, "rec", identity="keyfile",
+                )
+
+            self.assertTrue(enc_path.exists())
+
+    def test_identity_decrypt_mismatch_raises(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "out"
+
+            def mock_age(args, **kw):
+                idx = args.index("-o")
+                output = Path(args[idx + 1])
+                if "-d" in args:
+                    output.write_bytes(b"different content")
+                else:
+                    output.write_bytes(b"encrypted content")
+
+            with (
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=mock_age),
+            ):
+                with self.assertRaises(ValueError):
+                    cloud.encrypt_archive(
+                        archive, dst, "rec", identity="keyfile",
+                    )
+
+    def test_archive_not_file_raises(self):
+        with pilotest.tmpdir() as td:
+            archive = td / "nonexistent.tar.zst"
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.encrypt_archive(archive, dst, "rec")
+
+    def test_empty_recipient_raises(self):
+        with pilotest.tmpdir() as td:
+            archive = td / "test.tar.zst"
+            archive.write_text("data")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.encrypt_archive(archive, dst, "")
+
+    def test_wrong_extension_raises(self):
+        with pilotest.tmpdir() as td:
+            archive = td / "test.txt"
+            archive.write_text("data")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.encrypt_archive(archive, dst, "rec")
+
+    def test_missing_manifest_raises(self):
+        with pilotest.tmpdir() as td:
+            archive = td / "20260528_120000.tar.zst"
+            archive.write_bytes(b"data")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.encrypt_archive(archive, dst, "rec")
+
+    def test_checksum_mismatch_raises(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(
+                td, checksum="real content",
+            )
+            archive.write_bytes(b"tampered content")
+            dst = td / "out"
+            with self.assertRaises(ValueError):
+                cloud.encrypt_archive(archive, dst, "rec")
+
+    def test_output_already_exists_raises(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "out"
+            dst.mkdir()
+            (dst / "20260528_120000.tar.zst.age").write_text("existing")
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age):
+                with self.assertRaises(ValueError):
+                    cloud.encrypt_archive(archive, dst, "rec")
+
+    def test_age_manifest_already_exists_raises(self):
+        with pilotest.tmpdir() as td:
+            archive, _ = self._make_archive_and_manifest(td)
+            dst = td / "out"
+            dst.mkdir()
+            (dst / "20260528_120000.tar.zst.age.manifest").write_text(
+                "existing"
+            )
+            with patch("pilo.storage.cloud.subprocess.run",
+                       side_effect=self._mock_age):
+                with self.assertRaises(ValueError):
+                    cloud.encrypt_archive(archive, dst, "rec")
+
+
+class TestStorageCloudEncryptCommand(pilotest.TestCase):
+
+    def _setup_artefacts(self, td, stamp="20260528_120000"):
+        archive = td / f"{stamp}.tar.zst"
+        content = b"archive content"
+        archive.write_bytes(content)
+        entry = cloud.PackageEntry(
+            path="20260528/foo.zfs.manifest",
+            checksum="abc" * 20, size=100,
+        )
+        pkg = cloud.PackageManifest(
+            archive=f"{stamp}.tar.zst",
+            checksum=fs.hash_file1(archive),
+            size=archive.stat().st_size,
+            created="now", entries=(entry,),
+        )
+        manifest = cloud.CloudManifest(
+            version=1, format="tar.zst", recipient="",
+            checksum=pkg.checksum, size=pkg.size,
+            package=pkg, created="now",
+        )
+        cloud.write_package_manifest(
+            manifest, td / f"{stamp}.tar.zst.manifest",
+        )
+        return archive, content
+
+    def test_valid_invocation(self):
+        mod = pilotest.import_command("storage-cloud-encrypt")
+        with pilotest.tmpdir() as td:
+            archive, _ = self._setup_artefacts(td)
+            dst = td / "out"
+            dst.mkdir()
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-encrypt",
+                    "age1recipient", str(archive), str(dst),
+                ]),
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=lambda args, **kw: Path(
+                          args[args.index("-o") + 1]
+                      ).write_bytes(b"encrypted")),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
+
+            self.assertTrue(
+                (dst / "20260528_120000.tar.zst.age").exists()
+            )
+            self.assertTrue(
+                (dst / "20260528_120000.tar.zst.age.manifest").exists()
+            )
+
+    def test_manifest_has_encrypted_metadata(self):
+        mod = pilotest.import_command("storage-cloud-encrypt")
+        with pilotest.tmpdir() as td:
+            archive, _ = self._setup_artefacts(td)
+            dst = td / "out"
+            dst.mkdir()
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-encrypt",
+                    "age1key", str(archive), str(dst),
+                ]),
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=lambda args, **kw: Path(
+                          args[args.index("-o") + 1]
+                      ).write_bytes(b"encrypted")),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
+
+            age_manifest = cloud.load_package_manifest(
+                dst / "20260528_120000.tar.zst.age.manifest"
+            )
+            self.assertEqual(age_manifest.recipient, "age1key")
+            self.assertIsNotNone(age_manifest.encrypted_archive)
+            self.assertEqual(
+                age_manifest.encrypted_archive.name,
+                "20260528_120000.tar.zst.age",
+            )
+
+    def test_missing_args_exits(self):
+        mod = pilotest.import_command("storage-cloud-encrypt")
+        with (
+            patch("sys.argv", ["pilo-storage-cloud-encrypt"]),
+            patch("sys.stderr"),
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                mod.main()
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_identity_flag(self):
+        mod = pilotest.import_command("storage-cloud-encrypt")
+        with pilotest.tmpdir() as td:
+            archive, content = self._setup_artefacts(td)
+            dst = td / "out"
+            dst.mkdir()
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-encrypt",
+                    "--identity", "/tmp/key",
+                    "age1key", str(archive), str(dst),
+                ]),
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=lambda args, **kw: Path(
+                          args[args.index("-o") + 1]
+                      ).write_bytes(
+                          content if "-d" in args else b"encrypted"
+                      )),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
+
+            self.assertTrue(
+                (dst / "20260528_120000.tar.zst.age").exists()
+            )
