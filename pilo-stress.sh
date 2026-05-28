@@ -14,10 +14,11 @@ SEC_POOL1=z1-rem
 SEC_POOL2=z2-rem
 SEC_POOL3=z3-rem
 
-#STREAMS=/tmp/streams
-STREAMS=$(mktemp -d)
-chmod a+rx $STREAMS
-export PILO_STREAM_OUTPUT_PATH=$STREAMS
+#EXPORT_ROOT=/tmp/streams
+EXPORT_ROOT=$(mktemp -d)
+mkdir $EXPORT_ROOT/local
+chown u:u $EXPORT_ROOT $EXPORT_ROOT/local
+export PILO_STREAM_OUTPUT_PATH=$EXPORT_ROOT/local
 
 
 _pilo() {
@@ -210,7 +211,7 @@ postrotate() {
     #_pilo storage-replicate
     show_count_before
     pause
-    _pilo storage-stream-replay-all $STREAMS $TARGET_FS
+    _pilo storage-stream-replay-all $EXPORT_ROOT/local $TARGET_FS
     #show
 
     report_gc
