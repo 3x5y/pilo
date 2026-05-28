@@ -50,14 +50,16 @@ class PackageEntry:
 @dataclass(frozen=True)
 class PackageManifest:
     archive: str
-    checksum: str
-    size: int
-    created: str
-    entries: tuple[PackageEntry, ...]
+    format: str = "tar.zst"
+    checksum: str = ""
+    size: int = 0
+    created: str = ""
+    entries: tuple[PackageEntry, ...] = ()
 
     def to_dict(self) -> dict:
         return {
             "archive": self.archive,
+            "format": self.format,
             "checksum": self.checksum,
             "size": self.size,
             "created": self.created,
@@ -77,6 +79,7 @@ class PackageManifest:
             _validate_package_entries(entries)
             return cls(
                 archive=d["archive"],
+                format=d.get("format", "tar.zst"),
                 checksum=d["checksum"],
                 size=size,
                 created=d["created"],
@@ -88,12 +91,16 @@ class PackageManifest:
 
 @dataclass(frozen=True)
 class EncryptedArchive:
+    recipient: str
     name: str
     checksum: str
     size: int
+    format: str = "age"
 
     def to_dict(self) -> dict:
         return {
+            "format": self.format,
+            "recipient": self.recipient,
             "name": self.name,
             "checksum": self.checksum,
             "size": self.size,
@@ -106,9 +113,11 @@ class EncryptedArchive:
             if not isinstance(size, int):
                 raise ValueError("size must be int")
             return cls(
+                recipient=d["recipient"],
                 name=d["name"],
                 checksum=d["checksum"],
                 size=size,
+                format=d.get("format", "age"),
             )
         except KeyError as e:
             raise ValueError(f"missing field: {e}") from e
@@ -117,10 +126,6 @@ class EncryptedArchive:
 @dataclass(frozen=True)
 class CloudManifest:
     version: int
-    format: str
-    recipient: str
-    checksum: str
-    size: int
     package: PackageManifest
     created: str
     encrypted_archive: EncryptedArchive | None = None
@@ -128,10 +133,6 @@ class CloudManifest:
     def to_dict(self) -> dict:
         d = {
             "version": self.version,
-            "format": self.format,
-            "recipient": self.recipient,
-            "checksum": self.checksum,
-            "size": self.size,
             "package": self.package.to_dict(),
             "created": self.created,
         }
@@ -145,18 +146,11 @@ class CloudManifest:
             version = d["version"]
             if not isinstance(version, int):
                 raise ValueError("version must be int")
-            size = d["size"]
-            if not isinstance(size, int):
-                raise ValueError("size must be int")
             encrypted_archive = None
             if "encrypted_archive" in d:
                 encrypted_archive = EncryptedArchive.from_dict(d["encrypted_archive"])
             return cls(
                 version=version,
-                format=d["format"],
-                recipient=d["recipient"],
-                checksum=d["checksum"],
-                size=size,
                 package=PackageManifest.from_dict(d["package"]),
                 created=d["created"],
                 encrypted_archive=encrypted_archive,
@@ -200,22 +194,14 @@ def build_package_manifest(
     archive_size: int,
     created: str,
     entries: tuple[PackageEntry, ...],
-) -> CloudManifest:
-    pkg = PackageManifest(
+) -> PackageManifest:
+    return PackageManifest(
         archive=f"{stamp}.tar.zst",
+        format="tar.zst",
         checksum=archive_checksum,
         size=archive_size,
         created=created,
         entries=entries,
-    )
-    return CloudManifest(
-        version=1,
-        format="tar.zst",
-        recipient="",
-        checksum=archive_checksum,
-        size=archive_size,
-        package=pkg,
-        created=created,
     )
 
 
@@ -292,7 +278,7 @@ def encrypt_archive(
     dst_dir: Path,
     recipient: str,
     identity: str | None = None,
-) -> tuple[Path, EncryptedArchive]:
+) -> tuple[Path, CloudManifest]:
     if not archive_path.is_file():
         raise ValueError(f"not a file: {archive_path}")
     if not recipient:
@@ -307,9 +293,9 @@ def encrypt_archive(
     if not manifest_path.is_file():
         raise ValueError(f"manifest not found: {manifest_path}")
 
-    manifest = load_package_manifest(manifest_path)
+    pkg_manifest = load_package_manifest(manifest_path)
     actual_checksum = fs.hash_file1(archive_path)
-    if actual_checksum != manifest.package.checksum:
+    if actual_checksum != pkg_manifest.checksum:
         raise ValueError(f"archive checksum mismatch: {archive_path}")
 
     encrypted_name = f"{stamp}.tar.zst{_AGE_SUFFIX}"
@@ -345,20 +331,29 @@ def encrypt_archive(
                 check=True,
             )
             dec_checksum = fs.hash_file1(tmp_decrypted)
-            if dec_checksum != manifest.package.checksum:
+            if dec_checksum != pkg_manifest.checksum:
                 raise ValueError(
                     "decrypted archive checksum mismatch"
                 )
 
         encrypted_archive = EncryptedArchive(
+            recipient=recipient,
             name=encrypted_name,
             checksum=enc_checksum,
             size=enc_size,
+            format="age",
+        )
+
+        cloud_manifest = CloudManifest(
+            version=1,
+            package=pkg_manifest,
+            created=pkg_manifest.created,
+            encrypted_archive=encrypted_archive,
         )
 
         shutil.move(str(tmp_encrypted), str(encrypted_path))
 
-    return encrypted_path, encrypted_archive
+    return encrypted_path, cloud_manifest
 
 
 def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:
@@ -370,11 +365,21 @@ def _validate_package_entries(entries: tuple[PackageEntry, ...]) -> None:
             raise ValueError(f".zfs stream path not allowed: {p}")
 
 
-def write_package_manifest(manifest: CloudManifest, path: Path) -> None:
+def write_package_manifest(manifest: PackageManifest, path: Path) -> None:
     text = json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n"
     path.write_text(text)
 
 
-def load_package_manifest(path: Path) -> CloudManifest:
+def load_package_manifest(path: Path) -> PackageManifest:
+    data = json.loads(path.read_text())
+    return PackageManifest.from_dict(data)
+
+
+def write_cloud_manifest(manifest: CloudManifest, path: Path) -> None:
+    text = json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n"
+    path.write_text(text)
+
+
+def load_cloud_manifest(path: Path) -> CloudManifest:
     data = json.loads(path.read_text())
     return CloudManifest.from_dict(data)

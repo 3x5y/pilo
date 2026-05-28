@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 from pilo import error
 from pilo.storage.cloud import (
     encrypt_archive,
-    load_package_manifest,
-    write_package_manifest,
+    write_cloud_manifest,
 )
 
 
@@ -39,22 +37,13 @@ def main():
     archive_path = Path(args[1])
     dst_dir = Path(args[2])
 
-    encrypted_path, encrypted_archive = encrypt_archive(
+    encrypted_path, cloud_manifest = encrypt_archive(
         archive_path, dst_dir, recipient, identity=identity,
     )
 
     stamp = archive_path.name.removesuffix(".tar.zst")
-    src_manifest_path = archive_path.parent / f"{stamp}.tar.zst.manifest"
-    manifest = load_package_manifest(src_manifest_path)
-
-    manifest = replace(
-        manifest,
-        recipient=recipient,
-        encrypted_archive=encrypted_archive,
-    )
-
     age_manifest_path = dst_dir / f"{stamp}.tar.zst.age.manifest"
-    write_package_manifest(manifest, age_manifest_path)
+    write_cloud_manifest(cloud_manifest, age_manifest_path)
 
     print(encrypted_path)
 

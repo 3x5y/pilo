@@ -10,79 +10,46 @@ import pilotest
 
 class TestCloudManifest(pilotest.TestCase):
 
-    def _make_entry(self, path="20260528/foo.zfs.manifest",
-                    checksum="abc" * 20, size=100):
-        return cloud.PackageEntry(path=path, checksum=checksum, size=size)
-
-    def _make_package(self, archive="a.tar.zst", checksum="c", size=100,
-                      created="now", entries=None):
+    def _make_package(self, archive="a.tar.zst", format="tar.zst",
+                      checksum="c", size=100, created="now", entries=None):
         if entries is None:
-            entries = (self._make_entry(),)
+            entries = (cloud.PackageEntry(path="p", checksum="c", size=1),)
         return cloud.PackageManifest(
-            archive=archive, checksum=checksum, size=size,
-            created=created, entries=entries,
+            archive=archive, format=format, checksum=checksum,
+            size=size, created=created, entries=entries,
         )
-
-    def _make_dict(self, version=1, fmt="tar.zst", recipient="",
-                   checksum="c", size=100, created="now", package=None):
-        if package is None:
-            package = self._make_package()
-        return {
-            "version": version,
-            "format": fmt,
-            "recipient": recipient,
-            "checksum": checksum,
-            "size": size,
-            "package": package.to_dict(),
-            "created": created,
-        }
 
     def test_construction(self):
         pkg = self._make_package()
-        m = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="",
-            checksum="c", size=100,
-            package=pkg, created="now",
-        )
+        m = cloud.CloudManifest(version=1, package=pkg, created="now")
         self.assertEqual(m.version, 1)
-        self.assertEqual(m.format, "tar.zst")
         self.assertEqual(m.package.archive, "a.tar.zst")
 
     def test_frozen(self):
         pkg = self._make_package()
-        m = cloud.CloudManifest(
-            version=1, format="f", recipient="r",
-            checksum="c", size=1, package=pkg, created="now",
-        )
+        m = cloud.CloudManifest(version=1, package=pkg, created="now")
         with self.assertRaises(AttributeError):
             m.version = 2
 
     def test_to_dict(self):
         pkg = self._make_package()
-        m = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="r",
-            checksum="c", size=100, package=pkg, created="now",
-        )
+        m = cloud.CloudManifest(version=1, package=pkg, created="now")
         d = m.to_dict()
         self.assertEqual(d["version"], 1)
-        self.assertEqual(d["format"], "tar.zst")
         self.assertIn("package", d)
         self.assertEqual(d["package"]["archive"], "a.tar.zst")
 
     def test_from_dict(self):
-        d = self._make_dict()
+        pkg = self._make_package()
+        d = {"version": 1, "package": pkg.to_dict(), "created": "now"}
         m = cloud.CloudManifest.from_dict(d)
         self.assertEqual(m.version, 1)
-        self.assertEqual(m.format, "tar.zst")
         self.assertEqual(m.package.archive, "a.tar.zst")
         self.assertEqual(len(m.package.entries), 1)
 
     def test_roundtrip(self):
         pkg = self._make_package()
-        m1 = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="r",
-            checksum="c", size=100, package=pkg, created="now",
-        )
+        m1 = cloud.CloudManifest(version=1, package=pkg, created="now")
         m2 = cloud.CloudManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
 
@@ -91,18 +58,14 @@ class TestCloudManifest(pilotest.TestCase):
             cloud.CloudManifest.from_dict({"version": 1})
 
     def test_from_dict_version_not_int(self):
-        d = self._make_dict(version="bad")
-        with self.assertRaises(ValueError):
-            cloud.CloudManifest.from_dict(d)
-
-    def test_from_dict_size_not_int(self):
-        d = self._make_dict(size="bad")
+        pkg = self._make_package()
+        d = {"version": "bad", "package": pkg.to_dict(), "created": "now"}
         with self.assertRaises(ValueError):
             cloud.CloudManifest.from_dict(d)
 
     def test_propagates_package_validation(self):
-        d = self._make_dict()
-        d["package"] = {"archive": "incomplete"}
+        d = {"version": 1, "package": {"archive": "incomplete"},
+             "created": "now"}
         with self.assertRaises(ValueError):
             cloud.CloudManifest.from_dict(d)
 
@@ -164,12 +127,14 @@ class TestPackageManifest(pilotest.TestCase):
         e = self._make_entry()
         m = cloud.PackageManifest(
             archive="20260528.tar.zst",
+            format="tar.zst",
             checksum="def" * 20,
             size=5000,
             created="2026-05-28T00:00:00+00:00",
             entries=(e,),
         )
         self.assertEqual(m.archive, "20260528.tar.zst")
+        self.assertEqual(m.format, "tar.zst")
         self.assertEqual(m.size, 5000)
         self.assertEqual(len(m.entries), 1)
 
@@ -433,7 +398,7 @@ class TestValidatePackInput(pilotest.TestCase):
 
 class TestBuildPackageManifest(pilotest.TestCase):
 
-    def test_returns_cloud_manifest(self):
+    def test_returns_package_manifest(self):
         entry = cloud.PackageEntry(path="p", checksum="c", size=1)
         manifest = cloud.build_package_manifest(
             stamp="20260528",
@@ -442,9 +407,9 @@ class TestBuildPackageManifest(pilotest.TestCase):
             created="2026-05-28T00:00:00+00:00",
             entries=(entry,),
         )
-        self.assertIsInstance(manifest, cloud.CloudManifest)
+        self.assertIsInstance(manifest, cloud.PackageManifest)
 
-    def test_inner_package_manifest_fields(self):
+    def test_fields(self):
         entry = cloud.PackageEntry(path="p", checksum="c", size=1)
         manifest = cloud.build_package_manifest(
             stamp="20260528",
@@ -453,38 +418,13 @@ class TestBuildPackageManifest(pilotest.TestCase):
             created="2026-05-28T00:00:00+00:00",
             entries=(entry,),
         )
-        pkg = manifest.package
-        self.assertEqual(pkg.archive, "20260528.tar.zst")
-        self.assertEqual(pkg.checksum, "abc" * 20)
-        self.assertEqual(pkg.size, 5000)
-        self.assertEqual(pkg.created, "2026-05-28T00:00:00+00:00")
-        self.assertEqual(len(pkg.entries), 1)
-        self.assertEqual(pkg.entries[0].path, "p")
-
-    def test_outer_cloud_manifest_fields(self):
-        entry = cloud.PackageEntry(path="p", checksum="c", size=1)
-        manifest = cloud.build_package_manifest(
-            stamp="20260528",
-            archive_checksum="abc" * 20,
-            archive_size=5000,
-            created="2026-05-28T00:00:00+00:00",
-            entries=(entry,),
-        )
-        self.assertEqual(manifest.version, 1)
+        self.assertEqual(manifest.archive, "20260528.tar.zst")
         self.assertEqual(manifest.format, "tar.zst")
-        self.assertEqual(manifest.recipient, "")
         self.assertEqual(manifest.checksum, "abc" * 20)
         self.assertEqual(manifest.size, 5000)
         self.assertEqual(manifest.created, "2026-05-28T00:00:00+00:00")
-
-    def test_checksums_match_between_layers(self):
-        entry = cloud.PackageEntry(path="p", checksum="c", size=1)
-        manifest = cloud.build_package_manifest(
-            stamp="s", archive_checksum="chk", archive_size=1,
-            created="now", entries=(entry,),
-        )
-        self.assertEqual(manifest.checksum, manifest.package.checksum)
-        self.assertEqual(manifest.size, manifest.package.size)
+        self.assertEqual(len(manifest.entries), 1)
+        self.assertEqual(manifest.entries[0].path, "p")
 
     def test_multiple_entries(self):
         e1 = cloud.PackageEntry(path="a", checksum="c1", size=1)
@@ -493,14 +433,14 @@ class TestBuildPackageManifest(pilotest.TestCase):
             stamp="s", archive_checksum="chk", archive_size=10,
             created="now", entries=(e1, e2),
         )
-        self.assertEqual(len(manifest.package.entries), 2)
+        self.assertEqual(len(manifest.entries), 2)
 
     def test_empty_entries(self):
         manifest = cloud.build_package_manifest(
             stamp="s", archive_checksum="chk", archive_size=0,
             created="now", entries=(),
         )
-        self.assertEqual(len(manifest.package.entries), 0)
+        self.assertEqual(len(manifest.entries), 0)
 
     def test_roundtrip_serialization(self):
         entry = cloud.PackageEntry(path="p", checksum="c", size=1)
@@ -508,7 +448,7 @@ class TestBuildPackageManifest(pilotest.TestCase):
             stamp="20260528", archive_checksum="abc" * 20,
             archive_size=5000, created="now", entries=(entry,),
         )
-        m2 = cloud.CloudManifest.from_dict(m1.to_dict())
+        m2 = cloud.PackageManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
 
 
@@ -602,13 +542,11 @@ class TestPackStreamDay(pilotest.TestCase):
             manifest = cloud.load_package_manifest(
                 dst / "20260528_120000.tar.zst.manifest"
             )
-            self.assertEqual(manifest.version, 1)
+            self.assertEqual(manifest.archive, "20260528_120000.tar.zst")
+            self.assertEqual(manifest.format, "tar.zst")
+            self.assertEqual(len(manifest.entries), 1)
             self.assertEqual(
-                manifest.package.archive, "20260528_120000.tar.zst"
-            )
-            self.assertEqual(len(manifest.package.entries), 1)
-            self.assertEqual(
-                manifest.package.entries[0].path,
+                manifest.entries[0].path,
                 "20260528_010203_000000-reg.zfs.manifest",
             )
 
@@ -647,17 +585,13 @@ class TestPackageManifestIO(pilotest.TestCase):
             path="20260528/foo.zfs.manifest",
             checksum="abc" * 20, size=100,
         )
-        pkg = cloud.PackageManifest(
+        return cloud.PackageManifest(
             archive="20260528.tar.zst",
+            format="tar.zst",
             checksum="def" * 20,
             size=5000,
             created="2026-05-28T00:00:00+00:00",
             entries=(entry,),
-        )
-        return cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="",
-            checksum="def" * 20, size=5000,
-            package=pkg, created="2026-05-28T00:00:00+00:00",
         )
 
     def test_write_then_load_roundtrip(self):
@@ -700,7 +634,7 @@ class TestPackageManifestIO(pilotest.TestCase):
     def test_load_invalid_schema_raises(self):
         with pilotest.tmpdir() as td:
             path = td / "bad.json"
-            path.write_text('{"version": "bad"}')
+            path.write_text('{"archive": "bad"}')
             with self.assertRaises(ValueError):
                 cloud.load_package_manifest(path)
 
@@ -755,35 +689,46 @@ class TestEncryptedArchive(pilotest.TestCase):
 
     def test_construction(self):
         e = cloud.EncryptedArchive(
+            recipient="age1key",
             name="20260528_120000.tar.zst.age",
             checksum="abc" * 20,
             size=5000,
         )
+        self.assertEqual(e.format, "age")
+        self.assertEqual(e.recipient, "age1key")
         self.assertEqual(e.name, "20260528_120000.tar.zst.age")
         self.assertEqual(e.checksum, "abc" * 20)
         self.assertEqual(e.size, 5000)
 
     def test_frozen(self):
-        e = cloud.EncryptedArchive(name="n", checksum="c", size=1)
+        e = cloud.EncryptedArchive(recipient="r", name="n",
+                                   checksum="c", size=1)
         with self.assertRaises(AttributeError):
             e.name = "other"
 
     def test_to_dict(self):
-        e = cloud.EncryptedArchive(name="n", checksum="c", size=1)
+        e = cloud.EncryptedArchive(recipient="r", name="n",
+                                   checksum="c", size=1)
         d = e.to_dict()
+        self.assertEqual(d["format"], "age")
+        self.assertEqual(d["recipient"], "r")
         self.assertEqual(d["name"], "n")
         self.assertEqual(d["checksum"], "c")
         self.assertEqual(d["size"], 1)
 
     def test_from_dict(self):
-        d = {"name": "n", "checksum": "c", "size": 1}
+        d = {"format": "age", "recipient": "r", "name": "n",
+             "checksum": "c", "size": 1}
         e = cloud.EncryptedArchive.from_dict(d)
+        self.assertEqual(e.format, "age")
+        self.assertEqual(e.recipient, "r")
         self.assertEqual(e.name, "n")
         self.assertEqual(e.checksum, "c")
         self.assertEqual(e.size, 1)
 
     def test_roundtrip(self):
-        e1 = cloud.EncryptedArchive(name="n", checksum="c", size=1)
+        e1 = cloud.EncryptedArchive(recipient="r", name="n",
+                                    checksum="c", size=1)
         e2 = cloud.EncryptedArchive.from_dict(e1.to_dict())
         self.assertEqual(e1, e2)
 
@@ -794,27 +739,28 @@ class TestEncryptedArchive(pilotest.TestCase):
     def test_from_dict_size_not_int(self):
         with self.assertRaises(ValueError):
             cloud.EncryptedArchive.from_dict({
-                "name": "n", "checksum": "c", "size": "not_int",
+                "recipient": "r", "name": "n",
+                "checksum": "c", "size": "not_int",
             })
 
 
 class TestCloudManifestEncryptedArchive(pilotest.TestCase):
 
-    def _make_entry(self):
-        return cloud.PackageEntry(
-            path="20260528/foo.zfs.manifest",
-            checksum="abc" * 20, size=100,
-        )
-
     def _make_package(self):
         return cloud.PackageManifest(
             archive="20260528_120000.tar.zst",
+            format="tar.zst",
             checksum="def" * 20, size=5000,
-            created="now", entries=(self._make_entry(),),
+            created="now",
+            entries=(cloud.PackageEntry(
+                path="20260528/foo.zfs.manifest",
+                checksum="abc" * 20, size=100,
+            ),),
         )
 
     def _make_encrypted(self):
         return cloud.EncryptedArchive(
+            recipient="age1...",
             name="20260528_120000.tar.zst.age",
             checksum="ghi" * 20, size=3000,
         )
@@ -823,9 +769,7 @@ class TestCloudManifestEncryptedArchive(pilotest.TestCase):
         enc = self._make_encrypted()
         pkg = self._make_package()
         m1 = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="age1...",
-            checksum="def" * 20, size=5000,
-            package=pkg, created="now",
+            version=1, package=pkg, created="now",
             encrypted_archive=enc,
         )
         m2 = cloud.CloudManifest.from_dict(m1.to_dict())
@@ -836,9 +780,7 @@ class TestCloudManifestEncryptedArchive(pilotest.TestCase):
     def test_roundtrip_without_encrypted_archive(self):
         pkg = self._make_package()
         m1 = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="",
-            checksum="def" * 20, size=5000,
-            package=pkg, created="now",
+            version=1, package=pkg, created="now",
         )
         m2 = cloud.CloudManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
@@ -847,9 +789,7 @@ class TestCloudManifestEncryptedArchive(pilotest.TestCase):
     def test_to_dict_omits_encrypted_when_none(self):
         pkg = self._make_package()
         m = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="",
-            checksum="c", size=1,
-            package=pkg, created="now",
+            version=1, package=pkg, created="now",
         )
         d = m.to_dict()
         self.assertNotIn("encrypted_archive", d)
@@ -858,9 +798,7 @@ class TestCloudManifestEncryptedArchive(pilotest.TestCase):
         enc = self._make_encrypted()
         pkg = self._make_package()
         d = {
-            "version": 1, "format": "tar.zst", "recipient": "age1...",
-            "checksum": "c", "size": 1,
-            "package": pkg.to_dict(), "created": "now",
+            "version": 1, "package": pkg.to_dict(), "created": "now",
             "encrypted_archive": enc.to_dict(),
         }
         m = cloud.CloudManifest.from_dict(d)
@@ -869,20 +807,17 @@ class TestCloudManifestEncryptedArchive(pilotest.TestCase):
     def test_backward_compat_no_encrypted_archive(self):
         pkg = self._make_package()
         d = {
-            "version": 1, "format": "tar.zst", "recipient": "",
-            "checksum": "c", "size": 1,
-            "package": pkg.to_dict(), "created": "now",
+            "version": 1, "package": pkg.to_dict(), "created": "now",
         }
         m = cloud.CloudManifest.from_dict(d)
         self.assertIsNone(m.encrypted_archive)
 
     def test_encrypted_archive_validation_propagates(self):
         pkg = self._make_package()
-        enc = {"name": "bad", "checksum": "c", "size": "not_int"}
+        enc = {"recipient": "r", "name": "bad", "checksum": "c",
+               "size": "not_int"}
         d = {
-            "version": 1, "format": "tar.zst", "recipient": "",
-            "checksum": "c", "size": 1,
-            "package": pkg.to_dict(), "created": "now",
+            "version": 1, "package": pkg.to_dict(), "created": "now",
             "encrypted_archive": enc,
         }
         with self.assertRaises(ValueError):
@@ -907,18 +842,14 @@ class TestEncryptArchive(pilotest.TestCase):
         )
         pkg = cloud.PackageManifest(
             archive=f"{stamp}.tar.zst",
+            format="tar.zst",
             checksum=fs.hash_file1(archive),
             size=archive.stat().st_size,
             created="now",
             entries=(entry,),
         )
-        manifest = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="",
-            checksum=pkg.checksum, size=pkg.size,
-            package=pkg, created="now",
-        )
         manifest_path = td / f"{stamp}.tar.zst.manifest"
-        cloud.write_package_manifest(manifest, manifest_path)
+        cloud.write_package_manifest(pkg, manifest_path)
         return archive, manifest_path
 
     def test_successful_encrypt(self):
@@ -927,7 +858,7 @@ class TestEncryptArchive(pilotest.TestCase):
             dst = td / "out"
             with patch("pilo.storage.cloud.subprocess.run",
                        side_effect=self._mock_age):
-                enc_path, enc_archive = cloud.encrypt_archive(
+                enc_path, cloud_manifest = cloud.encrypt_archive(
                     archive, dst, "age1test",
                 )
 
@@ -935,10 +866,13 @@ class TestEncryptArchive(pilotest.TestCase):
                 enc_path.name, "20260528_120000.tar.zst.age"
             )
             self.assertTrue(enc_path.exists())
-            self.assertEqual(
-                enc_archive.name, "20260528_120000.tar.zst.age"
-            )
-            self.assertIsInstance(enc_archive.size, int)
+            self.assertIsInstance(cloud_manifest, cloud.CloudManifest)
+            enc = cloud_manifest.encrypted_archive
+            self.assertIsNotNone(enc)
+            self.assertEqual(enc.name, "20260528_120000.tar.zst.age")
+            self.assertEqual(enc.recipient, "age1test")
+            self.assertEqual(enc.format, "age")
+            self.assertIsInstance(enc.size, int)
 
     def test_returns_encrypted_path(self):
         with pilotest.tmpdir() as td:
@@ -1080,17 +1014,13 @@ class TestStorageCloudEncryptCommand(pilotest.TestCase):
         )
         pkg = cloud.PackageManifest(
             archive=f"{stamp}.tar.zst",
+            format="tar.zst",
             checksum=fs.hash_file1(archive),
             size=archive.stat().st_size,
             created="now", entries=(entry,),
         )
-        manifest = cloud.CloudManifest(
-            version=1, format="tar.zst", recipient="",
-            checksum=pkg.checksum, size=pkg.size,
-            package=pkg, created="now",
-        )
         cloud.write_package_manifest(
-            manifest, td / f"{stamp}.tar.zst.manifest",
+            pkg, td / f"{stamp}.tar.zst.manifest",
         )
         return archive, content
 
@@ -1139,11 +1069,13 @@ class TestStorageCloudEncryptCommand(pilotest.TestCase):
                 with pilotest.suppress_stdout():
                     mod.main()
 
-            age_manifest = cloud.load_package_manifest(
+            age_manifest = cloud.load_cloud_manifest(
                 dst / "20260528_120000.tar.zst.age.manifest"
             )
-            self.assertEqual(age_manifest.recipient, "age1key")
             self.assertIsNotNone(age_manifest.encrypted_archive)
+            self.assertEqual(
+                age_manifest.encrypted_archive.recipient, "age1key"
+            )
             self.assertEqual(
                 age_manifest.encrypted_archive.name,
                 "20260528_120000.tar.zst.age",
