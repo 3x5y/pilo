@@ -16,13 +16,19 @@ SEC_POOL3=z3-rem
 
 #EXPORT_ROOT=/tmp/streams
 EXPORT_ROOT=$(mktemp -d)
-mkdir $EXPORT_ROOT/local
-chown u:u $EXPORT_ROOT $EXPORT_ROOT/local
+mkdir $EXPORT_ROOT/{local,cloud}
+chown u:u $EXPORT_ROOT $EXPORT_ROOT/{local,cloud}
 export PILO_STREAM_OUTPUT_PATH=$EXPORT_ROOT/local
+export PILO_CLOUD_EXPORT_PATH=$EXPORT_ROOT/cloud
+PILO_AGE_RCPT=age1fptpnrwgum5e67uhjr8uy666mp6fldzwfaagkyvjp8rdpxautp9qpet3a8
+PILO_MINISIGN_KEYFILE=/home/u/pilo-sign.key
+PILO_AGE_KEYFILE=/home/u/pilo-enc.key
+#PILO_MINISIGN_PUBKEY=RWRCmuagslSgwczIVAvxZqdJyLbNb/chzhURhrolpNWBtIESZPOJkFPF
+
 
 
 _pilo() {
-    echo \# pilo "$@"
+    echo \# pilo "$@" 1>&2
     pilo "$@"
 }
 
@@ -223,20 +229,45 @@ postrotate() {
     #show
 }
 
+
+export_cloud() {
+    local stream_dir_ymd=$1
+    local export_root=$PILO_CLOUD_EXPORT_PATH
+    _pilo storage-stream-verify $stream_dir_ymd/*.zfs
+    local ymd=$(basename $stream_dir_ymd)
+    local tmp_dir=$(mktemp -d)
+    local tar_path=$(_pilo storage-cloud-pack $stream_dir_ymd $tmp_dir)
+
+    _pilo storage-cloud-encrypt \
+         --identity $PILO_AGE_KEYFILE \
+         $PILO_AGE_RCPT \
+         $tar_path \
+         $export_root/$ymd
+
+    local tarname=$(basename $tar_path)
+    _pilo storage-cloud-sign-manifest \
+        $PILO_MINISIGN_KEYFILE \
+        $export_root/$ymd/$tarname.age.manifest
+}
+
+
 cycle() {
     rotate $1
     postrotate
 
     for day in 1 2
     do
-        for hour in {0..1}
+        for hour in 0 1
         do
             _pilo storage-snapshot-reg
             _pilo storage-replicate
+            #export_cloud $EXPORT_ROOT/local/$(date +%Y%m%d)
         done
         _pilo storage-snapshot-mark
         _pilo storage-replicate
         _pilo storage-rollup
+        export_cloud $EXPORT_ROOT/local/$(date +%Y%m%d)
+        sleep 1
     done
 }
 
