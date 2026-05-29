@@ -138,6 +138,24 @@ def find_duplicate_export_membership(
     return {p: s for p, s in membership.items() if len(s) > 1}
 
 
+def find_unsigned_cloud_manifests(cloud_root: Path) -> list[Path]:
+    if not cloud_root.is_dir():
+        return []
+
+    unsigned: list[Path] = []
+    for pattern in ("*.tar.zst.manifest", "*.tar.zst.age.manifest"):
+        for path in sorted(cloud_root.glob(pattern)):
+            sig_path = path.parent / (path.name + ".minisig")
+            if sig_path.exists():
+                continue
+            try:
+                load_cloud_manifest(path)
+            except (ValueError, json.JSONDecodeError):
+                continue
+            unsigned.append(path)
+    return unsigned
+
+
 @dataclass(frozen=True)
 class PackageEntry:
     path: str

@@ -2551,3 +2551,152 @@ class TestIsAuthoritativeCloudManifest(pilotest.TestCase):
             self.assertTrue(first)
             self.assertTrue(second)
             self.assertEqual(mock_run.call_count, 1)
+
+
+class TestFindUnsignedCloudManifests(pilotest.TestCase):
+
+    def test_nonexistent_cloud_root(self):
+        with pilotest.tmpdir() as td:
+            result = cloud.find_unsigned_cloud_manifests(td / "nonexistent")
+        self.assertEqual(result, [])
+
+    def test_no_unsigned(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("a.zfs.manifest", "c1", 1)])
+            result = cloud.find_unsigned_cloud_manifests(cr)
+        self.assertEqual(result, [])
+
+    def test_finds_unsigned(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("a.zfs.manifest", "c1", 1)],
+                                 signed=True)
+            _make_cloud_manifest(cr, "20260529_080000",
+                                 [("b.zfs.manifest", "c2", 2)],
+                                 signed=False)
+            result = cloud.find_unsigned_cloud_manifests(cr)
+        self.assertEqual(len(result), 1)
+        self.assertIn("20260529", str(result[0]))
+
+
+class TestStorageCloudExportAuditCommand(pilotest.TestCase):
+
+    def test_missing_args_exits(self):
+        mod = pilotest.import_command("storage-cloud-export-audit")
+        with (
+            patch("sys.argv", ["pilo-storage-cloud-export-audit"]),
+            patch("sys.stderr"),
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                mod.main()
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_one_arg_exits(self):
+        mod = pilotest.import_command("storage-cloud-export-audit")
+        with pilotest.tmpdir() as td:
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-export-audit", str(td / "sr"),
+                ]),
+                patch("sys.stderr"),
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    mod.main()
+            self.assertEqual(cm.exception.code, 1)
+
+    def test_runs_with_two_args(self):
+        mod = pilotest.import_command("storage-cloud-export-audit")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_stream_manifest(sr, "20260528", "foo")
+            _make_stream_manifest(sr, "20260529", "bar")
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("20260528/foo.zfs.manifest", "c1", 1)])
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-export-audit", str(sr), str(cr),
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout() as out:
+                    mod.main()
+            output = out.getvalue()
+            self.assertIn("EXPORTED", output)
+            self.assertIn("UNEXPORTED", output)
+
+    def test_runs_with_pubkey(self):
+        mod = pilotest.import_command("storage-cloud-export-audit")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_stream_manifest(sr, "20260528", "foo")
+            _make_stream_manifest(sr, "20260529", "bar")
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("20260528/foo.zfs.manifest", "c1", 1)])
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-export-audit",
+                    str(sr), str(cr), "pubkey",
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+                patch(
+                    "pilo.storage.cloud.is_authoritative_cloud_manifest",
+                    return_value=True,
+                ),
+            ):
+                with pilotest.suppress_stdout() as out:
+                    mod.main()
+            output = out.getvalue()
+            self.assertIn("EXPORTED", output)
+            self.assertIn("UNEXPORTED", output)
+
+    def test_unsigned_in_output(self):
+        mod = pilotest.import_command("storage-cloud-export-audit")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("a.zfs.manifest", "c1", 1)],
+                                 signed=False)
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-export-audit", str(sr), str(cr),
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout() as out:
+                    mod.main()
+            self.assertIn("UNSIGNED", out.getvalue())
+
+    def test_duplicate_in_output(self):
+        mod = pilotest.import_command("storage-cloud-export-audit")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("20260528/a.zfs.manifest", "c1", 1)])
+            _make_cloud_manifest(cr, "20260529_080000",
+                                 [("20260528/a.zfs.manifest", "c1", 1)])
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-export-audit", str(sr), str(cr),
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout() as out:
+                    mod.main()
+            self.assertIn("DUPLICATE", out.getvalue())
