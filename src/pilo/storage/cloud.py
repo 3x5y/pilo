@@ -50,7 +50,7 @@ def iter_cloud_manifests(cloud_root: Path) -> Iterator[tuple[Path, "CloudManifes
         return
 
     for pattern in ("*.tar.zst.manifest", "*.tar.zst.age.manifest"):
-        for path in sorted(cloud_root.glob(pattern)):
+        for path in sorted(cloud_root.rglob(pattern)):
             sig_path = path.parent / (path.name + ".minisig")
             if not sig_path.exists():
                 continue
@@ -139,7 +139,7 @@ def find_unsigned_cloud_manifests(cloud_root: Path) -> list[Path]:
 
     unsigned: list[Path] = []
     for pattern in ("*.tar.zst.manifest", "*.tar.zst.age.manifest"):
-        for path in sorted(cloud_root.glob(pattern)):
+        for path in sorted(cloud_root.rglob(pattern)):
             sig_path = path.parent / (path.name + ".minisig")
             if sig_path.exists():
                 continue
