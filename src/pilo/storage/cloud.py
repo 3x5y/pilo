@@ -7,10 +7,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Iterator
 
 from . import streams
 from .. import fs
 
+_authority_cache: dict[Path, bool] = {}
 
 STREAM_SUFFIX = ".zfs"
 MANIFEST_SUFFIX = ".zfs.manifest"
@@ -46,6 +48,94 @@ def _run_subprocess(args: list[str], desc: str = "") -> None:
         label = f" {desc}" if desc else ""
         msg = e.stderr.decode(errors="replace").strip() if e.stderr else str(e)
         raise ValueError(f"subprocess failed{label}: {msg}") from e
+
+
+def iter_cloud_manifests(cloud_root: Path) -> Iterator[tuple[Path, "CloudManifest"]]:
+    if not cloud_root.is_dir():
+        return
+
+    for pattern in ("*.tar.zst.manifest", "*.tar.zst.age.manifest"):
+        for path in sorted(cloud_root.glob(pattern)):
+            sig_path = path.parent / (path.name + ".minisig")
+            if not sig_path.exists():
+                continue
+
+            try:
+                cm = load_cloud_manifest(path)
+            except (ValueError, json.JSONDecodeError):
+                continue
+
+            yield (path, cm)
+
+
+def find_exported_stream_manifests(
+    cloud_root: Path, pubkey: str | None = None,
+) -> frozenset[str]:
+    _authority_cache.clear()
+    exported: set[str] = set()
+
+    for manifest_path, cm in iter_cloud_manifests(cloud_root):
+        if pubkey is not None and not is_authoritative_cloud_manifest(
+            manifest_path, pubkey,
+        ):
+            continue
+        archive = cm.package.archive
+        if not archive.endswith(".tar.zst"):
+            continue
+        stamp = archive.removesuffix(".tar.zst")
+        date_prefix = stamp[:8]
+
+        for entry in cm.package.entries:
+            path = entry.path
+            if "/" not in path:
+                path = f"{date_prefix}/{path}"
+            exported.add(path)
+
+    return frozenset(exported)
+
+
+def find_unexported_stream_manifests(
+    stream_root: Path, cloud_root: Path,
+    pubkey: str | None = None,
+) -> list[Path]:
+    if not stream_root.is_dir():
+        raise ValueError(f"stream root not found: {stream_root}")
+
+    exported = find_exported_stream_manifests(cloud_root, pubkey)
+
+    unexported: list[Path] = []
+    for mf in sorted(stream_root.rglob(f"*{MANIFEST_SUFFIX}")):
+        rel = mf.relative_to(stream_root)
+        if str(rel) not in exported:
+            unexported.append(rel)
+
+    return unexported
+
+
+def find_duplicate_export_membership(
+    cloud_root: Path, pubkey: str | None = None,
+) -> dict[str, list[str]]:
+    _authority_cache.clear()
+    membership: dict[str, list[str]] = {}
+
+    for manifest_path, cm in iter_cloud_manifests(cloud_root):
+        if pubkey is not None and not is_authoritative_cloud_manifest(
+            manifest_path, pubkey,
+        ):
+            continue
+        archive = cm.package.archive
+        if not archive.endswith(".tar.zst"):
+            continue
+        stamp = archive.removesuffix(".tar.zst")
+        date_prefix = stamp[:8]
+
+        for entry in cm.package.entries:
+            path = entry.path
+            if "/" not in path:
+                path = f"{date_prefix}/{path}"
+            membership.setdefault(path, []).append(stamp)
+
+    return {p: s for p, s in membership.items() if len(s) > 1}
 
 
 @dataclass(frozen=True)
@@ -232,7 +322,7 @@ def build_package_manifest(
     )
 
 
-def pack_stream_day(src_dir: Path, dst_dir: Path) -> Path:
+def _legacy_pack_stream_day(src_dir: Path, dst_dir: Path) -> Path:
     now = datetime.now(timezone.utc)
     date_prefix = src_dir.name
     stamp = f"{date_prefix}_{now.strftime('%H%M%S')}"
@@ -292,6 +382,84 @@ def pack_stream_day(src_dir: Path, dst_dir: Path) -> Path:
         dst_manifest = dst_dir / f"{stamp}.tar.zst.manifest"
         shutil.move(str(tmp_archive), str(dst_archive))
         shutil.move(str(tmp_manifest), str(dst_manifest))
+
+    return dst_archive
+
+
+def build_export_staging_tree(
+    stream_root: Path,
+    selected: list[Path],
+    staging_dir: Path,
+) -> None:
+    for mf_rel in selected:
+        stream_rel = mf_rel.with_suffix("")
+        for src_rel in (mf_rel, stream_rel):
+            src = stream_root / src_rel
+            dst = staging_dir / src_rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(src), str(dst))
+
+
+def pack_stream_set(stream_root: Path, cloud_root: Path) -> Path:
+    unexported = find_unexported_stream_manifests(stream_root, cloud_root)
+    if not unexported:
+        raise ValueError("no unexported stream manifests to package")
+
+    for mf_rel in unexported:
+        status, msg = streams.verify_one(stream_root / mf_rel)
+        if status != "OK":
+            raise ValueError(f"stream verification failed: {mf_rel}: {msg}")
+
+    now = datetime.now(timezone.utc)
+    stamp = now.strftime("%Y%m%d_%H%M%S")
+    created = now.isoformat()
+
+    with TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        staging_dir = tmp_dir / "staging"
+        build_export_staging_tree(stream_root, unexported, staging_dir)
+
+        tmp_archive = tmp_dir / f"{stamp}.tar.zst"
+        _run_subprocess(
+            [
+                "tar", "--zstd", "-cf", str(tmp_archive),
+                "-C", str(staging_dir),
+                "--sort=name",
+                "--owner=0:0", "--group=0:0",
+                "--mtime=@0",
+                ".",
+            ],
+            desc="tar archive creation",
+        )
+
+        archive_checksum = fs.hash_file1(tmp_archive)
+        archive_size = tmp_archive.stat().st_size
+
+        entries: list[PackageEntry] = []
+        for mf_rel in unexported:
+            mf_path = staging_dir / mf_rel
+            entries.append(PackageEntry(
+                path=str(mf_rel),
+                checksum=fs.hash_file1(mf_path),
+                size=mf_path.stat().st_size,
+            ))
+
+        manifest = build_package_manifest(
+            stamp=stamp,
+            archive_checksum=archive_checksum,
+            archive_size=archive_size,
+            created=created,
+            entries=tuple(entries),
+        )
+
+        dst_archive = cloud_root / f"{stamp}.tar.zst"
+        dst_manifest = cloud_root / f"{stamp}.tar.zst.manifest"
+        require_not_exists(dst_archive, "output")
+        require_not_exists(dst_manifest, "output")
+
+        cloud_root.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(tmp_archive), str(dst_archive))
+        write_package_manifest(manifest, dst_manifest)
 
     return dst_archive
 
@@ -436,6 +604,51 @@ def verify_cloud_manifest(manifest_path: Path, pubkey: str) -> Path:
     return archive_path
 
 
+def is_authoritative_cloud_manifest(
+    manifest_path: Path, pubkey: str,
+) -> bool:
+    if manifest_path in _authority_cache:
+        return _authority_cache[manifest_path]
+
+    try:
+        cm = load_cloud_manifest(manifest_path)
+    except (ValueError, json.JSONDecodeError, OSError):
+        _authority_cache[manifest_path] = False
+        return False
+
+    sig_path = manifest_path.parent / (manifest_path.name + ".minisig")
+    if not sig_path.exists():
+        _authority_cache[manifest_path] = False
+        return False
+
+    try:
+        _run_subprocess(
+            ["minisign", "-Vm", str(manifest_path), "-P", pubkey],
+            desc="minisign verification",
+        )
+    except ValueError:
+        _authority_cache[manifest_path] = False
+        return False
+
+    if cm.encrypted_archive is None:
+        _authority_cache[manifest_path] = False
+        return False
+
+    enc = cm.encrypted_archive
+    archive_path = manifest_path.parent / enc.name
+    if not archive_path.exists():
+        _authority_cache[manifest_path] = False
+        return False
+
+    actual = fs.hash_file1(archive_path)
+    if actual != enc.checksum:
+        _authority_cache[manifest_path] = False
+        return False
+
+    _authority_cache[manifest_path] = True
+    return True
+
+
 def verify_decrypted_archive(
     decrypted_path: Path,
     manifest: PackageManifest,
@@ -510,10 +723,6 @@ def verify_extracted_manifests(
 ) -> None:
     if not extracted_dir.is_dir():
         raise ValueError(f"not a directory: {extracted_dir}")
-    if not re.match(r"^\d{8}$", extracted_dir.name):
-        raise ValueError(
-            f"unexpected directory name: {extracted_dir.name}"
-        )
 
     for entry in manifest.entries:
         file_path = extracted_dir / entry.path
@@ -549,6 +758,8 @@ def unpack_archive(
             f"archive checksum mismatch: {archive_path}"
         )
 
+    stamp = pkg.archive.removesuffix(".tar.zst")
+
     with TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
 
@@ -562,24 +773,16 @@ def unpack_archive(
         )
 
         contents = list(tmp_dir.iterdir())
-        if len(contents) != 1 or not contents[0].is_dir():
-            raise ValueError(
-                "archive must contain a single directory"
-            )
+        if not contents:
+            raise ValueError("archive is empty")
 
-        extracted_dir = contents[0]
-        if not re.match(r"^\d{8}$", extracted_dir.name):
-            raise ValueError(
-                f"unexpected directory name: {extracted_dir.name}"
-            )
+        verify_extracted_manifests(tmp_dir, pkg)
 
-        dst_path = dst_root / extracted_dir.name
+        dst_path = dst_root / stamp
         require_not_exists(dst_path, "destination")
 
-        verify_extracted_manifests(extracted_dir, pkg)
-
         dst_root.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(extracted_dir), str(dst_path))
+        shutil.move(str(tmp_dir), str(dst_path))
 
     return dst_path
 
