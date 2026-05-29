@@ -268,137 +268,6 @@ class TestPackageManifest(pilotest.TestCase):
             cloud.PackageManifest.from_dict(d)
 
 
-class TestValidatePackInput(pilotest.TestCase):
-
-    def _valid_dir(self, td, stamp="20260528"):
-        src = td / stamp
-        src.mkdir()
-        (src / f"{stamp}_010203_000000-reg.zfs").write_bytes(b"stream data")
-        (src / f"{stamp}_010203_000000-reg.zfs.manifest").write_text(
-            '{"stream":"s","snapshot":"s","source":"t","guid":"g",'
-            '"checksum":"c","size":1,"created":"now"}'
-        )
-        return src
-
-    def test_valid_directory(self):
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            dst.mkdir()
-            cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_valid_directory_creates_dst(self):
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_missing_src_raises(self):
-        with pilotest.tmpdir() as td:
-            src = td / "nonexistent"
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_src_is_file_raises(self):
-        with pilotest.tmpdir() as td:
-            src = td / "not_a_dir"
-            src.write_text("")
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "not_a_dir")
-
-    def test_invalid_stamp_format(self):
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "bad-stamp")
-
-    def test_output_exists_as_file_raises(self):
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            dst.write_text("i am a file")
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_output_archive_already_exists(self):
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            dst.mkdir()
-            (dst / "20260528_120000.tar.zst").write_text("existing")
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_output_manifest_already_exists(self):
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            dst.mkdir()
-            (dst / "20260528_120000.tar.zst.manifest").write_text("existing")
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_rejects_symlink(self):
-        with pilotest.tmpdir() as td:
-            src = td / "20260528"
-            src.mkdir()
-            target = td / "target"
-            target.write_text("data")
-            (src / "link.zfs").symlink_to(target)
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_rejects_nested_directory(self):
-        with pilotest.tmpdir() as td:
-            src = td / "20260528"
-            src.mkdir()
-            nested = src / "sub"
-            nested.mkdir()
-            (nested / "f.zfs").write_bytes(b"data")
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_rejects_hidden_file(self):
-        with pilotest.tmpdir() as td:
-            src = td / "20260528"
-            src.mkdir()
-            (src / ".hidden.zfs").write_bytes(b"data")
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_rejects_unexpected_file_type(self):
-        with pilotest.tmpdir() as td:
-            src = td / "20260528"
-            src.mkdir()
-            (src / "readme.txt").write_text("hello")
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-    def test_rejects_malformed_filename(self):
-        with pilotest.tmpdir() as td:
-            src = td / "20260528"
-            src.mkdir()
-            (src / "bad;chars.zfs").write_bytes(b"data")
-            dst = td / "out"
-            dst.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.validate_pack_input(src, dst, "20260528_120000")
-
-
 class TestBuildPackageManifest(pilotest.TestCase):
 
     def test_returns_package_manifest(self):
@@ -453,46 +322,6 @@ class TestBuildPackageManifest(pilotest.TestCase):
         )
         m2 = cloud.PackageManifest.from_dict(m1.to_dict())
         self.assertEqual(m1, m2)
-
-
-class TestPackStreamDay(pilotest.TestCase):
-
-    def _valid_dir(self, td, stamp="20260528"):
-        src = td / stamp
-        src.mkdir()
-        (src / f"{stamp}_010203_000000-reg.zfs").write_bytes(b"stream data")
-        (src / f"{stamp}_010203_000000-reg.zfs.manifest").write_text(
-            '{"stream":"s","snapshot":"s","source":"t","guid":"g",'
-            '"checksum":"c","size":1,"created":"now"}'
-        )
-        return src
-
-    def _mock_tar(self, args, **kw):
-        idx = args.index("-cf")
-        archive_path = args[idx + 1]
-        Path(archive_path).write_bytes(b"fake tar archive")
-
-    def test_successful_pack(self):
-        fixed_dt = datetime(2026, 5, 28, 12, 0, 0, tzinfo=timezone.utc)
-        with pilotest.tmpdir() as td:
-            src = self._valid_dir(td)
-            dst = td / "out"
-            with (
-                patch("pilo.storage.cloud.subprocess.run",
-                      side_effect=self._mock_tar),
-                patch("pilo.storage.cloud.streams.verify_one",
-                      return_value=("OK", "path")),
-                patch("pilo.storage.cloud.datetime") as mock_dt,
-            ):
-                mock_dt.now.return_value = fixed_dt
-                result = cloud._legacy_pack_stream_day(src, dst)
-
-            expected_archive = dst / "20260528_120000.tar.zst"
-            self.assertEqual(result, expected_archive)
-            self.assertTrue(expected_archive.exists())
-            self.assertTrue(
-                (dst / "20260528_120000.tar.zst.manifest").exists()
-            )
 
 
 class TestVerifyDecryptedArchive(pilotest.TestCase):
@@ -1875,6 +1704,100 @@ class TestPackStreamSet(pilotest.TestCase):
                 cloud.pack_stream_set(sr, cr)
             self.assertTrue(
                 (cr / "20260601_030000.tar.zst").exists()
+            )
+
+    def test_late_stream_continuity(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            self._setup_stream(sr, "20260528", "a")
+            cr = td / "cloud"
+            cr.mkdir()
+            late_dt = datetime(2026, 5, 28, 23, 58, 0, tzinfo=timezone.utc)
+            with (
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=self._mock_tar),
+                patch("pilo.storage.cloud.streams.verify_one",
+                      return_value=("OK", "p")),
+                patch("pilo.storage.cloud.datetime") as mock_dt,
+            ):
+                mock_dt.now.return_value = late_dt
+                cloud.pack_stream_set(sr, cr)
+            self.assertTrue((cr / "20260528_235800.tar.zst").exists())
+            pkg_manifest = cloud.load_package_manifest(
+                cr / "20260528_235800.tar.zst.manifest"
+            )
+            enc = cloud.EncryptedArchive(
+                recipient="age1test",
+                name="20260528_235800.tar.zst.age",
+                checksum="x" * 64, size=100,
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg_manifest,
+                created="now", encrypted_archive=enc,
+            )
+            cloud.write_cloud_manifest(
+                cm, cr / "20260528_235800.tar.zst.age.manifest",
+            )
+            (cr / "20260528_235800.tar.zst.age.manifest.minisig").write_text("")
+
+            b_zfs = sr / "20260528" / "b.zfs"
+            b_zfs.write_bytes(b"b data")
+            b_mf = sr / "20260528" / "b.zfs.manifest"
+            b_mf.write_text(json.dumps({
+                "stream": "b.zfs",
+                "snapshot": "s", "source": "t",
+                "guid": "g", "checksum": fs.hash_file1(b_zfs),
+                "size": b_zfs.stat().st_size, "created": "now",
+            }))
+            next_dt = datetime(2026, 5, 29, 0, 5, 0, tzinfo=timezone.utc)
+            with (
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=self._mock_tar),
+                patch("pilo.storage.cloud.streams.verify_one",
+                      return_value=("OK", "p")),
+                patch("pilo.storage.cloud.datetime") as mock_dt,
+            ):
+                mock_dt.now.return_value = next_dt
+                cloud.pack_stream_set(sr, cr)
+            self.assertTrue((cr / "20260529_000500.tar.zst").exists())
+            pkg = cloud.load_package_manifest(
+                cr / "20260529_000500.tar.zst.manifest"
+            )
+            self.assertEqual(len(pkg.entries), 1)
+            self.assertEqual(
+                pkg.entries[0].path, "20260528/b.zfs.manifest",
+            )
+
+    def test_repeated_pack_no_new_streams(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            self._setup_stream(sr)
+            cr = td / "cloud"
+            cr.mkdir()
+            fixed_dt = datetime(2026, 5, 28, 12, 0, 0, tzinfo=timezone.utc)
+            with (
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=self._mock_tar),
+                patch("pilo.storage.cloud.streams.verify_one",
+                      return_value=("OK", "p")),
+                patch("pilo.storage.cloud.datetime") as mock_dt,
+            ):
+                mock_dt.now.return_value = fixed_dt
+                cloud.pack_stream_set(sr, cr)
+            self.assertTrue((cr / "20260528_120000.tar.zst").exists())
+
+            with (
+                patch("pilo.storage.cloud.subprocess.run",
+                      side_effect=self._mock_tar),
+                patch("pilo.storage.cloud.streams.verify_one",
+                      return_value=("OK", "p")),
+                patch("pilo.storage.cloud.datetime") as mock_dt,
+            ):
+                mock_dt.now.return_value = fixed_dt
+                with self.assertRaises(ValueError):
+                    cloud.pack_stream_set(sr, cr)
+            self.assertEqual(
+                len(list(cr.glob("*.tar.zst"))), 1,
             )
 
 
