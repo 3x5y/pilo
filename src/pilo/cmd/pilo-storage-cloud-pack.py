@@ -23,6 +23,10 @@ def main():
     except ValueError as e:
         error.fatal(str(e))
 
+    if archive_path is None:
+        print("nothing to pack", file=sys.stderr)
+        return
+
     dups = find_duplicate_export_membership(cloud_root)
     if dups:
         for path, stamps in sorted(dups.items()):

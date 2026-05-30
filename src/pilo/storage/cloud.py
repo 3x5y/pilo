@@ -322,10 +322,10 @@ def build_export_staging_tree(
             shutil.copy2(str(src), str(dst))
 
 
-def pack_stream_set(stream_root: Path, cloud_root: Path) -> Path:
+def pack_stream_set(stream_root: Path, cloud_root: Path) -> Path | None:
     unexported = find_unexported_stream_manifests(stream_root, cloud_root)
     if not unexported:
-        raise ValueError("no unexported stream manifests to package")
+        return None
 
     for mf_rel in unexported:
         status, msg = streams.verify_one(stream_root / mf_rel)

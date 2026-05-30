@@ -1642,8 +1642,7 @@ class TestPackStreamSet(pilotest.TestCase):
             cr = td / "cloud"
             sr.mkdir()
             cr.mkdir()
-            with self.assertRaises(ValueError):
-                cloud.pack_stream_set(sr, cr)
+            self.assertIsNone(cloud.pack_stream_set(sr, cr))
 
     def test_creates_cloud_root(self):
         fixed_dt = datetime(2026, 5, 28, 12, 0, 0, tzinfo=timezone.utc)
@@ -1786,6 +1785,23 @@ class TestPackStreamSet(pilotest.TestCase):
                 cloud.pack_stream_set(sr, cr)
             self.assertTrue((cr / "20260528_120000.tar.zst").exists())
 
+            pkg_manifest = cloud.load_package_manifest(
+                cr / "20260528_120000.tar.zst.manifest"
+            )
+            enc = cloud.EncryptedArchive(
+                recipient="age1test",
+                name="20260528_120000.tar.zst.age",
+                checksum="x" * 64, size=100,
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg_manifest,
+                created="now", encrypted_archive=enc,
+            )
+            cloud.write_cloud_manifest(
+                cm, cr / "20260528_120000.tar.zst.age.manifest",
+            )
+            (cr / "20260528_120000.tar.zst.age.manifest.minisig").write_text("")
+
             with (
                 patch("pilo.storage.cloud.subprocess.run",
                       side_effect=self._mock_tar),
@@ -1794,8 +1810,7 @@ class TestPackStreamSet(pilotest.TestCase):
                 patch("pilo.storage.cloud.datetime") as mock_dt,
             ):
                 mock_dt.now.return_value = fixed_dt
-                with self.assertRaises(ValueError):
-                    cloud.pack_stream_set(sr, cr)
+                self.assertIsNone(cloud.pack_stream_set(sr, cr))
             self.assertEqual(
                 len(list(cr.glob("*.tar.zst"))), 1,
             )
