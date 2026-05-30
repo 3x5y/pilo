@@ -27,6 +27,9 @@ zfs destroy -r $ADMIN
 pilo storage-restore $repl_coll $COLLECTION $snap
 pilo storage-restore $repl_pile $PILE $snap
 pilo storage-restore $repl_admin $ADMIN $snap
+zfs set mountpoint=/$PILE $PILE
+zfs set mountpoint=/$ADMIN $ADMIN
+zfs set mountpoint=/$COLLECTION $COLLECTION
 
 assert_grep static-data < /$COLLECTION/.zfs/snapshot/$snap/$static_file
 assert_grep pile-data < /$PILE/.zfs/snapshot/$snap/in/$pile_file

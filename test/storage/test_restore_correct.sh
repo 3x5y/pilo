@@ -12,6 +12,7 @@ clear_holds $PILE
 zfs destroy -r $PILE
 
 pilo storage-restore $repl $PILE $snap
+zfs set mountpoint=/$PILE $PILE
 
 capture_status pilo manifest-verify
 assert_command_ok manifest verification failed after recovery

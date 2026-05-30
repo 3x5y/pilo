@@ -16,6 +16,7 @@ zfs destroy -r $ADMIN
 zfs destroy -r $STASH
 
 pilo storage-restore $repl $ADMIN $snap
+zfs set mountpoint=/$ADMIN $ADMIN
 
 assert_grep admin < /$ADMIN/.zfs/snapshot/$snap/$file
 assert_not_exists /$STASH/$temp
