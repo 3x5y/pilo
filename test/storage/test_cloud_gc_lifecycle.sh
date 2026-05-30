@@ -195,9 +195,10 @@ test ! -f "${OLD_ENC_ARCHIVE}.manifest" \
     || fail "old cloud manifest survived cloud-gc"
 test ! -f "${OLD_ENC_ARCHIVE}.manifest.minisig" \
     || fail "old minisig survived cloud-gc"
-assert_file_exists "$CLOUD_GC_TRASH/${OLD_STAMP}.tar.zst.age"
-assert_file_exists "$CLOUD_GC_TRASH/${OLD_STAMP}.tar.zst.age.manifest"
-assert_file_exists "$CLOUD_GC_TRASH/${OLD_STAMP}.tar.zst.age.manifest.minisig"
+CLOUD_ROOT_NAME=$(basename "$CLOUD_ROOT")
+assert_file_exists "$CLOUD_GC_TRASH/$CLOUD_ROOT_NAME/${OLD_STAMP}.tar.zst.age"
+assert_file_exists "$CLOUD_GC_TRASH/$CLOUD_ROOT_NAME/${OLD_STAMP}.tar.zst.age.manifest"
+assert_file_exists "$CLOUD_GC_TRASH/$CLOUD_ROOT_NAME/${OLD_STAMP}.tar.zst.age.manifest.minisig"
 
 assert_file_exists "$NEW_ENC_ARCHIVE"
 assert_file_exists "${NEW_ENC_ARCHIVE}.manifest"

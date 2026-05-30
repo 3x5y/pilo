@@ -165,7 +165,8 @@ def execute_cloud_gc_plan(
 def _move_to_gc(src: Path, gc_dir: Path) -> None:
     if not src.exists():
         return
-    dst = gc_dir / src.name
+    dst = gc_dir / src.parent.name / src.name
+    dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.exists():
         raise ValueError(f"gc destination already exists: {dst}")
     shutil.move(str(src), str(dst))
