@@ -44,7 +44,7 @@ AGE_RECIPIENT=$(age-keygen -y "$AGE_KEY" 2>/dev/null)
 
 MINISIGN_KEY="$WORKSPACE"/minisign.key
 MINISIGN_PUB="$WORKSPACE"/minisign.pub
-minisign -G -s "$MINISIGN_KEY" -p "$MINISIGN_PUB" -W -f 2>/dev/null
+minisign -G -s "$MINISIGN_KEY" -p "$MINISIGN_PUB" -W -f >/dev/null
 MINISIGN_PUBKEY=$(tail -1 < "$MINISIGN_PUB")
 
 # ---- Encrypt A ----

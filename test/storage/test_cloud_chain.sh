@@ -52,7 +52,7 @@ assert_file_exists "$CLOUD_MANIFEST"
 # ---- 4. Minisign key generation ----
 MINISIGN_KEY="$WORKSPACE"/minisign.key
 MINISIGN_PUB="$WORKSPACE"/minisign.pub
-minisign -G -s "$MINISIGN_KEY" -p "$MINISIGN_PUB" -W -f 2>/dev/null
+minisign -G -s "$MINISIGN_KEY" -p "$MINISIGN_PUB" -W -f >/dev/null
 [ -f "$MINISIGN_KEY" ] || fail "minisign secret key not created"
 MINISIGN_PUBKEY=$(tail -1 < "$MINISIGN_PUB")
 [ -n "$MINISIGN_PUBKEY" ] || fail "empty minisign pubkey"
