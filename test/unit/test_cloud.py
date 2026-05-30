@@ -3506,3 +3506,98 @@ class TestStorageCloudGcCommand(pilotest.TestCase):
             ):
                 with pilotest.suppress_stdout():
                     mod.main()
+
+
+class TestCloudGcLifecycle(pilotest.TestCase):
+
+    def test_basic_lifecycle(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_stream_manifest(sr, "20260528", "a")
+            _make_stream_manifest(sr, "20260528", "b")
+            _make_stream_manifest(sr, "20260528", "c")
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1),
+                 ("20260528/b.zfs.manifest", "c2", 1)],
+                stream_entries=[("20260528", "a"), ("20260528", "b")],
+                stream_root=sr,
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260528/c.zfs.manifest", "c3", 1)],
+                stream_entries=[("20260528", "c")],
+                stream_root=sr,
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                statuses = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+            self.assertEqual(len(statuses), 2)
+            self.assertFalse(any(s.removable for s in statuses))
+
+            for name in ("a", "b"):
+                (sr / "20260528" / f"{name}.zfs.manifest").unlink()
+                (sr / "20260528" / f"{name}.zfs").unlink()
+
+            with patch("pilo.storage.cloud.subprocess.run"):
+                statuses = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+            removable = [s for s in statuses if s.removable]
+            non_removable = [s for s in statuses if not s.removable]
+            self.assertEqual(len(removable), 1)
+            self.assertEqual(len(non_removable), 1)
+            self.assertIn("20260528_120000",
+                          str(removable[0].manifest_path))
+            self.assertIn("20260529_080000",
+                          str(non_removable[0].manifest_path))
+
+    def test_duplicate_membership_both_retained(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_stream_manifest(sr, "20260528", "a")
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                statuses = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+            self.assertEqual(len(statuses), 2)
+            self.assertFalse(any(s.removable for s in statuses))
+
+    def test_duplicate_membership_both_removable(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_stream_manifest(sr, "20260528", "a")
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            (sr / "20260528" / "a.zfs.manifest").unlink()
+            (sr / "20260528" / "a.zfs").unlink()
+            with patch("pilo.storage.cloud.subprocess.run"):
+                statuses = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+            self.assertEqual(len(statuses), 2)
+            self.assertTrue(all(s.removable for s in statuses))
