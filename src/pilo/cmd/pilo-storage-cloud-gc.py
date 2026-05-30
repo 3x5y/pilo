@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 from pathlib import Path
 
@@ -9,6 +10,11 @@ from pilo.storage.cloud import (
     describe_cloud_gc_state,
     execute_cloud_gc_plan,
 )
+
+
+def _resolve_gc_path() -> Path | None:
+    raw = os.environ.get("PILO_CLOUD_GC_PATH")
+    return Path(raw) if raw else None
 
 
 def _stamp_from_manifest(name: str) -> str:
@@ -36,6 +42,7 @@ def main():
     stream_root = Path(args[0])
     cloud_root = Path(args[1])
     pubkey = args[2]
+    gc_path = _resolve_gc_path()
 
     try:
         if preview:
@@ -52,7 +59,7 @@ def main():
             if not plan:
                 print("nothing to remove", file=sys.stderr)
                 return
-            results = execute_cloud_gc_plan(plan)
+            results = execute_cloud_gc_plan(plan, gc_path=gc_path)
             for r in results:
                 print(f"REMOVED {r.stamp}")
     except ValueError as e:

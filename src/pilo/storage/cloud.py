@@ -142,15 +142,33 @@ def build_cloud_gc_plan(
     return plan
 
 
-def execute_cloud_gc_plan(plan: list[CloudGcItem]) -> list[CloudGcResult]:
+def execute_cloud_gc_plan(
+    plan: list[CloudGcItem],
+    gc_path: Path | None = None,
+) -> list[CloudGcResult]:
     results: list[CloudGcResult] = []
     for item in plan:
-        if item.signature_path is not None:
-            item.signature_path.unlink()
-        item.manifest_path.unlink(missing_ok=True)
-        item.archive_path.unlink(missing_ok=True)
+        if gc_path:
+            _move_to_gc(item.archive_path, gc_path)
+            _move_to_gc(item.manifest_path, gc_path)
+            if item.signature_path is not None:
+                _move_to_gc(item.signature_path, gc_path)
+        else:
+            if item.signature_path is not None:
+                item.signature_path.unlink()
+            item.manifest_path.unlink(missing_ok=True)
+            item.archive_path.unlink(missing_ok=True)
         results.append(CloudGcResult(status="REMOVED", stamp=item.stamp))
     return results
+
+
+def _move_to_gc(src: Path, gc_dir: Path) -> None:
+    if not src.exists():
+        return
+    dst = gc_dir / src.name
+    if dst.exists():
+        raise ValueError(f"gc destination already exists: {dst}")
+    shutil.move(str(src), str(dst))
 
 
 def describe_cloud_gc_state(

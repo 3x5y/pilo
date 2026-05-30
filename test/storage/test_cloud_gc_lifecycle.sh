@@ -81,6 +81,9 @@ assert_file_exists "${OLD_CLOUD_MANIFEST}.minisig"
 
 OLD_STAMP=$(basename "$OLD_ENC_ARCHIVE" .tar.zst.age)
 
+# Ensure next pack runs in a different second to avoid stamp collision
+sleep 1
+
 # =====================================================
 # Step 3: Held mark snapshot (stream GC cutoff)
 # =====================================================
@@ -163,8 +166,12 @@ assert_file_exists "$NEW_STREAM_DIR/${POST_TS}-reg.zfs"
 assert_file_exists "$NEW_STREAM_DIR/${POST_TS}-reg.zfs.manifest"
 
 # =====================================================
-# Step 7: Cloud GC — preview
+# Step 7: Cloud GC — preview (with trash path)
 # =====================================================
+CLOUD_GC_TRASH="$WORKSPACE/cloud_gc_trash"
+mkdir -p "$CLOUD_GC_TRASH"
+export PILO_CLOUD_GC_PATH="$CLOUD_GC_TRASH"
+
 capture_status pilo storage-cloud-gc \
     "$STREAM_ROOT" "$CLOUD_ROOT" "$MINISIGN_PUBKEY" --preview
 assert_command_ok
@@ -180,7 +187,7 @@ assert_command_ok
 echo "$OUTPUT" | assert_grep "REMOVED $OLD_STAMP"
 
 # =====================================================
-# Step 9: Verify old export removed, new export intact
+# Step 9: Verify old export moved to trash, new export intact
 # =====================================================
 test ! -f "$OLD_ENC_ARCHIVE" \
     || fail "old encrypted archive survived cloud-gc"
@@ -188,6 +195,9 @@ test ! -f "${OLD_ENC_ARCHIVE}.manifest" \
     || fail "old cloud manifest survived cloud-gc"
 test ! -f "${OLD_ENC_ARCHIVE}.manifest.minisig" \
     || fail "old minisig survived cloud-gc"
+assert_file_exists "$CLOUD_GC_TRASH/${OLD_STAMP}.tar.zst.age"
+assert_file_exists "$CLOUD_GC_TRASH/${OLD_STAMP}.tar.zst.age.manifest"
+assert_file_exists "$CLOUD_GC_TRASH/${OLD_STAMP}.tar.zst.age.manifest.minisig"
 
 assert_file_exists "$NEW_ENC_ARCHIVE"
 assert_file_exists "${NEW_ENC_ARCHIVE}.manifest"

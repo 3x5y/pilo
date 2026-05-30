@@ -3269,6 +3269,97 @@ class TestExecuteCloudGcPlan(pilotest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].status, "REMOVED")
 
+    def test_gc_path_moves_files(self):
+        with pilotest.tmpdir() as td:
+            src = td / "src"
+            gc = td / "trash"
+            src.mkdir()
+            gc.mkdir()
+            sig = src / "20260528_120000.tar.zst.age.manifest.minisig"
+            mf = src / "20260528_120000.tar.zst.age.manifest"
+            arc = src / "20260528_120000.tar.zst.age"
+            sig.write_text("s")
+            mf.write_text("m")
+            arc.write_text("a")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=mf,
+                archive_path=arc,
+                signature_path=sig,
+            )
+            results = cloud.execute_cloud_gc_plan([item], gc_path=gc)
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].status, "REMOVED")
+            self.assertFalse(sig.exists())
+            self.assertFalse(mf.exists())
+            self.assertFalse(arc.exists())
+            self.assertEqual((gc / sig.name).read_text(), "s")
+            self.assertEqual((gc / mf.name).read_text(), "m")
+            self.assertEqual((gc / arc.name).read_text(), "a")
+
+    def test_gc_path_missing_signature(self):
+        with pilotest.tmpdir() as td:
+            src = td / "src"
+            gc = td / "trash"
+            src.mkdir()
+            gc.mkdir()
+            mf = src / "20260528_120000.tar.zst.age.manifest"
+            arc = src / "20260528_120000.tar.zst.age"
+            mf.write_text("m")
+            arc.write_text("a")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=mf,
+                archive_path=arc,
+                signature_path=None,
+            )
+            results = cloud.execute_cloud_gc_plan([item], gc_path=gc)
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].status, "REMOVED")
+            self.assertFalse(mf.exists())
+            self.assertFalse(arc.exists())
+            self.assertEqual((gc / mf.name).read_text(), "m")
+            self.assertEqual((gc / arc.name).read_text(), "a")
+
+    def test_gc_path_destination_exists_fails(self):
+        with pilotest.tmpdir() as td:
+            src = td / "src"
+            gc = td / "trash"
+            src.mkdir()
+            gc.mkdir()
+            arc = src / "20260528_120000.tar.zst.age"
+            arc.write_text("a")
+            (gc / arc.name).write_text("existing")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=src / "manifest",
+                archive_path=arc,
+                signature_path=None,
+            )
+            with self.assertRaises(ValueError):
+                cloud.execute_cloud_gc_plan([item], gc_path=gc)
+
+    def test_gc_path_idempotent_already_moved(self):
+        with pilotest.tmpdir() as td:
+            src = td / "src"
+            gc = td / "trash"
+            src.mkdir()
+            gc.mkdir()
+            mf = src / "20260528_120000.tar.zst.age.manifest"
+            arc = src / "20260528_120000.tar.zst.age"
+            mf.write_text("m")
+            arc.write_text("a")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=mf,
+                archive_path=arc,
+                signature_path=None,
+            )
+            cloud.execute_cloud_gc_plan([item], gc_path=gc)
+            results = cloud.execute_cloud_gc_plan([item], gc_path=gc)
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].status, "REMOVED")
+
 
 class TestDescribeCloudGcState(pilotest.TestCase):
 
