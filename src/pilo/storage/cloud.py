@@ -128,7 +128,7 @@ def build_cloud_gc_plan(
             )
         archive_name = enc.name
         stamp = archive_name.removesuffix(".tar.zst.age")
-        archive_path = cloud_root / archive_name
+        archive_path = status.manifest_path.parent / archive_name
         sig_path = status.manifest_path.parent / (
             status.manifest_path.name + ".minisig"
         )
