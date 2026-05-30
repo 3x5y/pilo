@@ -63,6 +63,105 @@ def iter_cloud_manifests(cloud_root: Path) -> Iterator[tuple[Path, "CloudManifes
             yield (path, cm)
 
 
+def iter_authoritative_cloud_manifests(
+    cloud_root: Path, pubkey: str | None = None,
+) -> Iterator[tuple[Path, "CloudManifest"]]:
+    _authority_cache.clear()
+    for mf_path, cm in iter_cloud_manifests(cloud_root):
+        if pubkey is not None and not is_authoritative_cloud_manifest(
+            mf_path, pubkey,
+        ):
+            raise ValueError(f"non-authoritative cloud manifest: {mf_path}")
+        yield mf_path, cm
+
+
+def get_cloud_manifest_references(
+    cm: "CloudManifest",
+) -> list[str]:
+    return [e.path for e in cm.package.entries]
+
+
+def evaluate_cloud_export(
+    manifest_path: Path, cm: "CloudManifest", stream_root: Path,
+) -> CloudExportStatus:
+    if not stream_root.is_dir():
+        raise ValueError(f"stream root not found: {stream_root}")
+
+    live = 0
+    dead = 0
+    for entry in cm.package.entries:
+        if (stream_root / entry.path).exists():
+            live += 1
+        else:
+            dead += 1
+
+    return CloudExportStatus(
+        manifest_path=manifest_path,
+        live_refs=live,
+        dead_refs=dead,
+        removable=(live == 0),
+    )
+
+
+def find_cloud_gc_candidates(
+    stream_root: Path, cloud_root: Path, pubkey: str,
+) -> list[CloudExportStatus]:
+    candidates: list[CloudExportStatus] = []
+    for mf_path, cm in iter_authoritative_cloud_manifests(cloud_root, pubkey):
+        status = evaluate_cloud_export(mf_path, cm, stream_root)
+        if status.removable:
+            candidates.append(status)
+    return candidates
+
+
+def build_cloud_gc_plan(
+    stream_root: Path, cloud_root: Path, pubkey: str,
+) -> list[CloudGcItem]:
+    plan: list[CloudGcItem] = []
+    for status in find_cloud_gc_candidates(stream_root, cloud_root, pubkey):
+        cm = load_cloud_manifest(status.manifest_path)
+        enc = cm.encrypted_archive
+        if enc is None:
+            raise ValueError(
+                f"unencrypted export not supported for GC: "
+                f"{status.manifest_path}"
+            )
+        archive_name = enc.name
+        stamp = archive_name.removesuffix(".tar.zst.age")
+        archive_path = cloud_root / archive_name
+        sig_path = status.manifest_path.parent / (
+            status.manifest_path.name + ".minisig"
+        )
+        signature_path = sig_path if sig_path.exists() else None
+        plan.append(CloudGcItem(
+            stamp=stamp,
+            manifest_path=status.manifest_path,
+            archive_path=archive_path,
+            signature_path=signature_path,
+        ))
+    return plan
+
+
+def execute_cloud_gc_plan(plan: list[CloudGcItem]) -> list[CloudGcResult]:
+    results: list[CloudGcResult] = []
+    for item in plan:
+        if item.signature_path is not None:
+            item.signature_path.unlink()
+        item.manifest_path.unlink(missing_ok=True)
+        item.archive_path.unlink(missing_ok=True)
+        results.append(CloudGcResult(status="REMOVED", stamp=item.stamp))
+    return results
+
+
+def describe_cloud_gc_state(
+    stream_root: Path, cloud_root: Path, pubkey: str,
+) -> list[CloudExportStatus]:
+    results: list[CloudExportStatus] = []
+    for mf_path, cm in iter_authoritative_cloud_manifests(cloud_root, pubkey):
+        results.append(evaluate_cloud_export(mf_path, cm, stream_root))
+    return results
+
+
 def find_exported_stream_manifests(
     cloud_root: Path, pubkey: str | None = None,
 ) -> frozenset[str]:
@@ -289,6 +388,28 @@ class CloudManifest:
             )
         except KeyError as e:
             raise ValueError(f"missing field: {e}") from e
+
+
+@dataclass(frozen=True)
+class CloudExportStatus:
+    manifest_path: Path
+    live_refs: int
+    dead_refs: int
+    removable: bool
+
+
+@dataclass(frozen=True)
+class CloudGcItem:
+    stamp: str
+    manifest_path: Path
+    archive_path: Path
+    signature_path: Path | None
+
+
+@dataclass(frozen=True)
+class CloudGcResult:
+    status: str
+    stamp: str
 
 
 def build_package_manifest(

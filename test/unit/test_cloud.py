@@ -1940,6 +1940,39 @@ def _make_stream_manifest(stream_root, date, name, content=b"stream data"):
     return mf_path
 
 
+def _make_authoritative_export(
+    cr, stamp, entries,
+    stream_entries=None, stream_root=None,
+):
+    enc_name = f"{stamp}.tar.zst.age"
+    archive_path = cr / enc_name
+    archive_path.write_bytes(b"encrypted data")
+    enc_checksum = fs.hash_file1(archive_path)
+    enc = cloud.EncryptedArchive(
+        recipient="age1test", name=enc_name,
+        checksum=enc_checksum, size=archive_path.stat().st_size,
+    )
+    pkg_entries = tuple(
+        cloud.PackageEntry(path=rp, checksum=chk, size=sz)
+        for rp, chk, sz in entries
+    )
+    pkg = cloud.PackageManifest(
+        archive=f"{stamp}.tar.zst", checksum="ac", size=100,
+        created="now", entries=pkg_entries,
+    )
+    cm = cloud.CloudManifest(
+        version=1, package=pkg, created="now",
+        encrypted_archive=enc,
+    )
+    mf_path = cr / f"{stamp}.tar.zst.age.manifest"
+    cloud.write_cloud_manifest(cm, mf_path)
+    (mf_path.parent / (mf_path.name + ".minisig")).write_text("sig")
+    if stream_root is not None and stream_entries is not None:
+        for entry in stream_entries:
+            _make_stream_manifest(stream_root, *entry)
+    return mf_path
+
+
 class TestIterCloudManifests(pilotest.TestCase):
 
     def test_empty_cloud_root(self):
@@ -2638,3 +2671,838 @@ class TestStorageCloudExportAuditCommand(pilotest.TestCase):
                 with pilotest.suppress_stdout() as out:
                     mod.main()
             self.assertIn("DUPLICATE", out.getvalue())
+
+
+class TestIterAuthoritativeCloudManifests(pilotest.TestCase):
+
+    def test_empty_cloud_root(self):
+        with pilotest.tmpdir() as td:
+            results = list(cloud.iter_authoritative_cloud_manifests(
+                td / "nonexistent",
+            ))
+        self.assertEqual(results, [])
+
+    def test_no_manifests(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            results = list(cloud.iter_authoritative_cloud_manifests(cr))
+        self.assertEqual(results, [])
+
+    def test_no_pubkey_returns_all_signed(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("a.zfs.manifest", "c1", 1)])
+            _make_cloud_manifest(cr, "20260529_120000",
+                                 [("b.zfs.manifest", "c2", 2)])
+            results = list(cloud.iter_authoritative_cloud_manifests(cr))
+        self.assertEqual(len(results), 2)
+
+    def test_no_pubkey_skips_unsigned(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_cloud_manifest(cr, "20260528_120000",
+                                 [("a.zfs.manifest", "c1", 1)],
+                                 signed=False)
+            results = list(cloud.iter_authoritative_cloud_manifests(cr))
+        self.assertEqual(results, [])
+
+    def test_authoritative_with_pubkey(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            stamp = "20260528_120000"
+            enc_name = f"{stamp}.tar.zst.age"
+            archive_path = cr / enc_name
+            archive_path.write_bytes(b"encrypted data")
+            enc_checksum = fs.hash_file1(archive_path)
+            enc_size = archive_path.stat().st_size
+            enc = cloud.EncryptedArchive(
+                recipient="age1test", name=enc_name,
+                checksum=enc_checksum, size=enc_size,
+            )
+            pkg_entry = cloud.PackageEntry(
+                path="a.zfs.manifest", checksum="c1", size=1,
+            )
+            pkg = cloud.PackageManifest(
+                archive=f"{stamp}.tar.zst", checksum="ac", size=100,
+                created="now", entries=(pkg_entry,),
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+                encrypted_archive=enc,
+            )
+            mf_path = cr / f"{stamp}.tar.zst.age.manifest"
+            cloud.write_cloud_manifest(cm, mf_path)
+            (mf_path.parent / (mf_path.name + ".minisig")).write_text("sig")
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = list(cloud.iter_authoritative_cloud_manifests(
+                    cr, pubkey="age1test",
+                ))
+        self.assertEqual(len(results), 1)
+        path, cm_out = results[0]
+        self.assertEqual(path, mf_path)
+        self.assertEqual(cm_out, cm)
+
+    def test_missing_encrypted_archive_raises(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            stamp = "20260528_120000"
+            enc = cloud.EncryptedArchive(
+                recipient="age1test",
+                name="nonexistent.tar.zst.age",
+                checksum="csum", size=100,
+            )
+            pkg = cloud.PackageManifest(
+                archive=f"{stamp}.tar.zst", checksum="c", size=1,
+                created="now",
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+                encrypted_archive=enc,
+            )
+            mf_path = cr / f"{stamp}.tar.zst.age.manifest"
+            cloud.write_cloud_manifest(cm, mf_path)
+            (mf_path.parent / (mf_path.name + ".minisig")).write_text("sig")
+            with (
+                patch("pilo.storage.cloud.subprocess.run"),
+                self.assertRaises(ValueError),
+            ):
+                list(cloud.iter_authoritative_cloud_manifests(
+                    cr, pubkey="age1test",
+                ))
+
+    def test_checksum_mismatch_raises(self):
+        with pilotest.tmpdir() as td:
+            cr = td / "cloud"
+            cr.mkdir()
+            stamp = "20260528_120000"
+            enc_name = f"{stamp}.tar.zst.age"
+            archive_path = cr / enc_name
+            archive_path.write_bytes(b"original content")
+            enc_checksum = fs.hash_file1(archive_path)
+            enc = cloud.EncryptedArchive(
+                recipient="age1test", name=enc_name,
+                checksum=enc_checksum, size=100,
+            )
+            pkg = cloud.PackageManifest(
+                archive=f"{stamp}.tar.zst", checksum="c", size=1,
+                created="now",
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+                encrypted_archive=enc,
+            )
+            mf_path = cr / f"{stamp}.tar.zst.age.manifest"
+            cloud.write_cloud_manifest(cm, mf_path)
+            (mf_path.parent / (mf_path.name + ".minisig")).write_text("sig")
+            archive_path.write_bytes(b"tampered content")
+            with (
+                patch("pilo.storage.cloud.subprocess.run"),
+                self.assertRaises(ValueError),
+            ):
+                list(cloud.iter_authoritative_cloud_manifests(
+                    cr, pubkey="age1test",
+                ))
+
+
+class TestGetCloudManifestReferences(pilotest.TestCase):
+
+    def test_empty_entries(self):
+        pkg = cloud.PackageManifest(
+            archive="s.tar.zst", checksum="c", size=1, created="now",
+        )
+        cm = cloud.CloudManifest(
+            version=1, package=pkg, created="now",
+        )
+        refs = cloud.get_cloud_manifest_references(cm)
+        self.assertEqual(refs, [])
+
+    def test_single_entry(self):
+        entry = cloud.PackageEntry(path="a.zfs.manifest", checksum="c1", size=1)
+        pkg = cloud.PackageManifest(
+            archive="s.tar.zst", checksum="c", size=1, created="now",
+            entries=(entry,),
+        )
+        cm = cloud.CloudManifest(
+            version=1, package=pkg, created="now",
+        )
+        refs = cloud.get_cloud_manifest_references(cm)
+        self.assertEqual(refs, ["a.zfs.manifest"])
+
+    def test_multiple_entries(self):
+        entries = (
+            cloud.PackageEntry(path="20260529/a.zfs.manifest", checksum="c1", size=1),
+            cloud.PackageEntry(path="20260529/b.zfs.manifest", checksum="c2", size=2),
+            cloud.PackageEntry(path="20260530/c.zfs.manifest", checksum="c3", size=3),
+        )
+        pkg = cloud.PackageManifest(
+            archive="s.tar.zst", checksum="c", size=3, created="now",
+            entries=entries,
+        )
+        cm = cloud.CloudManifest(
+            version=1, package=pkg, created="now",
+        )
+        refs = cloud.get_cloud_manifest_references(cm)
+        self.assertEqual(refs, [
+            "20260529/a.zfs.manifest",
+            "20260529/b.zfs.manifest",
+            "20260530/c.zfs.manifest",
+        ])
+
+
+class TestEvaluateCloudExport(pilotest.TestCase):
+
+    def test_fully_live(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            _make_stream_manifest(sr, "20260528", "a")
+            _make_stream_manifest(sr, "20260528", "b")
+            entry_a = cloud.PackageEntry(
+                path="20260528/a.zfs.manifest", checksum="c1", size=1,
+            )
+            entry_b = cloud.PackageEntry(
+                path="20260528/b.zfs.manifest", checksum="c2", size=1,
+            )
+            pkg = cloud.PackageManifest(
+                archive="s.tar.zst", checksum="c", size=1, created="now",
+                entries=(entry_a, entry_b),
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+            )
+            status = cloud.evaluate_cloud_export(
+                td / "manifest", cm, sr,
+            )
+        self.assertEqual(status.live_refs, 2)
+        self.assertEqual(status.dead_refs, 0)
+        self.assertFalse(status.removable)
+
+    def test_partially_live(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            _make_stream_manifest(sr, "20260528", "a")
+            entry_a = cloud.PackageEntry(
+                path="20260528/a.zfs.manifest", checksum="c1", size=1,
+            )
+            entry_b = cloud.PackageEntry(
+                path="20260528/b.zfs.manifest", checksum="c2", size=1,
+            )
+            pkg = cloud.PackageManifest(
+                archive="s.tar.zst", checksum="c", size=1, created="now",
+                entries=(entry_a, entry_b),
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+            )
+            status = cloud.evaluate_cloud_export(
+                td / "manifest", cm, sr,
+            )
+        self.assertEqual(status.live_refs, 1)
+        self.assertEqual(status.dead_refs, 1)
+        self.assertFalse(status.removable)
+
+    def test_fully_dead(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            entry = cloud.PackageEntry(
+                path="20260528/a.zfs.manifest", checksum="c1", size=1,
+            )
+            pkg = cloud.PackageManifest(
+                archive="s.tar.zst", checksum="c", size=1, created="now",
+                entries=(entry,),
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+            )
+            status = cloud.evaluate_cloud_export(
+                td / "manifest", cm, sr,
+            )
+        self.assertEqual(status.live_refs, 0)
+        self.assertEqual(status.dead_refs, 1)
+        self.assertTrue(status.removable)
+
+    def test_empty_entries(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            pkg = cloud.PackageManifest(
+                archive="s.tar.zst", checksum="c", size=1, created="now",
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+            )
+            status = cloud.evaluate_cloud_export(
+                td / "manifest", cm, sr,
+            )
+        self.assertEqual(status.live_refs, 0)
+        self.assertEqual(status.dead_refs, 0)
+        self.assertTrue(status.removable)
+
+    def test_missing_stream_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "nonexistent"
+            pkg = cloud.PackageManifest(
+                archive="s.tar.zst", checksum="c", size=1, created="now",
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+            )
+            with self.assertRaises(ValueError):
+                cloud.evaluate_cloud_export(td / "manifest", cm, sr)
+
+
+class TestFindCloudGcCandidates(pilotest.TestCase):
+
+    def test_empty_cloud_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.find_cloud_gc_candidates(sr, cr, "pubkey")
+        self.assertEqual(results, [])
+
+    def test_all_live(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.find_cloud_gc_candidates(sr, cr, "pubkey")
+        self.assertEqual(results, [])
+
+    def test_all_dead(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.find_cloud_gc_candidates(sr, cr, "pubkey")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].manifest_path.name,
+                         "20260528_120000.tar.zst.age.manifest")
+        self.assertTrue(results[0].removable)
+        self.assertEqual(results[0].live_refs, 0)
+        self.assertEqual(results[0].dead_refs, 1)
+
+    def test_mixed_liveness(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260528/b.zfs.manifest", "c2", 1)],
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.find_cloud_gc_candidates(sr, cr, "pubkey")
+        self.assertEqual(len(results), 1)
+        self.assertIn("20260529_080000", str(results[0].manifest_path))
+
+    def test_missing_stream_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "nonexistent"
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            with (
+                patch("pilo.storage.cloud.subprocess.run"),
+                self.assertRaises(ValueError),
+            ):
+                cloud.find_cloud_gc_candidates(sr, cr, "pubkey")
+
+
+class TestBuildCloudGcPlan(pilotest.TestCase):
+
+    def test_empty_cloud_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            with patch("pilo.storage.cloud.subprocess.run"):
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+        self.assertEqual(plan, [])
+
+    def test_encrypted_export(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+        self.assertEqual(len(plan), 1)
+        item = plan[0]
+        self.assertEqual(item.stamp, "20260528_120000")
+        self.assertEqual(item.manifest_path.name,
+                         "20260528_120000.tar.zst.age.manifest")
+        self.assertEqual(item.archive_path.name,
+                         "20260528_120000.tar.zst.age")
+        self.assertIsNotNone(item.signature_path)
+        self.assertEqual(item.signature_path.name,
+                         "20260528_120000.tar.zst.age.manifest.minisig")
+
+    def test_missing_signature(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            stamp = "20260528_120000"
+            enc_name = f"{stamp}.tar.zst.age"
+            archive_path = cr / enc_name
+            archive_path.write_bytes(b"encrypted data")
+            enc_checksum = fs.hash_file1(archive_path)
+            enc = cloud.EncryptedArchive(
+                recipient="age1test", name=enc_name,
+                checksum=enc_checksum, size=archive_path.stat().st_size,
+            )
+            pkg_entry = cloud.PackageEntry(
+                path="20260528/a.zfs.manifest", checksum="c1", size=1,
+            )
+            pkg = cloud.PackageManifest(
+                archive=f"{stamp}.tar.zst", checksum="ac", size=100,
+                created="now", entries=(pkg_entry,),
+            )
+            cm = cloud.CloudManifest(
+                version=1, package=pkg, created="now",
+                encrypted_archive=enc,
+            )
+            mf_path = cr / f"{stamp}.tar.zst.age.manifest"
+            cloud.write_cloud_manifest(cm, mf_path)
+            (mf_path.parent / (mf_path.name + ".minisig")).write_text("sig")
+            with patch("pilo.storage.cloud.subprocess.run"):
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+            self.assertEqual(len(plan), 1)
+            self.assertIsNotNone(plan[0].signature_path)
+            (mf_path.parent / (mf_path.name + ".minisig")).unlink()
+            with (
+                patch("pilo.storage.cloud.iter_cloud_manifests") as mock_iter,
+                patch("pilo.storage.cloud.is_authoritative_cloud_manifest",
+                      return_value=True),
+            ):
+                mock_iter.return_value = [(mf_path, cm)]
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+        self.assertEqual(len(plan), 1)
+        self.assertIsNone(plan[0].signature_path)
+
+    def test_multiple_removable_exports(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260529/b.zfs.manifest", "c1", 1)],
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+        self.assertEqual(len(plan), 2)
+        stamps = [item.stamp for item in plan]
+        self.assertIn("20260528_120000", stamps)
+        self.assertIn("20260529_080000", stamps)
+
+    def test_live_export_omitted(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+        self.assertEqual(plan, [])
+
+    def test_empty_plan_no_exports(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            with patch("pilo.storage.cloud.subprocess.run"):
+                plan = cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+        self.assertEqual(plan, [])
+
+    def test_missing_stream_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "nonexistent"
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            with (
+                patch("pilo.storage.cloud.subprocess.run"),
+                self.assertRaises(ValueError),
+            ):
+                cloud.build_cloud_gc_plan(sr, cr, "pubkey")
+
+
+class TestExecuteCloudGcPlan(pilotest.TestCase):
+
+    def test_successful_removal(self):
+        with pilotest.tmpdir() as td:
+            sig = td / "sig"
+            mf = td / "manifest"
+            arc = td / "archive"
+            sig.write_text("s")
+            mf.write_text("m")
+            arc.write_text("a")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=mf,
+                archive_path=arc,
+                signature_path=sig,
+            )
+            results = cloud.execute_cloud_gc_plan([item])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].status, "REMOVED")
+        self.assertEqual(results[0].stamp, "20260528_120000")
+        self.assertFalse(sig.exists())
+        self.assertFalse(mf.exists())
+        self.assertFalse(arc.exists())
+
+    def test_multiple_items(self):
+        with pilotest.tmpdir() as td:
+            items = []
+            for i, stamp in enumerate(["20260528_120000", "20260529_080000"]):
+                sig = td / f"{stamp}.sig"
+                mf = td / f"{stamp}.manifest"
+                arc = td / f"{stamp}.archive"
+                sig.write_text("s")
+                mf.write_text("m")
+                arc.write_text("a")
+                items.append(cloud.CloudGcItem(
+                    stamp=stamp,
+                    manifest_path=mf,
+                    archive_path=arc,
+                    signature_path=sig,
+                ))
+            results = cloud.execute_cloud_gc_plan(items)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].stamp, "20260528_120000")
+        self.assertEqual(results[1].stamp, "20260529_080000")
+        self.assertTrue(all(r.status == "REMOVED" for r in results))
+
+    def test_empty_plan(self):
+        results = cloud.execute_cloud_gc_plan([])
+        self.assertEqual(results, [])
+
+    def test_missing_signature(self):
+        with pilotest.tmpdir() as td:
+            mf = td / "manifest"
+            arc = td / "archive"
+            mf.write_text("m")
+            arc.write_text("a")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=mf,
+                archive_path=arc,
+                signature_path=None,
+            )
+            results = cloud.execute_cloud_gc_plan([item])
+        self.assertEqual(len(results), 1)
+        self.assertFalse(mf.exists())
+        self.assertFalse(arc.exists())
+
+    def test_idempotent_already_removed(self):
+        with pilotest.tmpdir() as td:
+            mf = td / "manifest"
+            arc = td / "archive"
+            mf.write_text("m")
+            arc.write_text("a")
+            item = cloud.CloudGcItem(
+                stamp="20260528_120000",
+                manifest_path=mf,
+                archive_path=arc,
+                signature_path=None,
+            )
+            cloud.execute_cloud_gc_plan([item])
+            results = cloud.execute_cloud_gc_plan([item])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].status, "REMOVED")
+
+
+class TestDescribeCloudGcState(pilotest.TestCase):
+
+    def test_removable_included(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0].removable)
+
+    def test_non_removable_included(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].removable)
+
+    def test_mixed_state(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260529/b.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260529", "b")],
+                stream_root=sr,
+            )
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+        self.assertEqual(len(results), 2)
+        removable = [r for r in results if r.removable]
+        non_removable = [r for r in results if not r.removable]
+        self.assertEqual(len(removable), 1)
+        self.assertEqual(len(non_removable), 1)
+
+    def test_empty_cloud_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            with patch("pilo.storage.cloud.subprocess.run"):
+                results = cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+        self.assertEqual(results, [])
+
+    def test_missing_stream_root(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "nonexistent"
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            with (
+                patch("pilo.storage.cloud.subprocess.run"),
+                self.assertRaises(ValueError),
+            ):
+                cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+
+    def test_nothing_deleted(self):
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            files_before = sorted(cr.rglob("*"))
+            with patch("pilo.storage.cloud.subprocess.run"):
+                cloud.describe_cloud_gc_state(sr, cr, "pubkey")
+            files_after = sorted(cr.rglob("*"))
+        self.assertEqual(files_before, files_after)
+
+
+class TestStorageCloudGcCommand(pilotest.TestCase):
+
+    def test_missing_args_exits(self):
+        mod = pilotest.import_command("storage-cloud-gc")
+        with (
+            patch("sys.argv", ["pilo-storage-cloud-gc"]),
+            patch("sys.stderr"),
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                mod.main()
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_two_args_exits(self):
+        mod = pilotest.import_command("storage-cloud-gc")
+        with pilotest.tmpdir() as td:
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-gc",
+                    str(td / "sr"), str(td / "cr"),
+                ]),
+                patch("sys.stderr"),
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    mod.main()
+            self.assertEqual(cm.exception.code, 1)
+
+    def test_preview_shows_remove_and_keep(self):
+        mod = pilotest.import_command("storage-cloud-gc")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            _make_authoritative_export(
+                cr, "20260529_080000",
+                [("20260529/b.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260529", "b")],
+                stream_root=sr,
+            )
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-gc",
+                    str(sr), str(cr), "pubkey", "--preview",
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout() as out:
+                    mod.main()
+            output = out.getvalue()
+        self.assertIn("REMOVE", output)
+        self.assertIn("KEEP", output)
+        self.assertIn("20260528_120000", output)
+        self.assertIn("20260529_080000", output)
+
+    def test_preview_no_modifications(self):
+        mod = pilotest.import_command("storage-cloud-gc")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            files_before = sorted(cr.rglob("*"))
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-gc",
+                    str(sr), str(cr), "pubkey", "--preview",
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
+            files_after = sorted(cr.rglob("*"))
+        self.assertEqual(files_before, files_after)
+
+    def test_execution_removes_files(self):
+        mod = pilotest.import_command("storage-cloud-gc")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+            )
+            mf = cr / "20260528_120000.tar.zst.age.manifest"
+            sig = cr / "20260528_120000.tar.zst.age.manifest.minisig"
+            arc = cr / "20260528_120000.tar.zst.age"
+            self.assertTrue(mf.exists())
+            self.assertTrue(sig.exists())
+            self.assertTrue(arc.exists())
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-gc",
+                    str(sr), str(cr), "pubkey",
+                ]),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout() as out:
+                    mod.main()
+            self.assertFalse(mf.exists())
+            self.assertFalse(sig.exists())
+            self.assertFalse(arc.exists())
+            self.assertIn("REMOVED 20260528_120000", out.getvalue())
+
+    def test_execution_empty_plan(self):
+        mod = pilotest.import_command("storage-cloud-gc")
+        with pilotest.tmpdir() as td:
+            sr = td / "streams"
+            sr.mkdir()
+            cr = td / "cloud"
+            cr.mkdir()
+            _make_authoritative_export(
+                cr, "20260528_120000",
+                [("20260528/a.zfs.manifest", "c1", 1)],
+                stream_entries=[("20260528", "a")],
+                stream_root=sr,
+            )
+            with (
+                patch("sys.argv", [
+                    "pilo-storage-cloud-gc",
+                    str(sr), str(cr), "pubkey",
+                ]),
+                patch("sys.stderr"),
+                patch("pilo.storage.cloud.subprocess.run"),
+            ):
+                with pilotest.suppress_stdout():
+                    mod.main()
