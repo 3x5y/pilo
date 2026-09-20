@@ -12,13 +12,16 @@ SEC_POOL2=z2-rem
 
 EXPORT_ROOT=$(mktemp -d)
 ln -sfnv $EXPORT_ROOT /tmp/working
-mkdir $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import}
-chown u:u $EXPORT_ROOT $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import}
+mkdir $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import,trash-local,trash-cloud}
+chown u:u $EXPORT_ROOT $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import,trash-local,trash-cloud}
 export PILO_STREAM_OUTPUT_PATH=$EXPORT_ROOT/local
 export PILO_CLOUD_EXPORT_PATH=$EXPORT_ROOT/cloud
+export PILO_STREAM_GC_PATH=$EXPORT_ROOT/trash-local
+export PILO_CLOUD_GC_PATH=$EXPORT_ROOT/trash-cloud
 PILO_AGE_RCPT=age1fptpnrwgum5e67uhjr8uy666mp6fldzwfaagkyvjp8rdpxautp9qpet3a8
-PILO_MINISIGN_KEYFILE=/home/u/pilo-sign.key
 PILO_AGE_KEYFILE=/home/u/pilo-enc.key
+PILO_MINISIGN_PUBKEY=RWRCmuagslSgwczIVAvxZqdJyLbNb/chzhURhrolpNWBtIESZPOJkFPF
+PILO_MINISIGN_KEYFILE=/home/u/pilo-sign.key
 
 
 
@@ -61,7 +64,9 @@ rotate() {
 
 catchup() {
     pause
-    _pilo storage-stream-replay-all $EXPORT_ROOT/local $TARGET_FS
+    #_pilo storage-stream-replay-all $EXPORT_ROOT/local $TARGET_FS
+    # TODO: use direct replication here instead
+    _pilo storage-replicate
 }
 
 
@@ -69,15 +74,25 @@ gc() {
     #_pilo storage-stream-gc
     _pilo storage-rotate-gc --preview
     _pilo storage-rotate-gc
-    _pilo storage-stream-gc
-    _pilo storage-stream-gc
-    _pilo storage-stream-gc
+    #_pilo storage-stream-gc
+    #_pilo storage-stream-gc
+    #_pilo storage-stream-gc
+    #_pilo storage-cloud-gc \
+    #    $EXPORT_ROOT/local \
+    #    $EXPORT_ROOT/cloud \
+    #    $PILO_MINISIGN_PUBKEY \
+    #    --preview
+    #_pilo storage-cloud-gc \
+    #    $EXPORT_ROOT/local \
+    #    $EXPORT_ROOT/cloud \
+    #    $PILO_MINISIGN_PUBKEY
 }
 
 
 export_cloud() {
     local stream_dir=$1
     local ymd=$(date +%Y%m%d)
+    # TODO: explicit stream-export step here, scoped to the active dataset
     if ls "$stream_dir/$ymd"/*.zfs &>/dev/null
     then
         _pilo storage-stream-verify $stream_dir/$ymd/*.zfs
@@ -113,16 +128,18 @@ cycle() {
 
     for day in 1 # 2
     do
-        _pilo storage-snapshot-mark
-        _pilo storage-replicate
-        _pilo storage-rollup
-        export_cloud $EXPORT_ROOT/local
         for hour in 0 # 1
         do
             _pilo storage-snapshot-reg
+            # TODO ensure replicate is not doing exports
             _pilo storage-replicate
             #export_cloud $EXPORT_ROOT/local
         done
+        _pilo storage-snapshot-mark
+        # TODO ensure replicate is not doing exports
+        _pilo storage-replicate
+        #_pilo storage-rollup
+        #export_cloud $EXPORT_ROOT/local
     done
 }
 
@@ -161,10 +178,6 @@ test_main() {
 
     head -c100M /dev/urandom > /z/intake/random.bin
 
-    cycle z1
-    cycle z2
-    cycle z1
-    cycle z2
     cycle z1
     cycle z2
     cycle z1
