@@ -45,7 +45,10 @@ export PYTHONPATH=$HERE
 export PYTHONDONTWRITEBYTECODE=1
 
 target="$HERE/pilo/cmd/pilo-$cmd.py"
-if [ -f "$target" ]
+if [ "$cmd" = shell ]
+then
+        exec python3 "$@"
+elif [ -f "$target" ]
 then
         exec python3 "$target" "$@"
 else
