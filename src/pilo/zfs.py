@@ -2,6 +2,7 @@ from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
+import logging
 
 from . import error
 
@@ -27,6 +28,7 @@ class SnapshotEntry:
 
 
 def run(cmd, *, check=True, capture_output=False, text=True, **kw):
+    logging.debug(' '.join(cmd))
     return subprocess.run(cmd,
                           check=check,
                           capture_output=capture_output,
@@ -53,6 +55,8 @@ def run_get_lines(cmd, **kw):
 
 
 def simple_pipe(src_cmd, sink_cmd):
+    log_str = ' '.join(src_cmd) + ' | ' + ' '.join(sink_cmd)
+    logging.debug(log_str)
     source = subprocess.Popen(src_cmd, stdout=subprocess.PIPE)
     sink = subprocess.Popen(sink_cmd, stdin=source.stdout)
     source.stdout.close()
