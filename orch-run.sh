@@ -10,18 +10,18 @@ SEC_DEV2=/tmp/z2
 SEC_POOL1=z1-rem
 SEC_POOL2=z2-rem
 
-EXPORT_ROOT=$(mktemp -d)
-ln -sfnv $EXPORT_ROOT /tmp/working
-mkdir $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import,trash-local,trash-cloud}
-chown u:u $EXPORT_ROOT $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import,trash-local,trash-cloud}
-export PILO_STREAM_OUTPUT_PATH=$EXPORT_ROOT/local
-export PILO_CLOUD_EXPORT_PATH=$EXPORT_ROOT/cloud
-export PILO_STREAM_GC_PATH=$EXPORT_ROOT/trash-local
-export PILO_CLOUD_GC_PATH=$EXPORT_ROOT/trash-cloud
-PILO_AGE_RCPT=age1fptpnrwgum5e67uhjr8uy666mp6fldzwfaagkyvjp8rdpxautp9qpet3a8
-PILO_AGE_KEYFILE=/home/u/pilo-enc.key
-PILO_MINISIGN_PUBKEY=RWRCmuagslSgwczIVAvxZqdJyLbNb/chzhURhrolpNWBtIESZPOJkFPF
-PILO_MINISIGN_KEYFILE=/home/u/pilo-sign.key
+#EXPORT_ROOT=$(mktemp -d)
+#ln -sfnv $EXPORT_ROOT /tmp/working
+#mkdir $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import,trash-local,trash-cloud}
+#chown u:u $EXPORT_ROOT $EXPORT_ROOT/{local,cloud,tmp-export,tmp-import,trash-local,trash-cloud}
+#export PILO_STREAM_OUTPUT_PATH=$EXPORT_ROOT/local
+#export PILO_CLOUD_EXPORT_PATH=$EXPORT_ROOT/cloud
+#export PILO_STREAM_GC_PATH=$EXPORT_ROOT/trash-local
+#export PILO_CLOUD_GC_PATH=$EXPORT_ROOT/trash-cloud
+#PILO_AGE_RCPT=age1fptpnrwgum5e67uhjr8uy666mp6fldzwfaagkyvjp8rdpxautp9qpet3a8
+#PILO_AGE_KEYFILE=/home/u/pilo-enc.key
+#PILO_MINISIGN_PUBKEY=RWRCmuagslSgwczIVAvxZqdJyLbNb/chzhURhrolpNWBtIESZPOJkFPF
+#PILO_MINISIGN_KEYFILE=/home/u/pilo-sign.key
 
 
 
@@ -63,7 +63,7 @@ rotate() {
 
 
 catchup() {
-    pause
+    #pause
     #_pilo storage-stream-replay-all $EXPORT_ROOT/local $TARGET_FS
     # TODO: use direct replication here instead
     _pilo storage-replicate
@@ -122,6 +122,7 @@ export_cloud() {
 
 
 cycle() {
+    pause
     rotate $1
     catchup
     gc
@@ -177,6 +178,8 @@ test_main() {
     _pilo storage-replica-seed
 
     head -c100M /dev/urandom > /z/intake/random.bin
+
+    echo \# cycling
 
     cycle z1
     cycle z2
