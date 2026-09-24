@@ -129,7 +129,7 @@ def list_snapshot_entries(dataset):
         ],
         dataset,
         types="snapshot",
-        sort="creation",
+        sort="createtxg",
         check=False,
     )
 
@@ -229,7 +229,7 @@ def list_filesystems(root):
 
 
 def list_snapshots(dataset):
-    cmd = "zfs list -t snapshot -Ho name -s creation".split()
+    cmd = "zfs list -t snapshot -Ho name -s createtxg".split()
     args = [dataset]
     return run_get_lines(cmd + args, check=False)
 
@@ -241,7 +241,7 @@ def latest_snapshot(dataset):
 
 def snapshots_userrefs(dataset):
     lines = zfs_list(["name", "userrefs"], dataset, types="snapshot",
-                     sort="creation", check=False)
+                     sort="createtxg", check=False)
     result = []
     for line in lines:
         if not line:
@@ -271,7 +271,7 @@ def snapshot_guids(dataset):
 
 
 def get_latest_guid(dataset):
-    cmd = "zfs list -t snapshot -Ho guid -s creation".split()
+    cmd = "zfs list -t snapshot -Ho guid -s createtxg".split()
     args = [dataset]
     lines = run_get_lines(cmd + args, check=False)
     return lines[-1] if lines else None
@@ -283,7 +283,7 @@ def get_guid(snapshot_ref: str) -> str:
 
 
 def latest_snapshot_with_time(dataset):
-    cmd = "zfs list -p -t snapshot -o name,creation -s creation".split()
+    cmd = "zfs list -p -t snapshot -o name,creation -s createtxg".split()
     args = [dataset]
     lines = run_get_lines(cmd + args, check=False)
     matches = [l for l in lines if l.startswith(dataset + "@")]
