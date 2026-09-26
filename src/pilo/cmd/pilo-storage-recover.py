@@ -10,9 +10,7 @@ def main():
     cx = context.Context()
 
     target = cx.args[0] if cx.args else cx.root_dataset
-    stream_dir = cx.args[1] if len(cx.args) > 1 else None
-
-    plan = recover.build_recovery_plan(cx, target, stream_dir=stream_dir)
+    plan = recover.build_recovery_plan(cx, target)
     recover.execute_recovery_plan(plan, cx)
 
     print("VERIFY ...")
