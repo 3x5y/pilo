@@ -33,9 +33,8 @@ def main():
     src = cx.root_dataset
     dst = detected.secondary
     label = continuity.label_for_secondary(cx, dst)
-    export = os.environ.get("PILO_STREAM_EXPORT") == "1"
+    plan = repl.build_replication_plan(src, dst, label=label)
 
-    plan = repl.build_replication_plan(src, dst, label=label, export=export)
     return repl.execute_replication_plan(plan)
 
 

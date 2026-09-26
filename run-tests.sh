@@ -59,7 +59,6 @@ test_setup() {
     export TMP="$TMP_ROOT"/$TEST_NAME
     mkdir -p "$TMP"
     chown $PILO_USER:$PILO_USER "$TMP"
-    export PILO_STREAM_OUTPUT_PATH="$TMP/streams"
 }
 
 clear_holds() {

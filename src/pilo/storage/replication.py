@@ -9,7 +9,6 @@ from .. import util
 from .. import zfs
 from . import continuity
 from . import lifecycle
-from . import streams
 from .snapshot import parse_snapshot_name
 
 
@@ -30,7 +29,6 @@ class ReplicationPlan:
     mode: str
     hold_snapshot: str | None = None
     hold_tag: str | None = None
-    export_path: str | None = None
 
 
 def find_incremental_base(src, dst):
@@ -148,15 +146,7 @@ def build_replica_seed_plan(cx):
     )
 
 
-def _resolve_export_path(snapshot_ref: str) -> str | None:
-    name = snapshot_ref.split("@", 1)[1]
-    parsed = parse_snapshot_name(name)
-    if parsed is not None:
-        return str(streams.stream_filepath(parsed))
-    return None
-
-
-def build_replication_plan(src, dst, label=None, export=False):
+def build_replication_plan(src, dst, label=None):
 
     checks.require_dataset(src)
     checks.require_dataset(dst)
@@ -186,32 +176,11 @@ def build_replication_plan(src, dst, label=None, export=False):
             hold_snap = last_src
             hold_t = continuity.hold_tag(label)
 
-    export_path = _resolve_export_path(last_src) if export else None
-
     return ReplicationPlan(
         src, dst, last_src, base, mode,
         hold_snapshot=hold_snap,
         hold_tag=hold_t,
-        export_path=export_path,
     )
-
-
-def _execute_file_backed_incremental(plan: ReplicationPlan):
-    zfs.send_incremental_to_file(plan.base, plan.snapshot, plan.export_path)
-
-    dataset, snap_name = plan.snapshot.split("@", 1)
-    base_name = plan.base.split("@", 1)[1] if plan.base else None
-    guid = zfs.get_guid(plan.snapshot)
-    streams.write_stream_manifest(
-        Path(plan.export_path), snap_name, dataset, guid,
-        kind=streams.KIND_INCREMENTAL, base_snapshot=base_name,
-    )
-
-    status, msg = streams.verify_one(Path(plan.export_path))
-    if status != "OK":
-        error.fatal(f"stream verification failed: {msg}")
-
-    zfs.recv_file(plan.export_path, plan.dst)
 
 
 def execute_replication_plan(plan: ReplicationPlan):
@@ -221,10 +190,7 @@ def execute_replication_plan(plan: ReplicationPlan):
     if plan.mode == "seed":
         zfs.replicate_full(plan.snapshot, plan.dst)
     elif plan.mode == "incremental":
-        if plan.export_path is not None:
-            _execute_file_backed_incremental(plan)
-        else:
-            zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst)
+        zfs.replicate_incremental(plan.base, plan.snapshot, plan.dst)
     elif plan.mode == "noop":
         return
     else:

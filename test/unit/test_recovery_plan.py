@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from pilo.storage import lifecycle
 from pilo.storage import recover
-from pilo.storage import replay
+
 import pilotest
 
 
