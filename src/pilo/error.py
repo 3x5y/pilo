@@ -19,10 +19,14 @@ def fatal(msg):
     raise FatalError(msg)
 
 
-def run_main(f):
+def setup_logging():
     log_level_attr = os.environ.get('PILO_LOG_LEVEL', 'WARNING')
     log_level = logging.getLevelName(log_level_attr)
     logging.basicConfig(level=log_level, format='%(levelname)s %(message)s')
+
+
+def run_main(f):
+    setup_logging()
     try:
         f()
     except FatalError as e:
