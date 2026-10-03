@@ -196,32 +196,6 @@ class TestRewriteCommand(pilotest.TestCase):
         mock_execute.assert_not_called()
         mock_print.assert_called_once_with("move /tmp/a -> /tmp/b")
 
-    @unittest.skip("needs correct assertions")
-    @patch("pilo.content.manifest.execute_manifest_update_plan")
-    @patch("pilo.content.manifest.build_manifest_update_plan")
-    @patch("builtins.print")
-    @patch("pilo.content.reorg.preview_rewrite_plan")
-    @patch("pilo.content.reorg.build_rewrite_plan")
-    def test_preview_mode_skips_manifest_updates(
-        self,
-        mock_build,
-        mock_preview,
-        mock_print,
-        mock_manifest_build,
-        mock_manifest_exec,
-    ):
-        cx = pilotest.make_context()
-        cx.args = ["--preview", "mv\tin/a\tin/b"]
-
-        mock_preview.return_value = []
-
-        mod = pilotest.import_command("content-reorg")
-        with patch("pilo.context.Context", return_value=cx):
-            mod.main()
-
-        mock_manifest_build.assert_not_called()
-        mock_manifest_exec.assert_not_called()
-
     @patch("builtins.print")
     @patch("pilo.content.reorg.preview_rewrite_plan")
     @patch("pilo.content.reorg.execute_rewrite_plan")

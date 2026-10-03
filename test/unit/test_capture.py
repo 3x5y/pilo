@@ -24,26 +24,6 @@ class TestCaptureManifest(pilotest.TestCase):
             expected_lines = [f"{expected_hash}  ./a.txt"]
             self.assertEqual(lines, expected_lines)
 
-    @unittest.skip("obsolete")
-    def test_write_capture_manifest(self):
-
-        with pilotest.tmpdir() as td:
-
-            root = td / "capture"
-            root.mkdir()
-            (root / "a.txt").write_text("aaa")
-            out = root / ".manifest"
-            cx = pilotest.make_context()
-            manifest.write_manifest(
-                cx,
-                root,
-                out,
-            )
-
-            self.assertTrue(out.exists())
-            lines = out.read_text().splitlines()
-            self.assertEqual(len(lines), 1)
-
     def test_verify_capture_manifest_lines_valid(self):
 
         with pilotest.tmpdir() as td:

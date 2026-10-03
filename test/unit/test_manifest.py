@@ -398,24 +398,6 @@ class TestManifestStore(pilotest.TestCase):
                 ["abc  ./in/a.txt"]
             )
 
-    @unittest.skip("obsolete")
-    def test_write_manifest(self):
-        cx = pilotest.make_context()
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-
-            (root / "a.txt").write_text("hello")
-
-            mfile = root / "test.manifest"
-
-            manifest.write_manifest(cx, root, mfile)
-
-            self.assertTrue(mfile.exists())
-
-            text = mfile.read_text()
-
-            self.assertIn("./a.txt", text)
-
     def test_write_manifest_entries_overwrites_existing(self):
 
         with pilotest.make_tmp_context() as cx:
@@ -434,34 +416,6 @@ class TestManifestStore(pilotest.TestCase):
 
 
 class TestManifestPolicy(pilotest.TestCase):
-
-    @unittest.skip("obsolete")
-    def test_manifest_subset_root(self):
-        cx = pilotest.make_context()
-
-        self.assertEqual(
-            manifest.manifest_subset_root(
-                cx,
-                "pile",
-            ),
-            cx.pile_path,
-        )
-
-        self.assertEqual(
-            manifest.manifest_subset_root(
-                cx,
-                "collection",
-            ),
-            cx.static_path / "collection",
-        )
-
-        self.assertEqual(
-            manifest.manifest_subset_root(
-                cx,
-                "filing",
-            ),
-            cx.static_path / "filing",
-        )
 
     def test_dataset_manifest_subset_pile(self):
 
@@ -505,74 +459,6 @@ class TestManifestPolicy(pilotest.TestCase):
 
 
 class TestManifestUpdate(pilotest.TestCase):
-
-    @unittest.skip("obsolete")
-    def test_build_manifest_update_plan(self):
-        cx = pilotest.make_context()
-
-        plan = manifest.build_manifest_update_plan(
-            cx,
-            ["pile", "collection"],
-        )
-
-        self.assertEqual(
-            [s.name for s in plan.subsets],
-            ["pile", "collection"],
-        )
-
-    @unittest.skip("obsolete")
-    @patch("pilo.content.manifest.write_manifest")
-    @patch("pilo.content.manifest.commit_manifest_if_changed")
-    @patch("pilo.fs.ensure_parent_dir")
-    def test_execute_manifest_update_plan(
-        self,
-        mock_dir,
-        mock_commit,
-        mock_write,
-    ):
-        cx = pilotest.make_context()
-
-        plan = (
-            manifest
-            .build_manifest_update_plan(
-                cx,
-                ["pile"],
-            )
-        )
-
-        manifest.execute_manifest_update_plan(
-            cx,
-            plan,
-        )
-
-        mock_write.assert_called_once()
-        mock_commit.assert_called_once()
-
-    @unittest.skip("obsolete")
-    def test_write_manifest(self):
-        cx = pilotest.make_context()
-
-        with tempfile.TemporaryDirectory() as td:
-
-            root = Path(td)
-
-            (root / "a.txt").write_text(
-                "hello"
-            )
-
-            mfile = root / "test.manifest"
-
-            manifest.write_manifest(
-                cx,
-                root,
-                mfile,
-            )
-
-            self.assertTrue(mfile.exists())
-
-            text = mfile.read_text()
-
-            self.assertIn("./a.txt", text)
 
     @patch("pilo.git.commit_if_changed")
     @patch("pilo.git.ensure_repo")
