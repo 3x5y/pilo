@@ -1,0 +1,26 @@
+#cloud-config
+hostname: pi10
+manage_etc_hosts: true
+
+users:
+- name: u
+  groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,render,sudo
+  shell: /bin/bash
+  lock_passwd: false
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  passwd: '$USER_PASSWD'
+  ssh_authorized_keys:
+    - '$USER_SSH_KEY'
+
+timezone: UTC
+keyboard:
+  model: pc105
+  layout: "us"
+ssh_keys:
+  ed25519_private: |
+$SSH_HOST_KEY_PRIVATE
+  ed25519_public: '$SSH_HOST_KEY_PUBLIC'
+runcmd:
+  - ln -sfn /home/u/.bashrc /root/.bashrc
+  - ln -sfn /home/u/.inputrc /root/.inputrc
+  - ln -sfn /home/u/.vimrc /root/.vimrc
