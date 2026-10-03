@@ -7,7 +7,7 @@ mkfile data $file
 capture_file $file
 pilo content-ingest
 
-manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+manifest=/"$ADMIN"/manifest/pile.manifest
 
 cp $manifest $TMP/manifest_before
 

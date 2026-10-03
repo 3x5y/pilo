@@ -5,7 +5,7 @@ pilo storage-snapshot t0
 pilo storage-replica-seed
 
 # break it
-zfs snapshot $TEST_REPLICA/active/admin@evil
+zfs snapshot $TEST_REPLICA/admin@evil
 
 capture_status pilo storage-replicate-safe
 

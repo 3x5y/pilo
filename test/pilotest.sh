@@ -9,7 +9,6 @@ OUTPUT=''
 ### setup helpers
 
 reset_system() {
-    unset PILO_ADMIN_PATH PILO_INTAKE_PATH PILO_PILE_PATH PILO_STATIC_PATH
     init_system "$@"
 }
 
@@ -21,10 +20,6 @@ runuser() {
         PILO_SECONDARY_ROOTS=$PILO_SECONDARY_ROOTS \
         PILO_PATH=$PILO_PATH \
         PILO_USER=$PILO_USER \
-        PILO_ADMIN_PATH=$PILO_ADMIN_PATH \
-        PILO_INTAKE_PATH=$PILO_INTAKE_PATH \
-        PILO_PILE_PATH=$PILO_PILE_PATH \
-        PILO_STATIC_PATH=$PILO_STATIC_PATH \
         "$@"
 }
 
@@ -113,7 +108,7 @@ assert_command_fail() {
 assert_manifest_entry() {
     subset="$1"
     entry="$2"
-    manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest
+    manifest=/"$ADMIN"/manifest/$subset.manifest
     assert_grep "$entry" < "$manifest" \
         || fail "missing entry '$entry' in '$manifest'"
 }
@@ -121,7 +116,7 @@ assert_manifest_entry() {
 assert_manifest_valid() {
     subset="$1"
     dir="$2"
-    manifest="$PILO_ADMIN_PATH"/manifest/$subset.manifest
+    manifest=/"$ADMIN"/manifest/$subset.manifest
     (cd "$dir" && sha256sum --quiet --strict -c "$manifest") \
         || fail "manifest $manifest is invalid"
 }

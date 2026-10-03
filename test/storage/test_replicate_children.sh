@@ -15,9 +15,9 @@ with_writable $COLLECTION \
 pilo storage-snapshot t1
 pilo storage-replicate
 
-zfs set canmount=on $TEST_REPLICA/active/admin
+zfs set canmount=on $TEST_REPLICA/admin
 zfs set canmount=on $TEST_REPLICA/static/collection
 zfs inherit mountpoint $REPLICA_ROOT
 zfs inherit mountpoint $TEST_REPLICA
-assert_grep a1 < /$TEST_REPLICA/active/admin/.zfs/snapshot/t1/admin.txt
+assert_grep a1 < /$TEST_REPLICA/admin/.zfs/snapshot/t1/admin.txt
 assert_grep s1 < /$TEST_REPLICA/static/collection/.zfs/snapshot/t1/doc.txt

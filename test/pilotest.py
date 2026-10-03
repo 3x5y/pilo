@@ -52,15 +52,7 @@ def make_environ(root, **kw):
     env = {
         "PILO_PRIMARY_ROOT": "tank/a",
         "PILO_SECONDARY_ROOTS": "backup/a",
-        "PILO_ADMIN_DATASET": "tank/a/admin",
-        "PILO_INTAKE_DATASET": "tank/a/intake",
-        "PILO_PILE_DATASET": "tank/a/pile",
-        "PILO_STATIC_DATASET": "tank/a/static",
         "PILO_PATH": root,
-        "PILO_ADMIN_PATH": f"{root}/admin",
-        "PILO_INTAKE_PATH": f"{root}/intake",
-        "PILO_PILE_PATH": f"{root}/pile",
-        "PILO_STATIC_PATH": f"{root}/static",
         "PILO_USER": "ubuntu",
     }
     env.update(kw)

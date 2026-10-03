@@ -9,4 +9,4 @@ echo new > "$TMP/new.txt"
 
 pilo content-replace "$TMP/new.txt" in/file.txt
 
-assert_manifest_valid pile "$PILO_PILE_PATH"
+assert_manifest_valid pile /"$PILE"

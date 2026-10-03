@@ -14,16 +14,17 @@ def create_filesystem(dataset):
 def provision_primary(cx):
 
     checks.require_new_dataset(cx.root_dataset)
-
     create_namespace(cx.root_dataset)
-    create_namespace(cx.active_dataset)
-    create_namespace(cx.static_dataset)
-    create_namespace(cx.filing_dataset)
 
-    create_filesystem(cx.admin_dataset)
-    create_filesystem(cx.intake_dataset)
-    create_filesystem(cx.pile_dataset)
-    create_filesystem(cx.collection_dataset)
+    for contract in normalize.dataset_contracts.ALL:
+        if not contract.filesystem:
+            dataset = normalize.contract_dataset(cx, contract)
+            create_namespace(dataset)
+
+    for contract in normalize.dataset_contracts.ALL:
+        if contract.filesystem:
+            dataset = normalize.contract_dataset(cx, contract)
+            create_filesystem(dataset)
 
     normalize.normalize_system(cx)
 

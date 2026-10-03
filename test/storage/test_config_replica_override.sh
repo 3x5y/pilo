@@ -11,6 +11,6 @@ pilo storage-snapshot $snap
 pilo storage-replica-seed
 
 zfs list -t snapshot | assert_not_grep $TEST_REPLICA@$snap
-zfs list -t snapshot | assert_not_grep $TEST_REPLICA/active@$snap
+zfs list -t snapshot | assert_not_grep $TEST_REPLICA/admin@$snap
 zfs list -t snapshot | assert_grep $alt_replica@$snap
-zfs list -t snapshot | assert_grep $alt_replica/active@$snap
+zfs list -t snapshot | assert_grep $alt_replica/admin@$snap

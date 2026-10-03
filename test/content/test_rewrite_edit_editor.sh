@@ -9,4 +9,4 @@ export EDITOR="sed -i s/a/b/"
 
 pilo content-reorg-edit
 
-assert_file_exists "$PILO_PILE_PATH/in/b.txt"
+assert_file_exists "/$PILE/in/b.txt"

@@ -22,8 +22,8 @@ echo "$SCRIPT" | assert_grep "mv	in/b.txt	in/x.txt"
 
 pilo content-reorg --delete "$SCRIPT"
 
-assert_not_exists "$PILO_PILE_PATH/in/a.txt"
-assert_not_exists "$PILO_PILE_PATH/in/b.txt"
-assert_not_exists "$PILO_PILE_PATH/in/c.txt"
+assert_not_exists "/$PILE/in/a.txt"
+assert_not_exists "/$PILE/in/b.txt"
+assert_not_exists "/$PILE/in/c.txt"
 
-assert_file_exists "$PILO_PILE_PATH/in/x.txt"
+assert_file_exists "/$PILE/in/x.txt"

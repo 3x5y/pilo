@@ -12,40 +12,34 @@ class DatasetContract:
     dataset_suffix: str
     filesystem: bool
     readonly: bool | None = None
-    mount_attr: str | None = None
+    mount_suffix: str | None = None
 
 
 class dataset_contracts:
 
     ALL = [
         DatasetContract(
-            name="active",
-            dataset_suffix="active",
-            filesystem=False,
-        ),
-
-        DatasetContract(
             name="admin",
-            dataset_suffix="active/admin",
+            dataset_suffix="admin",
+            mount_suffix="admin",
             filesystem=True,
             readonly=False,
-            mount_attr="admin_path",
         ),
 
         DatasetContract(
-            name="pile-intake",
-            dataset_suffix="active/pile-intake",
+            name="intake",
+            dataset_suffix="intake",
+            mount_suffix="intake",
             filesystem=True,
             readonly=False,
-            mount_attr="intake_path",
         ),
 
         DatasetContract(
-            name="pile-readonly",
-            dataset_suffix="active/pile-readonly",
+            name="pile",
+            dataset_suffix="pile",
+            mount_suffix="pile",
             filesystem=True,
             readonly=True,
-            mount_attr="pile_path",
         ),
 
         DatasetContract(
@@ -57,20 +51,19 @@ class dataset_contracts:
         DatasetContract(
             name="collection",
             dataset_suffix="static/collection",
+            mount_suffix="static/collection",
             filesystem=True,
             readonly=True,
-            mount_attr="collection_path",
         ),
 
         DatasetContract(
             name="filing",
             dataset_suffix="static/filing",
+            mount_suffix="static/filing",
             filesystem=False,
-            mount_attr="filing_path",
         ),
     ]
 
-    # unused
     @staticmethod
     def lookup(name):
         for c in dataset_contracts.ALL:
@@ -84,10 +77,9 @@ def contract_dataset(cx, contract):
 
 
 def contract_mountpoint(cx, contract):
-    if contract.mount_attr is None:
-        return None
-
-    return getattr(cx, contract.mount_attr)
+    if contract.mount_suffix:
+        return cx.path / contract.mount_suffix
+    return None
 
 
 def apply_dataset_contracts(cx):

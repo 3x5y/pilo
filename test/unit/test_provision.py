@@ -22,21 +22,18 @@ class TestProvision(pilotest.TestCase):
         provision.provision_primary(cx)
 
         create.assert_any_call(cx.root_dataset)
-        create.assert_any_call(cx.active_dataset)
+        create.assert_any_call(cx.static_dataset)
+        create.assert_any_call(cx.filing_dataset)
         create.assert_any_call(cx.admin_dataset)
         create.assert_any_call(cx.pile_dataset)
         create.assert_any_call(cx.intake_dataset)
-        create.assert_any_call(cx.static_dataset)
         create.assert_any_call(cx.collection_dataset)
-        create.assert_any_call(cx.filing_dataset)
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
     def test_provision_secondary_rejects_existing_root(self, *_):
 
-        cx = pilotest.make_context()
-
         with self.assert_fatal():
-            provision.provision_secondary(cx)
+            provision.provision_secondary('backup/z')
 
     @patch("pilo.storage.normalize.normalize_system")
     @patch("pilo.zfs.dataset_exists", return_value=False)

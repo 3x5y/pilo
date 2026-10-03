@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 
-zfs destroy -r $TEST_ROOT/active/pile-readonly
+zfs destroy -r $TEST_ROOT/pile
 
-echo data > /$TEST_ROOT/active/pile-intake/file.txt
+echo data > /$TEST_ROOT/intake/file.txt
 
 capture_status pilo content-ingest
 

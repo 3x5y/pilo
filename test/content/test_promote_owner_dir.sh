@@ -10,4 +10,4 @@ printf "mv\tin/file.txt\tout/collection/dirx/file.txt" \
 
 pilo content-promote
 
-assert_owner $PILO_USER "$PILO_STATIC_PATH"/collection/dirx
+assert_owner $PILO_USER /"$STATIC"/collection/dirx

@@ -1,14 +1,9 @@
 #!/bin/sh
 set -e
 
-unset PILO_ADMIN_PATH
-unset PILO_INTAKE_PATH
-unset PILO_PILE_PATH
-unset PILO_STATIC_PATH
-
 capture_status pilo storage-init
 
 assert_command_ok "init should succeed with valid layout"
 
-[ -d "$PILO_PATH/active/admin" ] || fail "default admin path missing"
-[ -d "$PILO_PATH/active/pile-intake" ] || fail "default intake path missing"
+[ -d "$PILO_PATH/admin" ] || fail "default admin path missing"
+[ -d "$PILO_PATH/pile" ] || fail "default pile path missing"

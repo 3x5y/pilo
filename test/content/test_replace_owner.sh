@@ -9,7 +9,7 @@ echo new > "$TMP/new.txt"
 
 pilo content-replace "$TMP/new.txt" in/file.txt
 
-owner=$(stat -c %U "$PILO_PILE_PATH/in/file.txt")
+owner=$(stat -c %U "/$PILE/in/file.txt")
 
 [ "$owner" = "$PILO_USER" ] \
     || fail "ownership not enforced"

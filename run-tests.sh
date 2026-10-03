@@ -83,29 +83,17 @@ init_system() {
         zfs create $root
         mount=/$root
     fi
-    ADMIN=$root/active/admin
-    INTAKE=$root/active/pile-intake
-    PILE=$root/active/pile-readonly
+    ADMIN=$root/admin
+    INTAKE=$root/intake
+    PILE=$root/pile
     STASH=$root/stash
     STATIC=$root/static
     COLLECTION=$root/static/collection
     FILING=$root/static/filing
-    ADMIN_PATH=$mount/active/admin
-    INTAKE_PATH=$mount/active/pile-intake
-    PILE_PATH=$mount/active/pile-readonly
-    STATIC_PATH=$mount/static
-    : "${PILO_ADMIN_PATH:=$ADMIN_PATH}"
-    : "${PILO_INTAKE_PATH:=$INTAKE_PATH}"
-    : "${PILO_PILE_PATH:=$PILE_PATH}"
-    : "${PILO_STATIC_PATH:=$STATIC_PATH}"
     export PILO_PRIMARY_ROOT=$root
     export PILO_SECONDARY_ROOTS=$REPLICA_ROOT
     export PILO_PATH=$mount
     export PILO_USER=ubuntu
-    export PILO_ADMIN_PATH
-    export PILO_INTAKE_PATH
-    export PILO_PILE_PATH
-    export PILO_STATIC_PATH
     zfs create -p $ADMIN
     zfs create -p $INTAKE
     zfs create -p $PILE

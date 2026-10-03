@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl=$TEST_REPLICA/active/admin
+repl=$TEST_REPLICA/admin
 file=repl.txt
 
 echo v1 > /$ADMIN/$file

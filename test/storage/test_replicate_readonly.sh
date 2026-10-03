@@ -8,7 +8,7 @@ pilo storage-snapshot t1
 pilo storage-replicate
 
 for ds in \
-    $TEST_REPLICA/active/admin \
+    $TEST_REPLICA/admin \
     $TEST_REPLICA/static
 do
     [ "$(zfs get -H -o value readonly $ds)" = on ] \

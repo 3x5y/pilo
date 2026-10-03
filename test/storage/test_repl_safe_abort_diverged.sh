@@ -5,7 +5,7 @@ pilo storage-snapshot t0
 pilo storage-replica-seed
 
 # introduce corruption
-zfs snapshot $TEST_REPLICA/active/admin@evil
+zfs snapshot $TEST_REPLICA/admin@evil
 
 capture_status pilo storage-replicate-safe
 

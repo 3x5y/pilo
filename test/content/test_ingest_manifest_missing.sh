@@ -6,7 +6,7 @@ file=file.txt
 mkfile data $file
 capture_file $file
 # ensure no manifest exists
-manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+manifest=/"$ADMIN"/manifest/pile.manifest
 rm -f $manifest 2>/dev/null || true
 
 pilo content-ingest

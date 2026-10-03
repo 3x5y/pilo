@@ -10,6 +10,6 @@ printf "mv\tin/$file\tout/collection/$file" \
 
 pilo content-promote
 
-manifest=$PILO_ADMIN_PATH/manifest/pile.manifest
+manifest=/$ADMIN/manifest/pile.manifest
 cat $manifest
 assert_not_grep "./in/$file$" < $manifest

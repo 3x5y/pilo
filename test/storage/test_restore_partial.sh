@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl_pile=$TEST_REPLICA/active/pile-readonly
+repl_pile=$TEST_REPLICA/pile
 snap=baseline
 echo admin-data > /$ADMIN/admin.txt
 mkfile pile-data p.txt

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl=$TEST_REPLICA/active/pile-readonly
+repl=$TEST_REPLICA/pile
 snap=baseline
 mkfile critical file.txt
 capture_file file.txt

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl=$TEST_REPLICA/active/admin
+repl=$TEST_REPLICA/admin
 
 echo hello > /$ADMIN/file.txt
 pilo storage-snapshot t0

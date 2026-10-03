@@ -1,17 +1,17 @@
 #!/bin/sh
 set -e
 
-repl_admin=$TEST_REPLICA/active/admin
+repl_admin=$TEST_REPLICA/admin
 
-echo v1 > $ADMIN_PATH/file.txt
+echo v1 > /$ADMIN/file.txt
 pilo storage-snapshot-reg
 pilo storage-replica-seed
 
-echo v2 > $ADMIN_PATH/file.txt
+echo v2 > /$ADMIN/file.txt
 pilo storage-snapshot-reg
 pilo storage-replicate
 
-echo v3 > $ADMIN_PATH/file.txt
+echo v3 > /$ADMIN/file.txt
 pilo storage-snapshot-reg
 pilo storage-replicate
 

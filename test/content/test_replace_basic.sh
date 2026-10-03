@@ -9,5 +9,5 @@ echo new > "$TMP/new.txt"
 
 pilo content-replace "$TMP/new.txt" in/file.txt
 
-grep -q new "$PILO_PILE_PATH/in/file.txt" \
+grep -q new "/$PILE/in/file.txt" \
     || fail "file not replaced"

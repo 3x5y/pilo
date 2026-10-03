@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-repl_pile=$TEST_REPLICA/active/pile-readonly
-repl_admin=$TEST_REPLICA/active/admin
+repl_pile=$TEST_REPLICA/pile
+repl_admin=$TEST_REPLICA/admin
 repl_coll=$TEST_REPLICA/static/collection
 admin_file=admin.txt
 pile_file=file.txt

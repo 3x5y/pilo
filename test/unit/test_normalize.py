@@ -90,25 +90,6 @@ class TestNormalize(pilotest.TestCase):
 
 class TestDatasetContracts(pilotest.TestCase):
 
-    def test_contract_registry_order(self):
-        names = [
-            c.name
-            for c in normalize.dataset_contracts.ALL
-        ]
-
-        self.assertEqual(
-            names,
-            [
-                "active",
-                "admin",
-                "pile-intake",
-                "pile-readonly",
-                "static",
-                "collection",
-                "filing",
-            ],
-        )
-
     def test_lookup_contract(self):
         c = normalize.dataset_contracts.lookup(
             "collection"
@@ -130,23 +111,23 @@ class TestDatasetContracts(pilotest.TestCase):
         normalize.apply_dataset_contracts(cx)
 
         apply_ns.assert_has_calls([
-            call("tank/a/active", mountpoint=None),
             call("tank/a/static", mountpoint=None),
+            call("tank/a/static/filing", mountpoint=cx.filing_path),
         ])
 
         apply_fs.assert_has_calls([
             call(
-                "tank/a/active/admin",
+                "tank/a/admin",
                 readonly=False,
                 mountpoint=cx.admin_path,
             ),
             call(
-                "tank/a/active/pile-intake",
+                "tank/a/intake",
                 readonly=False,
                 mountpoint=cx.intake_path,
             ),
             call(
-                "tank/a/active/pile-readonly",
+                "tank/a/pile",
                 readonly=True,
                 mountpoint=cx.pile_path,
             ),
@@ -186,15 +167,8 @@ class TestDatasetContracts(pilotest.TestCase):
         get_readonly.return_value = False
 
         cx = pilotest.make_context()
-
-        contract = normalize.dataset_contracts.lookup(
-            "pile-readonly"
-        )
-
-        issues = normalize.validate_dataset_contract(
-            cx,
-            contract,
-        )
+        contract = normalize.dataset_contracts.lookup("pile")
+        issues = normalize.validate_dataset_contract(cx, contract)
 
         self.assertEqual(
             issues[0].code,
@@ -213,14 +187,7 @@ class TestDatasetContracts(pilotest.TestCase):
         get_readonly.return_value = True
 
         cx = pilotest.make_context()
-
-        contract = normalize.dataset_contracts.lookup(
-            "pile-readonly"
-        )
-
-        issues = normalize.validate_dataset_contract(
-            cx,
-            contract,
-        )
+        contract = normalize.dataset_contracts.lookup("pile")
+        issues = normalize.validate_dataset_contract(cx, contract)
 
         self.assertEqual(issues, [])

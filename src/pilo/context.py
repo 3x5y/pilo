@@ -91,26 +91,18 @@ class Context:
             secondary_configs=self.secondary_configs,
         )
 
-        self.active_dataset = environ.get("PILO_ACTIVE_DATASET") \
-                                or self.root_dataset + "/active"
-        self.admin_dataset = environ.get("PILO_ADMIN_DATASET") \
-                                or self.root_dataset + "/active/admin"
-        self.intake_dataset = environ.get("PILO_INTAKE_DATASET") \
-                                or self.root_dataset + "/active/pile-intake"
-        self.pile_dataset = environ.get("PILO_PILE_DATASET") \
-                                or self.root_dataset + "/active/pile-readonly"
-        self.static_dataset = environ.get("PILO_STATIC_DATASET") \
-                                or self.root_dataset + "/static"
+        self.admin_dataset = self.root_dataset + "/admin"
+        self.intake_dataset = self.root_dataset + "/intake"
+        self.pile_dataset = self.root_dataset + "/pile"
+        self.static_dataset = self.root_dataset + "/static"
         self.collection_dataset = self.static_dataset + "/collection"
         self.filing_dataset = self.static_dataset + "/filing"
 
         self.path = Path(environ["PILO_PATH"])
-        self.admin_path = Path(environ["PILO_ADMIN_PATH"])
-        self.intake_path = Path(environ["PILO_INTAKE_PATH"])
-        self.pile_path = Path(environ["PILO_PILE_PATH"])
-        self.static_path = Path(environ["PILO_STATIC_PATH"])
-        #self.collection_path = Path(environ["PILO_COLLECTION_PATH"])
-        #self.filing_path = Path(environ["PILO_FILING_PATH"])
+        self.admin_path = self.path / "admin"
+        self.intake_path = self.path / "intake"
+        self.pile_path = self.path / "pile"
+        self.static_path = self.path / "static"
         self.collection_path = self.static_path / 'collection'
         self.filing_path = self.static_path / 'filing'
 

@@ -11,5 +11,5 @@ EOF
 )
 pilo content-reorg "$SCRIPT"
 
-assert_file_exists "$PILO_PILE_PATH/in/b.txt"
-assert_not_exists "$PILO_PILE_PATH/in/a.txt"
+assert_file_exists "/$PILE/in/b.txt"
+assert_not_exists "/$PILE/in/a.txt"

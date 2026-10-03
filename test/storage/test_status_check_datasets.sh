@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-zfs destroy -r $TEST_ROOT/active/admin
+zfs destroy -r $TEST_ROOT/admin
 
 capture_status pilo status datasets
 

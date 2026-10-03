@@ -13,7 +13,7 @@ pilo content-ingest
 # manifest still valid
 assert_manifest_valid pile /$PILE
 
-manifest="$PILO_ADMIN_PATH"/manifest/pile.manifest
+manifest=/"$ADMIN"/manifest/pile.manifest
 # only one entry
 count=$(grep -c " \./in/$file$" $manifest) \
     || fail "file not present in manifest"

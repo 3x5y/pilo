@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-repl=$TEST_REPLICA/active/admin
+repl=$TEST_REPLICA/admin
 file=file.txt
 temp=temp.txt
 snap=baseline

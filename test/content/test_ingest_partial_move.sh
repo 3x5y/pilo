@@ -13,7 +13,7 @@ capture_status pilo content-ingest
 assert_command_fail
 
 # ensure conflicting file still in intake
-assert_file_exists "$PILO_INTAKE_PATH/a.txt"
+assert_file_exists /"$INTAKE/a.txt"
 
 # ensure existing pile file untouched
-assert_file_exists "$PILO_PILE_PATH/in/a.txt"
+assert_file_exists /"$PILE/in/a.txt"
