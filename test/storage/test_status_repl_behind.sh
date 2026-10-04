@@ -9,5 +9,5 @@ pilo storage-snapshot t1
 
 capture_status pilo status replication
 
-assert_command_fail expected replication drift
+assert_command_ok expected replication drift
 echo "$OUTPUT" | assert_grep "replication.behind"

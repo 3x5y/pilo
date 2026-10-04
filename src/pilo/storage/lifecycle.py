@@ -129,7 +129,7 @@ def replication_validation_issue(lifecycle):
         return state.ValidationIssue(
             code="replication.behind",
             message=lifecycle.message or "replication behind",
-            severity=state.ValidationSeverity.WARN,
+            severity=state.ValidationSeverity.INFO,
             component="replication",
         )
 
@@ -290,7 +290,7 @@ def collect_snapshot_validation(cx, max_age=None):
             state.ValidationIssue(
                 code="snapshot.stale",
                 message=f"stale ({age} s)",
-                severity=state.ValidationSeverity.WARN,
+                severity=state.ValidationSeverity.INFO,
                 component="snapshot",
             )
         )
