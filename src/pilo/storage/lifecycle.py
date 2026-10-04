@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+import os
 
 from .. import state
 from .. import util
@@ -252,12 +253,7 @@ def collect_snapshot_validation(cx, max_age=None):
     dataset = cx.pile_dataset
     name, ts = zfs.latest_snapshot_with_time(dataset)
     if max_age is None:
-        max_age = int(
-            __import__("os").environ.get(
-                "CONFIG_SNAPSHOT_MAX_AGE",
-                "3600",
-            )
-        )
+        max_age = int(os.environ.get("PILO_SNAPSHOT_MAX_AGE", "3600"))
     if not name:
         issues.append(
             state.ValidationIssue(

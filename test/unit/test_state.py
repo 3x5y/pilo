@@ -84,7 +84,7 @@ class TestOperationalState(pilotest.TestCase):
 
     def test_collect_snapshot_validation_stale(self):
         cx = pilotest.make_context()
-        env = {"CONFIG_SNAPSHOT_MAX_AGE": "50"}
+        env = {"PILO_SNAPSHOT_MAX_AGE": "50"}
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=900, now=1000):
             with patch.dict("os.environ", env):
@@ -96,7 +96,7 @@ class TestOperationalState(pilotest.TestCase):
         self.assertEqual(issue.component, "snapshot")
 
     def test_collect_snapshot_validation_fresh(self):
-        env = {"CONFIG_SNAPSHOT_MAX_AGE": "50"}
+        env = {"PILO_SNAPSHOT_MAX_AGE": "50"}
         cx = pilotest.make_context()
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=990, now=1000):
@@ -134,7 +134,7 @@ class TestOperationalState(pilotest.TestCase):
         from pilo.storage.replication import ReplicationStatus
         repl.return_value = (ReplicationStatus.OK, None)
         cx = pilotest.make_context()
-        env = {"CONFIG_SNAPSHOT_MAX_AGE": "1"}
+        env = {"PILO_SNAPSHOT_MAX_AGE": "1"}
 
         with pilotest.healthy_snapshot_state('tank/test@r1', ts=0, now=1000):
             with patch.dict("os.environ", env):

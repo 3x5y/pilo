@@ -5,7 +5,7 @@ pilo storage-snapshot stale
 pilo storage-replica-seed
 sleep 2
 
-export CONFIG_SNAPSHOT_MAX_AGE=1
+export PILO_SNAPSHOT_MAX_AGE=1
 capture_status pilo status snapshot
 
 assert_command_fail status returned zero
