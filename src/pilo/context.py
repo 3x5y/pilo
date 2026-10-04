@@ -101,7 +101,10 @@ class Context:
         self.path = Path(environ["PILO_PATH"])
         self.admin_path = self.path / "admin"
         self.intake_path = self.path / "intake"
+        self.git_path = self.path / "git"
         self.pile_path = self.path / "pile"
+        self.rsync_path = self.path / "rsync"
+        self.spool_path = self.path / "spool"
         self.static_path = self.path / "static"
         self.collection_path = self.static_path / 'collection'
         self.filing_path = self.static_path / 'filing'

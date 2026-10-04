@@ -78,15 +78,17 @@ init_system() {
     local root=$1 mount=${2:-}
     if [ "$mount" ]
     then
-        zfs create -o mountpoint=$mount $root
+        : #zfs create -o mountpoint=$mount $root
     else
-        zfs create $root
+        : #zfs create $root
         mount=/$root
     fi
     ADMIN=$root/admin
     INTAKE=$root/intake
+    GIT=$root/git
     PILE=$root/pile
-    STASH=$root/stash
+    RSYNC=$root/rsync
+    SPOOL=$root/spool
     STATIC=$root/static
     COLLECTION=$root/static/collection
     FILING=$root/static/filing
@@ -94,12 +96,7 @@ init_system() {
     export PILO_SECONDARY_ROOTS=$REPLICA_ROOT
     export PILO_PATH=$mount
     export PILO_USER=ubuntu
-    zfs create -p $ADMIN
-    zfs create -p $INTAKE
-    zfs create -p $PILE
-    zfs create -p $COLLECTION
-    zfs create -p $FILING
-    pilo storage-init
+    pilo storage-provision-primary
 }
 
 init_replica() {

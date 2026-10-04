@@ -127,9 +127,24 @@ class TestDatasetContracts(pilotest.TestCase):
                 mountpoint=cx.intake_path,
             ),
             call(
+                "tank/a/git",
+                readonly=False,
+                mountpoint=cx.git_path,
+            ),
+            call(
                 "tank/a/pile",
-                readonly=True,
+                readonly=False,
                 mountpoint=cx.pile_path,
+            ),
+            call(
+                "tank/a/rsync",
+                readonly=False,
+                mountpoint=cx.rsync_path,
+            ),
+            call(
+                "tank/a/spool",
+                readonly=False,
+                mountpoint=cx.spool_path,
             ),
             call(
                 "tank/a/static/collection",
@@ -167,7 +182,7 @@ class TestDatasetContracts(pilotest.TestCase):
         get_readonly.return_value = False
 
         cx = pilotest.make_context()
-        contract = normalize.dataset_contracts.lookup("pile")
+        contract = normalize.dataset_contracts.lookup("collection")
         issues = normalize.validate_dataset_contract(cx, contract)
 
         self.assertEqual(
@@ -187,7 +202,7 @@ class TestDatasetContracts(pilotest.TestCase):
         get_readonly.return_value = True
 
         cx = pilotest.make_context()
-        contract = normalize.dataset_contracts.lookup("pile")
+        contract = normalize.dataset_contracts.lookup("collection")
         issues = normalize.validate_dataset_contract(cx, contract)
 
         self.assertEqual(issues, [])

@@ -35,11 +35,35 @@ class dataset_contracts:
         ),
 
         DatasetContract(
+            name="git",
+            dataset_suffix="git",
+            mount_suffix="git",
+            filesystem=True,
+            readonly=False,
+        ),
+
+        DatasetContract(
             name="pile",
             dataset_suffix="pile",
             mount_suffix="pile",
             filesystem=True,
-            readonly=True,
+            readonly=False,
+        ),
+
+        DatasetContract(
+            name="rsync",
+            dataset_suffix="rsync",
+            mount_suffix="rsync",
+            filesystem=True,
+            readonly=False,
+        ),
+
+        DatasetContract(
+            name="spool",
+            dataset_suffix="spool",
+            mount_suffix="spool",
+            filesystem=True,
+            readonly=False,
         ),
 
         DatasetContract(
