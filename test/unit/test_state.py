@@ -105,6 +105,17 @@ class TestOperationalState(pilotest.TestCase):
 
         self.assertEqual(issues, [])
 
+    def test_collect_snapshot_invalid_time(self):
+        cx = pilotest.make_context()
+
+        with pilotest.healthy_snapshot_state('tank/test@r1', ts=1000, now=900):
+            issues = lifecycle.collect_snapshot_validation(cx)
+
+        self.assertEqual(len(issues), 1)
+        issue = issues[0]
+        self.assertEqual(issue.code, "snapshot.system-time")
+        self.assertEqual(issue.component, "snapshot")
+
     @patch("pilo.zfs.latest_snapshot_with_time")
     def test_collect_snapshot_validation_missing(self, mock_snap):
         mock_snap.return_value = (None, None)

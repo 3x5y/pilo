@@ -280,6 +280,15 @@ def collect_snapshot_validation(cx, max_age=None):
         return issues
 
     age = util.now_epoch() - ts
+    if age < 0:
+        issues.append(
+            state.ValidationIssue(
+                code="snapshot.system-time",
+                message=f"system time is earlier than latest snapshot",
+                severity=state.ValidationSeverity.ERROR,
+                component="snapshot",
+            )
+        )
     if age > max_age:
         issues.append(
             state.ValidationIssue(
