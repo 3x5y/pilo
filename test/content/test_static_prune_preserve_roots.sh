@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-with_writable $PILE mkdir -p /$PILE/in
-with_writable $PILE mkdir -p /$PILE/out
-with_writable $PILE mkdir -p /$PILE/sort
+mkdir -p /$PILE/in
+mkdir -p /$PILE/out
+mkdir -p /$PILE/sort
 
 pilo content-prune
 

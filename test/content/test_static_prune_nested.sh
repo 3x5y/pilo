@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-with_writable $PILE \
-    mkdir -p /$PILE/out/collection/a/b/c
+mkdir -p /$PILE/out/collection/a/b/c
 
 pilo content-prune
 

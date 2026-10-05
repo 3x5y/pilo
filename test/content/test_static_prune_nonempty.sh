@@ -1,10 +1,8 @@
 #!/bin/sh
 set -e
 
-with_writable $PILE \
-    mkdir -p /$PILE/out/collection/a
-with_writable $PILE \
-    touch /$PILE/out/collection/a/file.txt
+mkdir -p /$PILE/out/collection/a
+touch /$PILE/out/collection/a/file.txt
 
 pilo content-prune
 
