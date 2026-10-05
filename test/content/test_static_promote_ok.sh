@@ -2,11 +2,8 @@
 set -e
 
 file=ok.txt
-mkfile ok $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$file" \
-    | pilo content-reorg
+echo ok > /$PILE/out/collection/$file
+create_pile_manifest
 
 pilo content-promote
 

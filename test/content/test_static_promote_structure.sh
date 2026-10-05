@@ -2,10 +2,8 @@
 set -e
 
 dir=random
-with_writable $PILE \
-    mkdir -p /$PILE/out/$dir
-with_writable $PILE \
-    touch /$PILE/out/$dir/file.txt
+mkdir -p /$PILE/out/$dir
+touch /$PILE/out/$dir/file.txt
 
 capture_status pilo content-promote
 

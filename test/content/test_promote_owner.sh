@@ -1,12 +1,8 @@
 #!/bin/sh
 set -eu
 
-mkfile data file.txt
-capture_file file.txt
-pilo content-ingest
-
-printf "mv\tin/file.txt\tout/collection/file.txt" \
-    | pilo content-reorg
+echo data > /$PILE/out/collection/file.txt
+create_pile_manifest
 
 pilo content-promote
 

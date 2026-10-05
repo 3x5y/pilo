@@ -2,11 +2,7 @@
 set -e
 
 file=bad.txt
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/filing/$file" \
-    | pilo content-reorg
+echo data > /$PILE/out/filing/$file
 
 capture_status pilo content-promote
 

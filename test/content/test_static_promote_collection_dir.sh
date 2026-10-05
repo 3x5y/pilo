@@ -3,11 +3,10 @@ set -e
 
 file=stuff.txt
 dir=foo/bar
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$dir/$file" \
-    | pilo content-reorg
+
+mkdir -p /$PILE/out/collection/$dir
+echo data > /$PILE/out/collection/$dir/$file
+create_pile_manifest
 
 pilo content-promote
 

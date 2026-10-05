@@ -2,11 +2,8 @@
 set -e
 
 file=nice.txt
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$file" \
-    | pilo content-reorg
+echo data > /$PILE/out/collection/$file
+create_pile_manifest
 
 pilo content-promote
 

@@ -1,10 +1,8 @@
 #!/bin/sh
 set -eu
 
-with_writable $PILE \
-    sh -c "echo A > '/$PILE/out/collection/a.txt'"
-with_writable $PILE \
-    sh -c "echo B > '/$PILE/out/collection/b.txt'"
+echo A > /$PILE/out/collection/a.txt
+echo B > /$PILE/out/collection/b.txt
 
 # create conflict only for one
 with_writable $COLLECTION \

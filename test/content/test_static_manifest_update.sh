@@ -2,11 +2,9 @@
 set -e
 
 file=manifest-item.txt
-mkfile important $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$file" \
-    | pilo content-reorg
+
+echo important > /$PILE/out/collection/$file
+create_pile_manifest
 
 pilo content-promote
 

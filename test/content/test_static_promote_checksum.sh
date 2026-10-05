@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
 
+
 file=good-file.txt
-mkfile good $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$file" \
-    | pilo content-reorg
+echo good > /$PILE/out/collection/$file
+create_pile_manifest
 
 pilo content-promote
 

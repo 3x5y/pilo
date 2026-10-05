@@ -3,18 +3,14 @@ set -e
 
 file=file.txt
 dst=collection/a
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/$dst/$file" \
-    | pilo content-reorg
+mkdir -p /$PILE/out/$dst
+echo data > /$PILE/out/$dst/$file
+create_pile_manifest
+
 pilo content-promote
+
 # reintroduce identical
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/$dst/$file" \
-    | pilo content-reorg
+echo data > /$PILE/out/$dst/$file
 
 pilo content-promote
 

@@ -5,9 +5,7 @@ set -eu
 with_writable $COLLECTION \
     sh -c "echo A > '/$STATIC/collection/x.txt'"
 
-# conflicting file in pile
-with_writable $PILE \
-    sh -c "echo B > '/$PILE/out/collection/x.txt'"
+echo B > /$PILE/out/collection/x.txt
 
 capture_status pilo content-promote
 

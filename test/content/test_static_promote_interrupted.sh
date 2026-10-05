@@ -3,14 +3,11 @@ set -e
 
 file=file.txt
 dst=collection
-mkfile data $file
-capture_file $file
-pilo content-ingest
+echo data > /$PILE/in/$file
 # simulate interrupted promotion with copy
 with_writable $STATIC/$dst \
     cp /$PILE/in/$file /$STATIC/$dst/$file
-printf "mv\tin/$file\tout/$dst/$file" \
-    | pilo content-reorg
+mv /$PILE/in/$file /$PILE/out/$dst/$file
 
 pilo content-promote
 

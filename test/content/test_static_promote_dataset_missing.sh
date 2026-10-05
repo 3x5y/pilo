@@ -3,11 +3,9 @@ set -e
 
 file=bad.txt
 archive=filing/2099
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/$archive/$file" \
-    | pilo content-reorg
+mkdir -p /$PILE/out/$archive
+echo data > /$PILE/out/$archive/$file
+create_pile_manifest
 
 # dataset does NOT exist
 capture_status pilo content-promote

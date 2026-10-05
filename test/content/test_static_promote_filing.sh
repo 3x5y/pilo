@@ -3,12 +3,10 @@ set -e
 
 file=some-file.txt
 archive=filing/2025
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/$archive/$file" \
-    | pilo content-reorg
-zfs create -p $STATIC/$archive
+mkdir -p /$PILE/out/$archive
+echo data > /$PILE/out/$archive/$file
+create_pile_manifest
+zfs create -p -o readonly=on $STATIC/$archive
 
 pilo content-promote
 

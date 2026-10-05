@@ -3,18 +3,13 @@ set -e
 
 file=dir-conflict.txt
 dir=x/y
-mkfile good-data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$dir/$file" \
-    | pilo content-reorg
+
+mkdir -p /$PILE/out/collection/$dir
+echo good-data > /$PILE/out/collection/$dir/$file
+create_pile_manifest
 pilo content-promote
-# reintroduce conflicting version
-mkfile bad-data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/collection/$dir/$file" \
-    | pilo content-reorg
+
+echo bad > /$PILE/out/collection/$dir/$file
 
 capture_status pilo content-promote
 

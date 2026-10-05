@@ -1,16 +1,13 @@
 #!/bin/sh
 set -e
 
-dir=a/b
 file=file.txt
+dir=a/b
 archive=filing/2025
-mkfile data $file
-capture_file $file
-pilo content-ingest
-printf "mv\tin/$file\tout/$archive/$dir/$file" \
-    | pilo content-reorg
-zfs create -p $STATIC/$archive
-chown $PILO_USER:$PILO_USER /$STATIC/$archive
+mkdir -p /$PILE/out/$archive/$dir
+echo data > /$PILE/out/$archive/$dir/$file
+create_pile_manifest
+zfs create -p -o readonly=on $STATIC/$archive
 
 pilo content-promote
 
