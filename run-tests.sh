@@ -116,6 +116,11 @@ run_tests() {
     do
         TEST_NAME=${test_file%.sh}
         [ -e "$test_file" ] || continue
+        if grep -q ^TEST_SKIP=1 "$test_file"
+        then
+            echo "[skip] $TEST_NAME"
+            continue
+        fi
         test_setup
         if (. "$TESTLIB"; . "$test_file")
         then

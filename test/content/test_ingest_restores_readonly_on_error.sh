@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-echo skipped
-exit 0
+TEST_SKIP=1
 
 mkintake "A" file.txt
 pilo content-ingest

@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-echo skipped
-exit 0
+TEST_SKIP=1
 
 file=immutable.txt
 mkfile important $file
