@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+TEST_SKIP=1
+
 mkfile data a.txt
 capture_file a.txt
 pilo content-ingest

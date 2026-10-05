@@ -12,9 +12,8 @@ snap=baseline
 echo admin-data > /$ADMIN/$admin_file
 with_writable $COLLECTION \
     sh -c "echo static-data > /$COLLECTION/$static_file"
-mkfile pile-data file.txt
-capture_file file.txt
-pilo content-ingest
+echo pile-data > /$PILE/in/file.txt
+
 pilo storage-snapshot $snap
 pilo storage-replica-seed
 clear_holds $COLLECTION

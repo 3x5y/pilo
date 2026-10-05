@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-mkfile data file.txt
-capture_file file.txt
-pilo content-ingest
+echo data > /$PILE/in/file.txt
+create_pile_manifest
 
 assert_owner $PILO_USER /"$ADMIN"/manifest/.git

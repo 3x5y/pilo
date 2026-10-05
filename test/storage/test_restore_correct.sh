@@ -3,9 +3,10 @@ set -e
 
 repl=$TEST_REPLICA/pile
 snap=baseline
-mkfile critical file.txt
-capture_file file.txt
-pilo content-ingest
+
+echo critical > /$PILE/in/file.txt
+create_pile_manifest
+
 pilo storage-snapshot $snap
 pilo storage-replica-seed
 clear_holds $PILE

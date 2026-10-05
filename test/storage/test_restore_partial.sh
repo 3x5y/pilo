@@ -4,9 +4,7 @@ set -e
 repl_pile=$TEST_REPLICA/pile
 snap=baseline
 echo admin-data > /$ADMIN/admin.txt
-mkfile pile-data p.txt
-capture_file p.txt
-pilo content-ingest
+echo pile-data > /$PILE/in/p.txt
 with_writable $STATIC \
     touch /$STATIC/doc.txt
 pilo storage-snapshot $snap

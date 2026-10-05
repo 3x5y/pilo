@@ -1,12 +1,8 @@
 #!/bin/sh
 set -e
 
-mkfile data file1.txt
-capture_file file1.txt
-pilo content-ingest
-
-mkfile another file2.txt
-capture_file file2.txt
-pilo content-ingest
+echo data > /$PILE/in/file1.txt
+echo another > /$PILE/in/file2.txt
+create_pile_manifest
 
 assert_manifest_valid pile /$PILE

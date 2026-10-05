@@ -2,8 +2,7 @@
 set -e
 
 file=test.txt
-mkfile hello $file
-capture_file $file
-pilo content-ingest
+echo hello > /$PILE/in/$file
+create_pile_manifest
 
 assert_manifest_valid pile /$PILE

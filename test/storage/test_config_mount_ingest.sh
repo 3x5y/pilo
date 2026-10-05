@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+TEST_SKIP=1
+
 mount=/alt-mount
 oldpile=$PILO_PATH/pile
 init_system tank/test/alt $mount

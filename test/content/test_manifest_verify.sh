@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 
-mkfile valid foo.txt
-pilo content-ingest
+echo valid > /$PILE/in/foo.txt
+create_pile_manifest
 
-pilo manifest-verify
+capture_status pilo manifest-verify
+assert_command_ok manifest did not verify

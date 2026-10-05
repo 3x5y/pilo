@@ -8,7 +8,6 @@ from pathlib import Path
 from pilo import context
 from pilo import fs
 from pilo import status
-from pilo.content import ingest
 from pilo.content import manifest
 from pilo.content import mutation
 import pilotest

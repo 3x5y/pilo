@@ -1,9 +1,7 @@
 #!/bin/sh
 set -e
 
-mkfile data file.txt
-capture_file file.txt
-pilo content-ingest
+echo data > /$PILE/in/file.txt
 
 capture_status pilo status pile
 

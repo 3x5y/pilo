@@ -1,10 +1,11 @@
 #!/bin/sh
 set -e
 
-mkintake data a/file.txt
-mkintake data b/file.txt
-
-pilo content-ingest
+mkdir /$PILE/in/a
+mkdir /$PILE/in/b
+echo data > /$PILE/in/a/file.txt
+echo data > /$PILE/in/b/file.txt
+create_pile_manifest
 
 manifest=/"$ADMIN"/manifest/pile.manifest
 count=$(grep -c "file.txt$" $manifest)

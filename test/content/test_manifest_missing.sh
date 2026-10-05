@@ -1,12 +1,9 @@
 #!/bin/sh
 set -e
 
-file=test_missing.txt
-mkfile data $file
-capture_file $file
-pilo content-ingest
-with_writable $PILE \
-    rm /$PILE/in/$file
+echo data > /$PILE/in/file.txt
+create_pile_manifest
+rm /$PILE/in/file.txt
 
 capture_status pilo manifest-verify
 
