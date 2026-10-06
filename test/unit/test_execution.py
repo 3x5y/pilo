@@ -1,4 +1,3 @@
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -6,9 +5,7 @@ from unittest.mock import patch
 from pilo.content.execution import (
     ExecutionPlan,
     ManifestStep,
-    VerifyChecksumStep,
     execute_plan,
-    execute_verify_checksum_step,
 )
 
 
@@ -79,97 +76,27 @@ class TestExecutionPlan(pilotest.TestCase):
 
 
     @patch("pilo.content.mutation.execute_fs_mutations")
-    @patch("pilo.content.execution.execute_verify_checksum_step")
-    def test_preflight_executes_before_mutations(
+    @patch("pilo.content.manifest.execute_manifest_mutations")
+    @patch("pilo.fs.hash_file1")
+    def test_execute_plan_does_not_verify_checksums(
         self,
-        mock_verify,
+        mock_hash,
+        mock_manifest,
         mock_mutate,
     ):
 
-        order = []
-
-        def verify(*args, **kwargs):
-            order.append("verify")
-
-        def mutate(*args, **kwargs):
-            order.append("mutate")
-
-        mock_verify.side_effect = verify
-        mock_mutate.side_effect = mutate
-
         cx = pilotest.make_context()
         plan = ExecutionPlan(
-            preflight_steps=[
-                VerifyChecksumStep(
-                    path=Path("/tmp/a"),
-                    expected_checksum="abc",
+            filesystem_steps=["x"],
+            manifest_steps=[
+                ManifestStep(
+                    subset="pile",
+                    manifest_path=Path("/tmp/p.manifest"),
+                    build_mutations=lambda: [],
                 )
             ],
-            filesystem_steps=["x"],
         )
 
         execute_plan(cx, plan)
 
-        self.assertEqual(order, ["verify", "mutate"])
-
-
-    @patch("pilo.content.mutation.execute_fs_mutations")
-    @patch("pilo.content.execution.execute_verify_checksum_step")
-    def test_preflight_failure_prevents_mutation(
-        self,
-        mock_verify,
-        mock_mutate,
-    ):
-
-        def fail(*args, **kwargs):
-            raise SystemExit(1)
-
-        mock_verify.side_effect = fail
-
-        cx = pilotest.make_context()
-
-        plan = ExecutionPlan(
-            preflight_steps=[
-                VerifyChecksumStep(
-                    path=Path("/tmp/a"),
-                    expected_checksum="bad",
-                )
-            ],
-            filesystem_steps=["x"],
-        )
-
-        with self.assertRaises(SystemExit):
-            execute_plan(cx, plan)
-
-        mock_mutate.assert_not_called()
-
-
-class TestVerifyChecksumStep(pilotest.TestCase):
-
-    def test_verify_checksum_step_accepts_matching_checksum(self):
-
-        with tempfile.TemporaryDirectory() as td:
-
-            path = Path(td) / "a.txt"
-            path.write_text("hello")
-
-            step = VerifyChecksumStep(
-                path=path,
-                expected_checksum=
-                    "2cf24dba5fb0a30e26e83b2ac5b9e29"
-                    "e1b161e5c1fa7425e73043362938b9824",
-            )
-
-            execute_verify_checksum_step(step)
-
-    def test_verify_checksum_step_fails_on_mismatch(self):
-
-        with tempfile.TemporaryDirectory() as td:
-            path = Path(td) / "a.txt"
-            path.write_text("hello")
-            step = VerifyChecksumStep(
-                path=path,
-                expected_checksum="bad",
-            )
-            with pilotest.assert_fatal(self):
-                execute_verify_checksum_step(step)
+        mock_hash.assert_not_called()
