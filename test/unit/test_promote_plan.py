@@ -1,7 +1,5 @@
 from contextlib import contextmanager
-import unittest
 from unittest.mock import patch
-from unittest.mock import MagicMock
 from pathlib import Path
 
 from pilo import fs

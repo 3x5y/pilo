@@ -1,4 +1,3 @@
-import unittest
 from pathlib import Path
 
 from pilo.content import manifest
