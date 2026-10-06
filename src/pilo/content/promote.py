@@ -20,6 +20,7 @@ class PromoteOp:
     src: Path
     dst: Path | None
     dataset: str
+    checksum: str | None = None
 
 
 @dataclass(frozen=True)
