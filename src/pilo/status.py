@@ -80,7 +80,7 @@ def check_manifest(cx, subset):
         return
 
     try:
-        cmd = ["sha256sum", "--quiet", "--strict", "-c", manifest]
+        cmd = ["b3sum", "--quiet", "-c", manifest]
         subprocess.run(cmd, cwd=str(base_dir), check=True)
         return state.ValidationIssue(
                 code="manifest.state",

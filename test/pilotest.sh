@@ -49,7 +49,7 @@ create_pile_manifest() {
 create_manifest() {
     local subset="$1"
     local dir="$2"
-    (cd $dir; find -type f -print0 | sort -z | xargs -0 sha256sum) \
+    (cd $dir; find -type f -print0 | sort -z | xargs -0 b3sum) \
         > /"$ADMIN"/manifest/$subset.manifest
 }
 
@@ -134,7 +134,7 @@ assert_manifest_valid() {
     subset="$1"
     dir="$2"
     manifest=/"$ADMIN"/manifest/$subset.manifest
-    (cd "$dir" && sha256sum --quiet --strict -c "$manifest") \
+    (cd "$dir" && b3sum --quiet -c "$manifest") \
         || fail "manifest $manifest is invalid"
 }
 

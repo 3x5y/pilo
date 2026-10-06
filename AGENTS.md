@@ -8,7 +8,7 @@
 
 ## Python package
 
-- `src/pilo/` — stdlib only, zero external deps. ZFS via `subprocess` calls.
+- `src/pilo/` — stdlib only, zero external deps. ZFS via `subprocess` calls. BLAKE3 hashing via the external `b3sum` command (`fs.hash_file1`).
 - Two top-level subpackages: `storage/` (replication/recovery), `content/` (capture/ingestion).
 - Key modules: `context.py` (reads env → dataset/path resolution), `paths.py` (logical path parsing, 3 domains: pile/collection/filing), `zfs.py` (thin wrapper over zfs/zpool CLI), `normalize.py` (dataset contract enforcement).
 
@@ -78,4 +78,4 @@ pilo restore                         # restore from replica
 
 - All commands must exit cleanly; errors raise `FatalError` caught by `run_main`.
 - Static datasets are `readonly=on`; use `zfs.dataset_writable()` context manager for mutations.
-- Manifests are `sha256sum` files stored in `admin/manifest/`.
+- Manifests are `b3sum` files stored in `admin/manifest/`.

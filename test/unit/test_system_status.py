@@ -1,5 +1,4 @@
 import subprocess
-import unittest
 from unittest.mock import patch
 
 from pilo import state
@@ -84,7 +83,7 @@ class TestSystemStatusModel(pilotest.TestCase):
     def test_manifest_status_failure(self, mock_run):
         mock_run.side_effect = subprocess.CalledProcessError(
             1,
-            ["sha256sum"],
+            ["b3sum"],
         )
 
         with pilotest.make_tmp_context() as cx:

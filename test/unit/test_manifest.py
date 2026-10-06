@@ -1,4 +1,3 @@
-import hashlib
 import tempfile
 from unittest.mock import patch
 from pathlib import Path
@@ -10,12 +9,12 @@ import pilotest
 
 class TestManifest(pilotest.TestCase):
 
-    def test_hash_file1_matches_hashlib(self):
+    def test_hash_file1_matches_b3sum(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "a.txt"
             path.write_bytes(b"hello world")
 
-            expected = hashlib.sha256(b"hello world").hexdigest()
+            expected = "d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24"
 
             self.assertEqual(fs.hash_file1(path), expected)
 
@@ -24,7 +23,7 @@ class TestManifest(pilotest.TestCase):
             path = Path(td) / "empty"
             path.write_bytes(b"")
 
-            expected = hashlib.sha256(b"").hexdigest()
+            expected = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
 
             self.assertEqual(fs.hash_file1(path), expected)
 

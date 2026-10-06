@@ -1,6 +1,5 @@
 from pathlib import Path
 import filecmp
-import hashlib
 import os
 import shutil
 import subprocess
@@ -72,24 +71,6 @@ def files_equal(a, b):
     return filecmp.cmp(a, b, shallow=False)
 
 
-CHUNK_SIZE = 1024 * 1024
-
-
-def hash_file(h, path: Path, chunk_size):
-    with path.open("rb") as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def sha256_file(path: Path, chunk_size=CHUNK_SIZE):
-    h = hashlib.sha256()
-    return hash_file(h, path, chunk_size=chunk_size)
-
-
 def b3sum_file(path: Path):
     proc = subprocess.run(
         ["b3sum", str(path)],
@@ -101,15 +82,4 @@ def b3sum_file(path: Path):
     return proc.stdout.split(maxsplit=1)[0]
 
 
-def sha512_file(path: Path, chunk_size=CHUNK_SIZE):
-    h = hashlib.sha512()
-    return hash_file(h, path, chunk_size=chunk_size)
-
-
-def b2_file(path: Path, chunk_size=CHUNK_SIZE):
-    h = hashlib.blake2b()
-    return hash_file(h, path, chunk_size=chunk_size)
-
-
-hash_file1 = sha256_file
-hash_file2 = b2_file
+hash_file1 = b3sum_file

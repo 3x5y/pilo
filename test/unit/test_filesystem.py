@@ -1,6 +1,3 @@
-import hashlib
-import unittest
-
 from pilo import fs
 import pilotest
 
@@ -72,10 +69,12 @@ class TestFilesystemPrimitives(pilotest.TestCase):
         with pilotest.tmpdir() as root:
             path = root / "a.txt"
             path.write_text("hello")
-            h = hashlib.sha256(b"hello").hexdigest()
             result = fs.hash_file1(path)
 
-            self.assertEqual(result, h)
+            self.assertEqual(
+                result,
+                "ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f",
+            )
 
     def test_b3sum_file_known_vector_empty(self):
         with pilotest.tmpdir() as root:
