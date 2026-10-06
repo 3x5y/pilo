@@ -16,3 +16,4 @@ pilo content-promote
 
 assert_file_exists /$STATIC/$dst/$file
 assert_not_exists /$PILE/out/$dst/$file
+pilo manifest-verify >/dev/null

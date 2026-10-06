@@ -163,8 +163,25 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
-    verified = build_verified_checksums(ops, pile_root)
-    return manifest.build_transfer_mutations(mappings, verified)
+    muts = manifest.build_transfer_mutations(mappings, build_verified_checksums(ops, pile_root))
+    muts.extend(unlink_removals(ops, mappings, pile_root))
+    return muts
+
+
+def unlink_removals(ops, mappings, pile_root):
+    """Remove the pile manifest entry for a source dropped without a copy.
+
+    A promotion with no copy operation (identical destination) still
+    unlinks the pile file, so its manifest entry must be removed too.
+    Files covered by a copy mapping already have their entry removed.
+    """
+    copied = {m.src for m in mappings}
+    return [
+        manifest.build_removal("pile", op.src.relative_to(pile_root))
+        for op in ops
+        if op.action == "unlink"
+        and op.src.relative_to(pile_root) not in copied
+    ]
 
 
 def build_verified_checksums(ops, pile_root):

@@ -295,7 +295,7 @@ class TestPromotePlan(pilotest.TestCase):
             "abc123",
         )
 
-    def test_promote_manifest_mutations_ignore_unlink(self):
+    def test_promote_manifest_mutations_unlink_only_removes_pile_entry(self):
 
         op = promote.PromoteOp(
             action="unlink",
@@ -310,7 +310,12 @@ class TestPromotePlan(pilotest.TestCase):
             Path("/static/filing"),
         )
 
-        self.assertEqual(muts, [])
+        self.assertEqual(len(muts), 1)
+
+        remove = muts[0]
+        self.assertIsInstance(remove, manifest.ManifestRemoveEntry)
+        self.assertEqual(remove.subset, "pile")
+        self.assertEqual(remove.path, Path("out/collection/a.txt"))
 
     def test_promote_manifest_mutations_mixed_operations(self):
 
