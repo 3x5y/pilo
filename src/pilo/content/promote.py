@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -94,7 +95,35 @@ def build_promote_plan(cx):
                        dataset=cx.pile_dataset)
         ops.append(op)
 
-    return PromotePlan(ops=ops)
+    return PromotePlan(ops=verify_op_checksums(cx, ops))
+
+
+def verify_op_checksums(cx, ops):
+    """Attach the manifest checksum of every copied source.
+
+    Each source is verified against its pile manifest entry, so a
+    successful plan implies every copy source was verified. Verification
+    runs after destination validation, so conflicts are reported first.
+    """
+
+    if not any(op.action == "copy" for op in ops):
+        return ops
+
+    manifest_path = cx.admin_path / "manifest" / "pile.manifest"
+    index = manifest.as_manifest_index(
+        manifest.load_manifest_entries(manifest_path)
+    )
+
+    verified = []
+    for op in ops:
+        if op.action != "copy":
+            verified.append(op)
+            continue
+        rel = op.src.relative_to(cx.pile_path)
+        existing = index.require(rel)
+        manifest.verify_checksum(op.src, existing.checksum)
+        verified.append(replace(op, checksum=existing.checksum))
+    return verified
 
 
 def preview_promote_plan(cx, plan):

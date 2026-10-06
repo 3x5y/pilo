@@ -97,12 +97,13 @@ class TestPromotePlan(pilotest.TestCase):
         mock_require,
     ):
         with promote_fixture() as (cx, src):
+            expected = fs.hash_file1(src)
             plan = promote.build_promote_plan(cx)
 
         copy_ops = [op for op in plan.ops if op.action == "copy"]
 
         self.assertEqual(len(copy_ops), 1)
-        self.assertEqual(copy_ops[0].checksum, fs.hash_file1(src))
+        self.assertEqual(copy_ops[0].checksum, expected)
 
     @patch("pilo.checks.require_dataset")
     def test_promote_plan_checksum_mismatch(self, mock_require):
