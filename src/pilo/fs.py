@@ -3,6 +3,9 @@ import filecmp
 import hashlib
 import os
 import shutil
+import subprocess
+
+from . import error
 
 
 def list_files(root):
@@ -85,6 +88,17 @@ def hash_file(h, path: Path, chunk_size):
 def sha256_file(path: Path, chunk_size=CHUNK_SIZE):
     h = hashlib.sha256()
     return hash_file(h, path, chunk_size=chunk_size)
+
+
+def b3sum_file(path: Path):
+    proc = subprocess.run(
+        ["b3sum", str(path)],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0 or not proc.stdout:
+        error.fatal(f"b3sum failed: {path}")
+    return proc.stdout.split(maxsplit=1)[0]
 
 
 def sha512_file(path: Path, chunk_size=CHUNK_SIZE):

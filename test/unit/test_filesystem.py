@@ -77,6 +77,40 @@ class TestFilesystemPrimitives(pilotest.TestCase):
 
             self.assertEqual(result, h)
 
+    def test_b3sum_file_known_vector_empty(self):
+        with pilotest.tmpdir() as root:
+            path = root / "a.txt"
+            path.write_text("")
+            result = fs.b3sum_file(path)
+
+            self.assertEqual(
+                result,
+                "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            )
+
+    def test_b3sum_file_known_vector(self):
+        with pilotest.tmpdir() as root:
+            path = root / "a.txt"
+            path.write_text("hello")
+            result = fs.b3sum_file(path)
+
+            self.assertEqual(
+                result,
+                "ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f",
+            )
+
+    def test_b3sum_file_parses_path_with_spaces(self):
+        with pilotest.tmpdir() as root:
+            path = root / "a b.txt"
+            path.write_text("hello")
+
+            result = fs.b3sum_file(path)
+
+            self.assertEqual(
+                result,
+                "ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f",
+            )
+
     def test_files_equal(self):
         with pilotest.tmpdir() as root:
             a = root / "a.txt"
