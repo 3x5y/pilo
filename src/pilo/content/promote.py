@@ -11,7 +11,6 @@ from . import mutation
 from .execution import (
     ExecutionPlan,
     ManifestStep,
-    VerifyChecksumStep,
 )
 
 
@@ -157,7 +156,6 @@ def build_manifest_mutations(
     pile_root,
     collection_root,
     filing_root,
-    verified,
 ):
     mappings = promote_continuity_mappings(
         ops,
@@ -165,28 +163,26 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
+    verified = build_verified_checksum_index(ops, pile_root)
     return manifest.build_transfer_mutations(mappings, verified)
 
 
-def build_preflight_steps(ops, pile_root, entries):
-
-    index = manifest.as_manifest_index(entries)
-    steps = []
-
-    for op in ops:
-        if op.action != "copy":
-            continue
-        rel = op.src.relative_to(pile_root)
-        existing = index.require(rel)
-        step = VerifyChecksumStep(
-            path=op.src,
-            expected_checksum=existing.checksum,
-        )
-        steps.append(step)
-    return steps
+def build_verified_checksum_index(ops, pile_root):
+    """Checksums already verified during planning, by pile-relative path."""
+    return manifest.ChecksumIndex(
+        [
+            manifest.ProvenancedChecksum(
+                path=op.src.relative_to(pile_root),
+                checksum=op.checksum,
+                provenance=manifest.ChecksumProvenance.VERIFIED,
+            )
+            for op in ops
+            if op.action == "copy"
+        ]
+    )
 
 
-def build_manifest_steps(cx, plan, pile_entries, verified):
+def build_manifest_steps(cx, plan):
 
     def build(subset):
         manifest_path =  cx.admin_path / "manifest" / f"{subset}.manifest"
@@ -195,7 +191,6 @@ def build_manifest_steps(cx, plan, pile_entries, verified):
             cx.pile_path,
             cx.static_path / "collection",
             cx.static_path / "filing",
-            verified
         )
         return ManifestStep(subset, manifest_path, build_mutations)
 
@@ -203,28 +198,12 @@ def build_manifest_steps(cx, plan, pile_entries, verified):
     return [build(x) for x in subsets]
 
 
-def build_exec_plan(cx, plan, pile_entries):
-    verified = build_checksum_index(plan.ops, cx.pile_path, pile_entries)
-    preflight_steps = build_preflight_steps(
-        plan.ops,
-        cx.pile_path,
-        pile_entries,
+def build_exec_plan(cx, plan):
+    return ExecutionPlan(
+        preflight_steps=[],
+        filesystem_steps=build_fs_mutations(plan),
+        manifest_steps=build_manifest_steps(cx, plan),
     )
-    fs_steps = build_fs_mutations(plan)
-    manifest_steps = build_manifest_steps(
-        cx,
-        plan,
-        pile_entries,
-        verified,
-    )
-    return ExecutionPlan(preflight_steps, fs_steps, manifest_steps)
-
-
-def build_checksum_index(ops, pile_root, entries):
-    index = manifest.as_manifest_index(entries)
-    pairs = [(op.src.relative_to(pile_root), op.src)
-             for op in ops if op.action == "copy"]
-    return manifest.acquire_verified_checksums(pairs, entries)
 
 
 def promote_continuity_mappings(
