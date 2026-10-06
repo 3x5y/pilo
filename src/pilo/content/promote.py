@@ -125,16 +125,6 @@ def verify_op_checksums(cx, ops):
     return verified
 
 
-def preview_promote_plan(cx, plan):
-    muts = build_fs_mutations(plan)
-    return mutation.render_mutation_preview(cx, muts)
-
-
-def execute_promote_plan(cx, plan):
-    muts = build_fs_mutations(plan)
-    mutation.execute_fs_mutations(cx, muts)
-
-
 def build_fs_mutations(plan):
     def build(op):
         if op.action == "copy":
@@ -163,7 +153,7 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
-    muts = manifest.build_transfer_mutations(mappings, build_verified_checksums(ops, pile_root))
+    muts = manifest.build_transfer_mutations(mappings)
     muts.extend(unlink_removals(ops, mappings, pile_root))
     return muts
 
@@ -182,15 +172,6 @@ def unlink_removals(ops, mappings, pile_root):
         if op.action == "unlink"
         and op.src.relative_to(pile_root) not in copied
     ]
-
-
-def build_verified_checksums(ops, pile_root):
-    """Checksums already verified during planning, by pile-relative path."""
-    return {
-        op.src.relative_to(pile_root): op.checksum
-        for op in ops
-        if op.action == "copy"
-    }
 
 
 def build_manifest_steps(cx, plan):
@@ -241,6 +222,7 @@ def promote_continuity_mappings(
             dst_subset=subset,
             src=src_rel,
             dst=dst_rel,
+            checksum=op.checksum,
         )
         mappings.append(m)
     return mappings

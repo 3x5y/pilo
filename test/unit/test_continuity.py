@@ -16,9 +16,9 @@ class TestContinuity(pilotest.TestCase):
                     dst_subset="pile",
                     src=Path("in/a.txt"),
                     dst=Path("in/b.txt"),
+                    checksum="abc123",
                 )
-            ],
-            {Path("in/a.txt"): "abc123"},
+            ]
         )
 
         self.assertEqual(len(muts), 2)
@@ -41,9 +41,9 @@ class TestContinuity(pilotest.TestCase):
                     dst_subset="collection",
                     src=Path("out/collection/a.txt"),
                     dst=Path("a.txt"),
+                    checksum="abc123",
                 )
-            ],
-            {Path("out/collection/a.txt"): "abc123"},
+            ]
         )
 
         self.assertEqual(len(muts), 2)
@@ -57,7 +57,7 @@ class TestContinuity(pilotest.TestCase):
         self.assertEqual(add.entry.path, Path("a.txt"))
         self.assertEqual(add.entry.checksum, "abc123")
 
-    def test_build_transfer_mutations_uses_supplied_checksum(self):
+    def test_build_transfer_mutations_destination_uses_mapping_checksum(self):
 
         mappings = [
             manifest.ContinuityMapping(
@@ -65,18 +65,16 @@ class TestContinuity(pilotest.TestCase):
                 dst_subset="filing",
                 src=Path("a.txt"),
                 dst=Path("b.txt"),
+                checksum="mapping-hash",
             )
         ]
 
-        muts = manifest.build_transfer_mutations(
-            mappings,
-            {Path("a.txt"): "checksum-1"},
-        )
+        muts = manifest.build_transfer_mutations(mappings)
 
-        self.assertEqual(muts[1].entry.checksum, "checksum-1")
+        self.assertEqual(muts[1].entry.checksum, "mapping-hash")
 
     def test_build_transfer_mutations_empty_mappings(self):
 
-        muts = manifest.build_transfer_mutations([], {})
+        muts = manifest.build_transfer_mutations([])
 
         self.assertEqual(muts, [])

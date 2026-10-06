@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 #from pilo.content import ingest
 from pilo.content import prune
-from pilo.content import promote
 from pilo.content import mutation
 import pilotest
 
@@ -78,23 +77,6 @@ class TestExecutionPreview(pilotest.TestCase):
         rendered = ingest.preview_ingest_plan(cx, plan)
 
         self.assertEqual(rendered, ["move /tmp/in/a -> /tmp/pile/in/a"])
-
-    def test_preview_promote_plan(self):
-        cx = pilotest.make_context()
-        plan = promote.PromotePlan(
-            ops=[
-                promote.PromoteOp(
-                    action="unlink",
-                    src=Path("/tmp/a"),
-                    dst=None,
-                    dataset="tank/a/pile",
-                )
-            ]
-        )
-
-        rendered = promote.preview_promote_plan(cx, plan)
-
-        self.assertEqual(rendered, ["unlink /tmp/a"])
 
     def test_preview_prune_plan(self):
         cx = pilotest.make_context()

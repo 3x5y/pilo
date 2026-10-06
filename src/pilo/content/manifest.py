@@ -206,9 +206,10 @@ class ContinuityMapping:
     dst_subset: str
     src: Path
     dst: Path
+    checksum: str
 
 
-def build_transfer_mutations(mappings, checksums):
+def build_transfer_mutations(mappings):
 
     muts = []
     for m in mappings:
@@ -222,7 +223,7 @@ def build_transfer_mutations(mappings, checksums):
             build_addition(
                 m.dst_subset,
                 m.dst,
-                checksums[m.src],
+                m.checksum,
             )
         )
     return muts

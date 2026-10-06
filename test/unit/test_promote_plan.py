@@ -163,24 +163,6 @@ class TestPromotePlan(pilotest.TestCase):
         self.assertIsInstance(muts[0], mutation.CopyMutation)
         self.assertIsInstance(muts[1], mutation.UnlinkMutation)
 
-    @patch("pilo.content.mutation.execute_fs_mutations")
-    def test_execute_uses_executor(self, mock_exec):
-        cx = pilotest.make_context()
-
-        plan = promote.PromotePlan(
-            ops = [
-                promote.PromoteOp(
-                    src=cx.pile_path / "out/collection/a.txt",
-                    dst=Path("/tmp/static/collection/a.txt"),
-                    dataset="tank/a/static/collection",
-                    action="copy",
-                )
-            ]
-        )
-
-        promote.execute_promote_plan(cx, plan)
-        mock_exec.assert_called_once()
-
     @patch("pilo.content.manifest.verify_checksum")
     @patch("pilo.checks.require_dataset")
     @patch("pilo.fs.files_equal", return_value=True)
@@ -421,6 +403,7 @@ class TestPromotePlan(pilotest.TestCase):
                 src=cx.pile_path / "out/collection/a.txt",
                 dst=Path("/static/collection/a.txt"),
                 dataset="tank/static/collection",
+                checksum="abc123",
             )
         ]
         mappings = promote.promote_continuity_mappings(
@@ -434,6 +417,7 @@ class TestPromotePlan(pilotest.TestCase):
         mapping = mappings[0]
         self.assertEqual(mapping.src, Path("out/collection/a.txt"))
         self.assertEqual(mapping.dst, Path("a.txt"))
+        self.assertEqual(mapping.checksum, "abc123")
 
     def test_promote_manifest_mutations_use_cross_subset_continuity(
         self,
