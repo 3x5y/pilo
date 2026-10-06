@@ -111,7 +111,7 @@ test_main() {
     _pilo storage-provision-secondary z2-rem/bak
     _pilo storage-replica-seed
 
-    head -c100M /dev/urandom > /z/intake/random.bin
+    head -c100M /dev/urandom > /z/pile/in/random.bin
 
     echo \# cycling
 
