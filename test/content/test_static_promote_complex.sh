@@ -28,6 +28,8 @@ init_manifest
 create_manifest pile /$PILE
 create_manifest collection /$COLLECTION
 create_manifest filing /$FILING
+runuser git -C /$ADMIN/manifest add *.manifest
+runuser git -C /$ADMIN/manifest commit -m 'initial'
 
 pilo content-promote
 
@@ -39,8 +41,6 @@ assert_manifest_entry collection " \./$coldir/$colfile$"
 assert_manifest_entry collection " \./$coldir/$colpromote$"
 assert_manifest_entry filing " \./$archive/$fildir/$filfile$"
 assert_manifest_entry filing " \./$archive/$fildir/$filpromote$"
-#assert_file_exists /$STATIC/collection/$coldir/$file
-#assert_not_exists /$PILE/out/collection/$coldir/$file
 manifest=/$ADMIN/manifest/pile.manifest
 assert_not_grep "./out/collection$coldir/$colpromote$" < $manifest
 assert_not_grep "./out/filing/$archive/$fildie/$filpromote$" < $manifest
