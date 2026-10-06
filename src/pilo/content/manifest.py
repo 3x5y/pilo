@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 import shutil
 import tempfile
@@ -7,13 +6,9 @@ import tempfile
 from .. import error
 from .. import fs
 from .. import git
-from .. import paths
-
-from . import manifest
 
 
-
-# --- data model (was manifest_model.py) ---
+# --- data model ---
 
 @dataclass(frozen=True)
 class ManifestEntry:
@@ -33,19 +28,6 @@ class ManifestRemoveEntry:
     path: Path
 
 
-class ChecksumProvenance(Enum):
-    MANIFEST = "manifest"
-    VERIFIED = "verified"
-    GENERATED = "generated"
-
-
-@dataclass(frozen=True)
-class ProvenancedChecksum:
-    path: Path
-    checksum: str
-    provenance: ChecksumProvenance
-
-
 class ManifestIndex:
 
     def __init__(self, entries):
@@ -63,51 +45,13 @@ class ManifestIndex:
         return entry
 
 
-class ChecksumIndex:
-
-    def __init__(self, checksums):
-        self._checksums = {}
-        for item in checksums:
-            normalized = as_provenanced_checksum(item)
-            self._checksums[normalized.path] = normalized
-
-    def lookup(self, path: Path):
-        return self._checksums.get(path)
-
-    def require(self, path: Path):
-        item = self.lookup(path)
-        if item is None:
-            error.fatal(f"verified checksum missing: {path}")
-        return item
-
-
 def as_manifest_index(entries):
     if isinstance(entries, ManifestIndex):
         return entries
     return ManifestIndex(entries)
 
 
-def as_checksum_index(items):
-    if isinstance(items, ChecksumIndex):
-        return items
-    if isinstance(items, dict):
-        items = items.values()
-    return ChecksumIndex(items)
-
-
-def as_provenanced_checksum(item):
-    if isinstance(item, ProvenancedChecksum):
-        return item
-    if isinstance(item, ManifestEntry):
-        return ProvenancedChecksum(
-            path=item.path,
-            checksum=item.checksum,
-            provenance=ChecksumProvenance.MANIFEST,
-        )
-    error.fatal(f"unsupported checksum item: {type(item).__name__}")
-
-
-# --- codec (was manifest_codec.py) ---
+# --- codec ---
 
 def render_manifest_entry(entry):
     return f"{entry.checksum}  ./{entry.path}"
@@ -138,7 +82,7 @@ def load_manifest_entries(path):
     return entries
 
 
-# --- policy / domain (was manifest_policy.py) ---
+# --- policy / domain ---
 
 MANIFEST_DATASET_PATTERNS = {
     "pile": "/pile",
@@ -166,17 +110,7 @@ def build_removal(subset, path):
     return ManifestRemoveEntry(subset=subset, path=path)
 
 
-def build_pile_additions(paths, checksums):
-    index = as_checksum_index(checksums)
-    muts = []
-    for rel in paths:
-        item = index.require(rel)
-        add = build_addition("pile", rel, item.checksum)
-        muts.append(add)
-    return muts
-
-
-# --- mutation / apply (was manifest_mutation.py) ---
+# --- mutation / apply ---
 
 def apply_manifest_mutations(entries, muts):
     by_path = {entry.path: entry for entry in entries}
@@ -197,7 +131,7 @@ def execute_manifest_mutations(cx, subset, manifest_path, muts):
     commit_manifest_if_changed(cx, manifest_path, msg)
 
 
-# --- store / persistence (was manifest_store.py) ---
+# --- store / persistence ---
 
 def write_manifest_entries(cx, manifest_path, entries):
     with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
@@ -216,7 +150,7 @@ def commit_manifest_if_changed(cx, manifest, message):
     git.commit_if_changed(cx, repo, manifest, message)
 
 
-# --- verify (was manifest_verify.py) ---
+# --- verify ---
 
 def generate_manifest_entries(root: Path, exclude=None):
     exclude = set(exclude or [])
@@ -255,20 +189,6 @@ def verify_manifest_lines(root: Path, lines, exclude=None):
     return expected == actual
 
 
-def generate_checksum(path: Path):
-    checksum = fs.hash_file1(path)
-    return (
-        ProvenancedChecksum(
-            path=path,
-            checksum=checksum,
-            provenance=(
-                ChecksumProvenance
-                .GENERATED
-            ),
-        )
-    )
-
-
 def verify_checksum(path: Path, expected_checksum: str):
     actual = fs.hash_file1(path)
     if actual != expected_checksum:
@@ -276,31 +196,9 @@ def verify_checksum(path: Path, expected_checksum: str):
             f"checksum verification failed: "
             f"{path}"
         )
-    return (
-        ProvenancedChecksum(
-            path=path,
-            checksum=expected_checksum,
-            provenance=(
-                ChecksumProvenance
-                .VERIFIED
-            ),
-        )
-    )
 
 
-# unused
-def reuse_manifest_checksum(entry):
-    return (
-        ProvenancedChecksum(
-            path=entry.path,
-            checksum=entry.checksum,
-            provenance=(
-                ChecksumProvenance
-                .MANIFEST
-            ),
-        )
-    )
-
+# --- continuity / transfer ---
 
 @dataclass(frozen=True)
 class ContinuityMapping:
@@ -310,107 +208,21 @@ class ContinuityMapping:
     dst: Path
 
 
-@dataclass(frozen=True)
-class ContinuityTransfer:
-    src_subset: str
-    dst_subset: str
-    src: Path
-    dst: Path
-    checksum: str
-    provenance: manifest.ChecksumProvenance
+def build_transfer_mutations(mappings, checksums):
 
-
-@dataclass(frozen=True)
-class ContinuityRemoval:
-    subset: str
-    path: Path
-
-
-def build_transfer_mutations(mappings, verified):
-    transfers = build_transfers(mappings, verified)
-    return build_mutations(transfers)
-
-
-def build_removal_mutations(removals):
     muts = []
-    for removal in removals:
-        muts.append(
-            manifest.build_removal(
-                removal.subset,
-                removal.path,
-            )
-        )
-    return muts
-
-
-def build_transfers(mappings, verified):
-
-    verified = manifest.as_checksum_index(verified)
-    transfers = []
-
     for m in mappings:
-        item = verified.require(m.src)
-        transfers.append(
-            ContinuityTransfer(
-                src_subset=m.src_subset,
-                dst_subset=m.dst_subset,
-                src=m.src,
-                dst=m.dst,
-                checksum=item.checksum,
-                provenance=item.provenance,
-            )
-        )
-    return transfers
-
-
-def build_mutations(transfers):
-
-    muts = []
-    for transfer in transfers:
         muts.append(
-            manifest.build_removal(
-                transfer.src_subset,
-                transfer.src,
+            build_removal(
+                m.src_subset,
+                m.src,
             )
         )
         muts.append(
-            manifest.build_addition(
-                transfer.dst_subset,
-                transfer.dst,
-                transfer.checksum,
+            build_addition(
+                m.dst_subset,
+                m.dst,
+                checksums[m.src],
             )
         )
     return muts
-
-
-def acquire_verified_checksums(paths, entries):
-
-    index = manifest.as_manifest_index(entries)
-    verified = []
-
-    for rel_path, real_path in paths:
-        existing = index.require(rel_path)
-        verified_item = manifest.verify_checksum(real_path, existing.checksum)
-        verified.append(
-            manifest.ProvenancedChecksum(
-                path=rel_path,
-                checksum=verified_item.checksum,
-                provenance=verified_item.provenance,
-            )
-        )
-    return manifest.ChecksumIndex(verified)
-
-
-def acquire_generated_checksums(paths):
-
-    generated = []
-    for rel_path, real_path in paths:
-        item = manifest.generate_checksum(real_path)
-        generated.append(
-            manifest.ProvenancedChecksum(
-                path=rel_path,
-                checksum=item.checksum,
-                provenance=item.provenance,
-            )
-        )
-    return manifest.ChecksumIndex(generated)

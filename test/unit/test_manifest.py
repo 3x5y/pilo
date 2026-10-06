@@ -129,29 +129,17 @@ class TestManifest(pilotest.TestCase):
 
         mock_print.assert_called_once_with("OK")
 
-    def test_checksum_provenance_values(self):
-        p = manifest.ChecksumProvenance
-        self.assertEqual(p.MANIFEST.value, "manifest")
-        self.assertEqual(p.VERIFIED.value, "verified")
-        self.assertEqual(p.GENERATED.value, "generated")
+    @patch("pilo.fs.hash_file1", return_value="abc123")
+    def test_verify_checksum_accepts_matching_checksum(self, mock_sha):
+        manifest.verify_checksum(Path("/tmp/a.txt"), "abc123")
 
-    def test_reuse_manifest_checksum_marks_manifest(self):
-
-        entry = manifest.ManifestEntry(
-            checksum="abc123",
-            path=Path("a.txt"),
-        )
-
-        item = manifest.reuse_manifest_checksum(entry)
-
-        self.assertEqual(
-            item.provenance,
-            (
-                manifest
-                .ChecksumProvenance
-                .MANIFEST
-            ),
-        )
+    @patch("pilo.fs.hash_file1", return_value="wrong")
+    def test_verify_checksum_rejects_mismatch(self, mock_sha):
+        with self.assert_fatal():
+            manifest.verify_checksum(
+                Path("/tmp/a.txt"),
+                "expected",
+            )
 
 class TestManifestEntries(pilotest.TestCase):
 

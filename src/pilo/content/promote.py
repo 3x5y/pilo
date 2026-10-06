@@ -163,23 +163,17 @@ def build_manifest_mutations(
         collection_root,
         filing_root,
     )
-    verified = build_verified_checksum_index(ops, pile_root)
+    verified = build_verified_checksums(ops, pile_root)
     return manifest.build_transfer_mutations(mappings, verified)
 
 
-def build_verified_checksum_index(ops, pile_root):
+def build_verified_checksums(ops, pile_root):
     """Checksums already verified during planning, by pile-relative path."""
-    return manifest.ChecksumIndex(
-        [
-            manifest.ProvenancedChecksum(
-                path=op.src.relative_to(pile_root),
-                checksum=op.checksum,
-                provenance=manifest.ChecksumProvenance.VERIFIED,
-            )
-            for op in ops
-            if op.action == "copy"
-        ]
-    )
+    return {
+        op.src.relative_to(pile_root): op.checksum
+        for op in ops
+        if op.action == "copy"
+    }
 
 
 def build_manifest_steps(cx, plan):

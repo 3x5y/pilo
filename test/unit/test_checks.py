@@ -4,7 +4,6 @@ import unittest
 from unittest.mock import patch
 
 from pilo import checks
-from pilo.content import manifest
 import pilotest
 
 
@@ -158,36 +157,3 @@ class TestChecks(pilotest.TestCase):
 
             with pilotest.assert_fatal(self):
                 checks.require_no_conflict(src, dst)
-
-    def test_require_verified_accepts_verified(self):
-
-        item = (
-            manifest.ProvenancedChecksum(
-                path=Path("a.txt"),
-                checksum="abc",
-                provenance=(
-                    manifest
-                    .ChecksumProvenance
-                    .VERIFIED
-                ),
-            )
-        )
-
-        checks.require_verified(item)
-
-    def test_require_verified_rejects_generated(self):
-
-        item = (
-            manifest.ProvenancedChecksum(
-                path=Path("a.txt"),
-                checksum="abc",
-                provenance=(
-                    manifest
-                    .ChecksumProvenance
-                    .GENERATED
-                ),
-            )
-        )
-
-        with pilotest.assert_fatal(self):
-            checks.require_verified(item)

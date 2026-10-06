@@ -49,14 +49,6 @@ def require_no_conflict(src, dst):
         error.fatal(f"destination conflict: {dst}")
 
 
-# unused (tested only); kept for reference
-def require_verified(checksum):
-    from pilo.content.manifest import ChecksumProvenance
-    if checksum.provenance != ChecksumProvenance.VERIFIED:
-        error.fatal("checksum continuity not verified")
-    return checksum
-
-
 def require_child_dataset(dataset, root):
     if not dataset.startswith(root):
         error.fatal(f"dataset outside root: {dataset}")
