@@ -46,7 +46,7 @@ Uses `unittest.mock` for ZFS calls. Helper in `test/pilotest.py`: `make_context(
 **System tests** (need root + ZFS):
 ```
 ./run-tests.sh --system                                 # all, creates tank/test pool
-./run-tests.sh --system test/front/test_foo.sh          # single
+./run-tests.sh --system test/content/test_foo.sh        # single
 TEST_FAIL_FAST=1 ./run-tests.sh --system                # fail fast
 ```
 Each test runs in fresh ZFS hierarchy (`tank/test`). Sources `test/pilotest.sh` for helpers: `mkfile`, `mkintake`, `capture_status`, `assert_file_exists`, `assert_manifest_entry`, `runuser` (runs as `$PILO_USER` via `sudo -u`).
@@ -60,27 +60,22 @@ Each test runs in fresh ZFS hierarchy (`tank/test`). Sources `test/pilotest.sh` 
 ```
 Mounts repo at `/mnt` inside VM.
 
+Agent is running inside VM.
+
 ## Common commands
 
 ```
 pilo init                           # normalize existing datasets
-pilo capture <path>                 # copy file into intake, write manifest
-pilo ingest-pile                    # move intake → pile, snapshot
 pilo static-promote                 # pile → collection/filing
 pilo status                         # system health report
-pilo manifest-update                # refresh checksum manifests
 pilo manifest-verify                # verify manifests
 pilo snapshot                        # ZFS snapshot of all datasets
 pilo replicate / pilo replicate-safe
 pilo restore                         # restore from replica
-pilo rewrite                         # bulk rewrite static paths
-pilo stream-export                   # export snapshot to stream file
-pilo stream-replay                   # apply stream file to dataset
-pilo stream-verify                   # verify stream file checksum
 ```
 
 ## Conventions
 
 - All commands must exit cleanly; errors raise `FatalError` caught by `run_main`.
-- Pile datasets are `readonly=on`; use `zfs.dataset_writable()` context manager for mutations.
+- Static datasets are `readonly=on`; use `zfs.dataset_writable()` context manager for mutations.
 - Manifests are `sha256sum` files stored in `admin/manifest/`.

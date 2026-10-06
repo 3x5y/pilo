@@ -36,6 +36,13 @@ capture_file() {
     pilo content-capture $TMP/"$1"
 }
 
+create_pile_manifest() {
+    runuser mkdir /$ADMIN/manifest
+    runuser git -c init.defaultBranch=master init /$ADMIN/manifest >/dev/null
+    (cd /$PILE; find -type f -print0 | sort -z | xargs -0 sha256sum) \
+        > /$ADMIN/manifest/pile.manifest
+}
+
 with_writable() {
     DATASET="$1"
     shift
@@ -119,13 +126,6 @@ assert_manifest_valid() {
     manifest=/"$ADMIN"/manifest/$subset.manifest
     (cd "$dir" && sha256sum --quiet --strict -c "$manifest") \
         || fail "manifest $manifest is invalid"
-}
-
-create_pile_manifest() {
-    runuser mkdir /$ADMIN/manifest
-    runuser git -c init.defaultBranch=master init /$ADMIN/manifest >/dev/null
-    (cd /$PILE; find -type f -print0 | sort -z | xargs -0 sha256sum) \
-        > /$ADMIN/manifest/pile.manifest
 }
 
 assert_owner() {
