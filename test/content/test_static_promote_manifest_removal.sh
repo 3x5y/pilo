@@ -9,4 +9,4 @@ pilo content-promote
 
 manifest=/$ADMIN/manifest/pile.manifest
 cat $manifest
-assert_not_grep "./in/$file$" < $manifest
+assert_not_grep "./out/collection/$file$" < $manifest

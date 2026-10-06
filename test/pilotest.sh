@@ -36,11 +36,21 @@ capture_file() {
     pilo content-capture $TMP/"$1"
 }
 
-create_pile_manifest() {
-    runuser mkdir /$ADMIN/manifest
+init_manifest() {
+    runuser mkdir -p /$ADMIN/manifest
     runuser git -c init.defaultBranch=master init /$ADMIN/manifest >/dev/null
-    (cd /$PILE; find -type f -print0 | sort -z | xargs -0 sha256sum) \
-        > /$ADMIN/manifest/pile.manifest
+}
+
+create_pile_manifest() {
+    init_manifest
+    create_manifest pile /$PILE
+}
+
+create_manifest() {
+    local subset="$1"
+    local dir="$2"
+    (cd $dir; find -type f -print0 | sort -z | xargs -0 sha256sum) \
+        > /"$ADMIN"/manifest/$subset.manifest
 }
 
 with_writable() {
