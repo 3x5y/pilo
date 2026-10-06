@@ -1,18 +1,14 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from pathlib import Path
 
 
-from .. import error
-from .. import fs
 from . import manifest
 from . import mutation
 
 
 @dataclass(frozen=True)
 class ExecutionPlan:
-    preflight_steps: list = field(default_factory=list)
     filesystem_steps: list = field(default_factory=list)
     manifest_steps: list = field(default_factory=list)
 
@@ -24,15 +20,7 @@ class ManifestStep:
     build_mutations: Callable[[], list]
 
 
-@dataclass(frozen=True)
-class VerifyChecksumStep:
-    path: Path
-    expected_checksum: str
-
-
 def execute_plan(cx, plan):
-
-    execute_preflight_steps(plan.preflight_steps)
 
     if plan.filesystem_steps:
         mutation.execute_fs_mutations(cx, plan.filesystem_steps)
@@ -44,24 +32,4 @@ def execute_plan(cx, plan):
             step.subset,
             step.manifest_path,
             muts,
-        )
-
-
-def execute_verify_checksum_step(step):
-    actual = fs.hash_file1(step.path)
-    if actual != step.expected_checksum:
-        error.fatal(
-            f"checksum verification failed: "
-            f"{step.path}"
-        )
-
-
-def execute_preflight_steps(steps):
-    for step in steps:
-        if isinstance(step, VerifyChecksumStep):
-            execute_verify_checksum_step(step)
-            continue
-        raise RuntimeError(
-            f"unsupported preflight step: "
-            f"{type(step).__name__}"
         )

@@ -200,7 +200,6 @@ def build_manifest_steps(cx, plan):
 
 def build_exec_plan(cx, plan):
     return ExecutionPlan(
-        preflight_steps=[],
         filesystem_steps=build_fs_mutations(plan),
         manifest_steps=build_manifest_steps(cx, plan),
     )
