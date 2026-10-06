@@ -122,11 +122,6 @@ class TestDatasetContracts(pilotest.TestCase):
                 mountpoint=cx.admin_path,
             ),
             call(
-                "tank/a/intake",
-                readonly=False,
-                mountpoint=cx.intake_path,
-            ),
-            call(
                 "tank/a/git",
                 readonly=False,
                 mountpoint=cx.git_path,

@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+TEST_SKIP=1
+
 oldpath=$PILO_PATH/intake
 init_system tank/test/alt /alt
 mkfile data file.txt

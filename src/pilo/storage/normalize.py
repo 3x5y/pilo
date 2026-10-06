@@ -27,14 +27,6 @@ class dataset_contracts:
         ),
 
         DatasetContract(
-            name="intake",
-            dataset_suffix="intake",
-            mount_suffix="intake",
-            filesystem=True,
-            readonly=False,
-        ),
-
-        DatasetContract(
             name="git",
             dataset_suffix="git",
             mount_suffix="git",
@@ -141,9 +133,10 @@ def apply_filesystem(dataset, mountpoint, readonly):
 
 def apply_ownership(cx):
     fs.ensure_owned(cx, cx.admin_path)
-    fs.ensure_owned(cx, cx.intake_path)
-    with zfs.dataset_writable(cx.pile_dataset):
-        fs.ensure_owned(cx, cx.pile_path)
+    fs.ensure_owned(cx, cx.git_path)
+    fs.ensure_owned(cx, cx.pile_path)
+    fs.ensure_owned(cx, cx.rsync_path)
+    fs.ensure_owned(cx, cx.spool_path)
     with zfs.dataset_writable(cx.collection_dataset):
         fs.ensure_owned(cx, cx.collection_path)
 

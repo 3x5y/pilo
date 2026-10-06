@@ -92,7 +92,6 @@ class Context:
         )
 
         self.admin_dataset = self.root_dataset + "/admin"
-        self.intake_dataset = self.root_dataset + "/intake"
         self.pile_dataset = self.root_dataset + "/pile"
         self.static_dataset = self.root_dataset + "/static"
         self.collection_dataset = self.static_dataset + "/collection"
@@ -100,7 +99,6 @@ class Context:
 
         self.path = Path(environ["PILO_PATH"])
         self.admin_path = self.path / "admin"
-        self.intake_path = self.path / "intake"
         self.git_path = self.path / "git"
         self.pile_path = self.path / "pile"
         self.rsync_path = self.path / "rsync"

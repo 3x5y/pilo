@@ -26,7 +26,6 @@ class TestProvision(pilotest.TestCase):
         create.assert_any_call(cx.filing_dataset)
         create.assert_any_call(cx.admin_dataset)
         create.assert_any_call(cx.pile_dataset)
-        create.assert_any_call(cx.intake_dataset)
         create.assert_any_call(cx.collection_dataset)
 
     @patch("pilo.zfs.dataset_exists", return_value=True)
