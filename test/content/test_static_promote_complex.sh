@@ -43,4 +43,4 @@ assert_manifest_entry filing " \./$archive/$fildir/$filfile$"
 assert_manifest_entry filing " \./$archive/$fildir/$filpromote$"
 manifest=/$ADMIN/manifest/pile.manifest
 assert_not_grep "./out/collection/$coldir/$colpromote$" < $manifest
-assert_not_grep "./out/filing/$archive/$fildie/$filpromote$" < $manifest
+assert_not_grep "./out/filing/$archive/$fildir/$filpromote$" < $manifest
