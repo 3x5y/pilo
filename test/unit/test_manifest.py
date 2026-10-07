@@ -439,30 +439,6 @@ class TestManifestPolicy(pilotest.TestCase):
         self.assertIsNone(result)
 
 
-class TestManifestUpdate(pilotest.TestCase):
-
-    @patch("pilo.git.commit_if_changed")
-    @patch("pilo.git.ensure_repo")
-    def test_commit_manifest_if_changed(
-        self,
-        mock_repo,
-        mock_commit,
-    ):
-        cx = pilotest.make_context()
-
-        mfile = Path("/tmp/test.manifest")
-
-        manifest.commit_manifest_if_changed(
-            cx,
-            mfile,
-            "test update",
-        )
-
-        mock_repo.assert_called_once()
-
-        mock_commit.assert_called_once()
-
-
 class TestManifestIndex(pilotest.TestCase):
 
     def test_lookup_returns_entry(self):

@@ -28,8 +28,6 @@ init_manifest
 create_manifest pile /$PILE
 create_manifest collection /$COLLECTION
 create_manifest filing /$FILING
-runuser git -C /$ADMIN/manifest add *.manifest >/dev/null
-runuser git -C /$ADMIN/manifest commit -m 'initial' >/dev/null
 
 pilo content-promote
 

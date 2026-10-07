@@ -5,7 +5,6 @@ import tempfile
 
 from .. import error
 from .. import fs
-from .. import git
 
 
 # --- data model ---
@@ -127,8 +126,6 @@ def execute_manifest_mutations(cx, subset, manifest_path, muts):
     entries = load_manifest_entries(manifest_path)
     updated = apply_manifest_mutations(entries, relevant)
     write_manifest_entries(cx, manifest_path, updated)
-    msg = f"{subset} manifest update"
-    commit_manifest_if_changed(cx, manifest_path, msg)
 
 
 # --- store / persistence ---
@@ -142,12 +139,6 @@ def write_manifest_entries(cx, manifest_path, entries):
     shutil.move(tmp_path, manifest_path)
     fs.ensure_owned(cx, manifest_path)
     manifest_path.chmod(0o644)
-
-
-def commit_manifest_if_changed(cx, manifest, message):
-    repo = cx.admin_path / "manifest"
-    git.ensure_repo(cx, repo)
-    git.commit_if_changed(cx, repo, manifest, message)
 
 
 # --- verify ---
