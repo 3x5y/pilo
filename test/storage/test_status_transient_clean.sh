@@ -2,12 +2,12 @@
 set -e
 
 workdir=/$ADMIN/work
-mkdir $workdir
+runuser mkdir $workdir
 cd $workdir
-git init -q
-echo data > file.txt
-git add file.txt
-git commit -m init -q
+runuser git init -q
+runuser touch file.txt
+runuser git add file.txt
+runuser git commit -m init -q
 
 capture_status pilo status transient
 

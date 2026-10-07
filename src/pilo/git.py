@@ -5,9 +5,12 @@ from . import fs
 from .util import as_user
 
 
-def is_dirty(repo: Path):
+def is_dirty(cx, repo: Path):
     cmd = ["git", "-C", str(repo), "diff", "--quiet"]
-    result = subprocess.run(cmd,
+    result = as_user(
+        cx.user,
+        cmd,
+        check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

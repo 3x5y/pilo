@@ -44,7 +44,8 @@ class TestGitHelpers(pilotest.TestCase):
     def test_git_dirty_true(self, run):
         proc = Mock(returncode=1)
         run.return_value = proc
+        cx = pilotest.make_context()
 
-        result = git.is_dirty(Path("/repo"))
+        result = git.is_dirty(cx, Path("/repo"))
 
         self.assertEqual(result, True)

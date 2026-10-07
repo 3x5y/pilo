@@ -24,7 +24,7 @@ def collect_transient_validation(cx):
     issues = []
     for git_dir in cx.admin_path.rglob(".git"):
         repo = git_dir.parent
-        if git.is_dirty(repo):
+        if git.is_dirty(cx, repo):
             i = state.ValidationIssue(
                 code="transient.state",
                 message=f"repo {repo} has uncommitted changes",
