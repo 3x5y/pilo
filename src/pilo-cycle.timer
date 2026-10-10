@@ -1,0 +1,11 @@
+# vim: filetype=systemd
+[Unit]
+Description=Schedule routine PILO storage cycles
+
+[Timer]
+OnCalendar=*-*-* *:00:00
+#Persistent=true
+Unit=pilo-cycle.service
+
+[Install]
+WantedBy=timers.target

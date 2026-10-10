@@ -13,7 +13,7 @@ def main():
     for msg in status.render_validation_report(report):
         print(msg)
 
-    exit(report.exit_code)
+    raise SystemExit(report.exit_code)
 
 
 if __name__ == "__main__":

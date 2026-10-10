@@ -1,0 +1,17 @@
+# vim: filetype=systemd
+[Unit]
+Description=PILO storage cycle
+After=local-fs.target
+RequiresMountsFor=/var/lib/pilo /opt/pilo
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/pilo
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PILO_CONFIG=/opt/pilo/pilo.conf.sh
+ExecStart=/opt/pilo/src/pilo-cycle.sh
+TimeoutStartSec=0
+UMask=0027
+StandardOutput=journal
+StandardError=journal

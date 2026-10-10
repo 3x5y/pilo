@@ -1,0 +1,10 @@
+# vim: filetype=systemd
+[Unit]
+Description=Watch for user requests to run a PILO storage cycle
+
+[Path]
+PathExists=/var/lib/pilo/request/cycle
+Unit=pilo-cycle.service
+
+[Install]
+WantedBy=multi-user.target

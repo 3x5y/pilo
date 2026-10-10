@@ -12,13 +12,19 @@ def main():
     target = cx.args[0] if cx.args else cx.root_dataset
     plan = recover.build_recovery_plan(cx, target)
     recover.execute_recovery_plan(plan, cx)
+    print("RESTORE COMPLETE")
 
     print("VERIFY ...")
     report = status.collect_report(cx)
     for msg in status.render_validation_report(report):
         print(msg)
 
-    exit(report.exit_code)
+    if report.exit_code:
+        print("RECOVERY INCOMPLETE: validation failed")
+    else:
+        print("RECOVERY COMPLETE: validation passed")
+
+    raise SystemExit(report.exit_code)
 
 
 if __name__ == "__main__":
