@@ -54,6 +54,7 @@ pilo storage-replication-verify
 
 phase=rotation-gc
 log "Running rotation garbage collection"
+pilo storage-rotate-gc --preview
 pilo storage-rotate-gc
 # Must implement the agreed rotation retention plan.
 
