@@ -2,6 +2,7 @@
 [Unit]
 Description=PILO storage cycle
 After=local-fs.target
+Requires=time-sync.target
 RequiresMountsFor=/var/lib/pilo /opt/pilo
 
 [Service]
