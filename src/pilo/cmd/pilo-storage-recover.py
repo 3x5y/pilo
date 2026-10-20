@@ -21,10 +21,10 @@ def main():
 
     if report.exit_code:
         print("RECOVERY INCOMPLETE: validation failed")
+        raise SystemExit(report.exit_code)
     else:
         print("RECOVERY COMPLETE: validation passed")
 
-    raise SystemExit(report.exit_code)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from pilo.storage import lifecycle
 from pilo.storage import recover
@@ -196,9 +196,10 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         mock_owner.assert_called_once_with(cx)
 
+    @patch("pilo.status.render_validation_report")
     @patch("pilo.storage.recover.execute_recovery_plan")
     @patch("pilo.storage.recover.build_recovery_plan")
-    def test_recover_uses_plan(self, mock_build, mock_exec):
+    def test_recover_uses_plan(self, mock_build, mock_exec, *_):
         cx = pilotest.make_context()
         cx.args = ["tank/a"]
         mock_build.return_value = recover.RecoveryPlan(
@@ -210,9 +211,12 @@ class TestRecoveryPlan(pilotest.TestCase):
 
         mod = pilotest.import_command('storage-recover')
 
+        report = Mock()
+        report.exit_code = 0
         with pilotest.suppress_stdout():
-            with patch("pilo.context.Context", return_value=cx):
-                mod.main()
+            with patch("pilo.status.collect_report", return_value=report):
+                with patch("pilo.context.Context", return_value=cx):
+                    mod.main()
 
         mock_build.assert_called_once_with(cx, "tank/a")
         mock_exec.assert_called_once()
