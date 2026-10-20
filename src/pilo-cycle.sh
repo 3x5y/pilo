@@ -70,6 +70,7 @@ rm -f "${TRIGGER}"
 # Create a new primary snapshot.
 phase=snapshot
 echo 'SNAPSHOT'
+pilo status snapshot
 pilo storage-snapshot-reg
 
 # Rotation deliberately pauses replication, not snapshot creation.
